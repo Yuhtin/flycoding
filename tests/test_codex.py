@@ -417,6 +417,35 @@ def test_interrupt_immediately_after_claim_releases_only_that_invocation(tmp_pat
     assert not active_after_interrupt
 
 
+@pytest.mark.parametrize("interrupted_attribute", ["_active", "_claim_token"])
+def test_interrupt_during_claim_publication_releases_state_and_allows_reuse(
+    tmp_path, monkeypatch, interrupted_attribute
+):
+    runner, capture = _runner(tmp_path, monkeypatch)
+    armed = True
+    original_setattr = CodexRunner.__setattr__
+
+    def interrupt_after_assignment(instance, name, value):
+        nonlocal armed
+        original_setattr(instance, name, value)
+        if instance is runner and armed and name == interrupted_attribute:
+            armed = False
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(CodexRunner, "__setattr__", interrupt_after_assignment)
+    with pytest.raises(KeyboardInterrupt):
+        runner.run("interrupted", None, lambda event: None)
+
+    assert not capture.exists()
+    assert not runner._active
+    assert runner._claim_token is None
+    assert runner._owner_thread is None
+
+    result = runner.run("retry", None, lambda event: None)
+    assert result["status"] == "completed"
+    assert json.loads(capture.read_text())["prompt"].endswith("retry")
+
+
 @pytest.mark.parametrize("setup_error", [OSError("log unavailable"), KeyboardInterrupt()])
 def test_setup_failure_or_interrupt_reaps_published_process_and_releases_lifecycle(
     tmp_path, monkeypatch, setup_error

@@ -176,7 +176,7 @@ class CodexRunner:
 
     def _owns_claim(self, claim_token: object) -> bool:
         with self._state_changed:
-            return self._active and self._claim_token is claim_token
+            return self._claim_token is claim_token
 
     def _release_active(self, claim_token: object) -> None:
         with self._state_changed:
@@ -194,8 +194,9 @@ class CodexRunner:
         with self._state_changed:
             if self._active:
                 raise RuntimeError("a Codex turn is already active")
-            self._active = True
+            # Publish ownership first so cleanup also recognizes a partial claim.
             self._claim_token = claim_token
+            self._active = True
             self._owner_thread = threading.get_ident()
             self._process = None
             self._process_group = None
