@@ -5,9 +5,11 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import queue
 import signal
 import subprocess
 import threading
+import time
 from typing import Callable, Any
 
 
@@ -51,7 +53,11 @@ class CodexRunner:
         self.executable = executable
         self.events_path = self.workspace.parent / "codex-events.jsonl"
         self._state_lock = threading.Lock()
+        self._state_changed = threading.Condition(self._state_lock)
+        self._termination_lock = threading.Lock()
+        self._active = False
         self._process: subprocess.Popen[str] | None = None
+        self._process_group: int | None = None
         self._cancel_requested = False
 
     def _arguments(self, session_id: str | None) -> list[str]:
@@ -86,31 +92,131 @@ class CodexRunner:
         return environment
 
     @staticmethod
-    def _terminate(process: subprocess.Popen[str]) -> None:
-        if process.poll() is not None:
-            process.wait()
-            return
+    def _group_exists(process_group: int) -> bool:
         try:
-            os.killpg(process.pid, signal.SIGTERM)
+            os.killpg(process_group, 0)
         except ProcessLookupError:
-            process.wait()
-            return
-        try:
-            process.wait(timeout=2)
-        except subprocess.TimeoutExpired:
+            return False
+        except PermissionError:
+            # Darwin can report EPERM for a group whose last process is being
+            # reaped. It is no longer a group this runner can signal.
+            return False
+        return True
+
+    def _terminate(self, process: subprocess.Popen[str], process_group: int) -> None:
+        """Terminate the whole group, even when its direct child has exited."""
+        with self._termination_lock:
+            if self._group_exists(process_group):
+                try:
+                    os.killpg(process_group, signal.SIGTERM)
+                except (ProcessLookupError, PermissionError):
+                    pass
+                grace_deadline = time.monotonic() + 0.1
+                while self._group_exists(process_group) and time.monotonic() < grace_deadline:
+                    time.sleep(0.01)
+            if self._group_exists(process_group):
+                try:
+                    os.killpg(process_group, signal.SIGKILL)
+                except (ProcessLookupError, PermissionError):
+                    pass
             try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            process.wait()
+                process.wait(timeout=0.5)
+            except subprocess.TimeoutExpired:
+                try:
+                    process.kill()
+                except ProcessLookupError:
+                    pass
+                process.wait(timeout=0.5)
+            gone_deadline = time.monotonic() + 0.5
+            while self._group_exists(process_group) and time.monotonic() < gone_deadline:
+                time.sleep(0.01)
+
+    @staticmethod
+    def _close_pipe(stream) -> None:
+        try:
+            os.close(stream.fileno())
+        except (OSError, ValueError):
+            pass
 
     def cancel(self) -> None:
-        """Terminate the active process group and wait until it is reaped."""
-        with self._state_lock:
+        """Cancel startup or terminate the active group, then await cleanup."""
+        with self._state_changed:
+            if not self._active:
+                return
             self._cancel_requested = True
+            self._state_changed.notify_all()
+            while self._active and self._process is None:
+                self._state_changed.wait()
             process = self._process
-        if process is not None:
-            self._terminate(process)
+            process_group = self._process_group
+        if process is not None and process_group is not None:
+            self._terminate(process, process_group)
+        with self._state_changed:
+            while self._active:
+                self._state_changed.wait()
+
+    @staticmethod
+    def _parse_event(line: str, stream_name: str) -> dict[str, Any] | None:
+        line = line.rstrip("\r\n")
+        if not line:
+            return None
+        try:
+            event = json.loads(line)
+            if not isinstance(event, dict) or "type" not in event:
+                raise ValueError("not a Codex event object")
+            return event
+        except (json.JSONDecodeError, ValueError):
+            return {"type": "diagnostic", "stream": stream_name, "message": line}
+
+    def _release_active(self) -> None:
+        with self._state_changed:
+            self._process = None
+            self._process_group = None
+            self._active = False
+            self._state_changed.notify_all()
+
+    def _startup_failed(self, session_id: str | None, exc: OSError) -> dict[str, Any]:
+        self._release_active()
+        return {
+            "session_id": session_id,
+            "status": "failed",
+            "usage": {},
+            "error": f"could not start Codex: {exc}",
+        }
+
+    def _claim_active(self) -> float:
+        with self._state_changed:
+            if self._active:
+                raise RuntimeError("a Codex turn is already active")
+            self._active = True
+            self._process = None
+            self._process_group = None
+            self._cancel_requested = False
+        return time.monotonic() + self.timeout
+
+    def _publish_process(self, process: subprocess.Popen[str]) -> bool:
+        with self._state_changed:
+            self._process = process
+            self._process_group = process.pid
+            cancelled = self._cancel_requested
+            self._state_changed.notify_all()
+            return cancelled
+
+    def _submit_prompt(self, process: subprocess.Popen[str], prompt: str) -> bool:
+        """Serialize the cancellation check with the first prompt write."""
+        with self._state_changed:
+            if self._cancel_requested:
+                try:
+                    process.stdin.close()
+                except BrokenPipeError:
+                    pass
+                return False
+            try:
+                process.stdin.write(prompt)
+                process.stdin.close()
+            except BrokenPipeError:
+                pass
+            return True
 
     def run(
         self,
@@ -121,12 +227,13 @@ class CodexRunner:
         """Submit exactly one prompt, streaming and durably recording events."""
         if not self.workspace.is_dir():
             raise ValueError(f"workspace does not exist: {self.workspace}")
-        with self._state_lock:
-            if self._process is not None:
-                raise RuntimeError("a Codex turn is already active")
-            self._cancel_requested = False
+        deadline = self._claim_active()
 
-        full_prompt = prompt if session_id is not None else f"{INITIAL_CONTEXT}\nSelected instruction:\n{prompt}"
+        full_prompt = (
+            prompt
+            if session_id is not None
+            else f"{INITIAL_CONTEXT}\nSelected instruction:\n{prompt}"
+        )
         try:
             process = subprocess.Popen(
                 self._arguments(session_id),
@@ -140,58 +247,49 @@ class CodexRunner:
                 start_new_session=True,
             )
         except OSError as exc:
-            return {
-                "session_id": session_id,
-                "status": "failed",
-                "usage": {},
-                "error": f"could not start Codex: {exc}",
-            }
-        with self._state_lock:
-            self._process = process
+            return self._startup_failed(session_id, exc)
+        cancelled_before_submit = self._publish_process(process)
 
-        events: list[dict[str, Any]] = []
-        event_lock = threading.Lock()
         reported_session = session_id
         usage: dict[str, Any] = {}
         turn_completed = False
         turn_error: str | None = None
         callback_error: Exception | None = None
+        timed_out = False
+        event_queue: queue.Queue[object] = queue.Queue()
+        stream_finished = object()
         self.events_path.parent.mkdir(parents=True, exist_ok=True)
         event_file = self.events_path.open("a")
 
         def emit(event: dict[str, Any]) -> None:
             nonlocal reported_session, usage, turn_completed, turn_error, callback_error
-            with event_lock:
-                events.append(event)
-                event_file.write(json.dumps(event, sort_keys=True) + "\n")
-                event_file.flush()
-                os.fsync(event_file.fileno())
-                event_type = event.get("type")
-                if event_type == "thread.started" and isinstance(event.get("thread_id"), str):
-                    reported_session = event["thread_id"]
-                elif event_type == "turn.completed":
-                    turn_completed = True
-                    if isinstance(event.get("usage"), dict):
-                        usage = event["usage"]
-                elif event_type in {"turn.failed", "error"}:
-                    turn_error = _event_error(event.get("error", event))
-                try:
-                    on_event(event)
-                except Exception as exc:
-                    callback_error = exc
+            event_file.write(json.dumps(event, sort_keys=True) + "\n")
+            event_file.flush()
+            os.fsync(event_file.fileno())
+            event_type = event.get("type")
+            if event_type == "thread.started" and isinstance(event.get("thread_id"), str):
+                reported_session = event["thread_id"]
+            elif event_type == "turn.completed":
+                turn_completed = True
+                if isinstance(event.get("usage"), dict):
+                    usage = event["usage"]
+            elif event_type in {"turn.failed", "error"}:
+                turn_error = _event_error(event.get("error", event))
+            try:
+                on_event(event)
+            except Exception as exc:
+                callback_error = exc
 
         def read_stream(stream, stream_name: str) -> None:
-            for line in stream:
-                line = line.rstrip("\r\n")
-                if not line:
-                    continue
-                try:
-                    event = json.loads(line)
-                    if not isinstance(event, dict) or "type" not in event:
-                        raise ValueError("not a Codex event object")
-                except (json.JSONDecodeError, ValueError):
-                    event = {"type": "diagnostic", "stream": stream_name, "message": line}
-                emit(event)
+            try:
+                for line in stream:
+                    event = self._parse_event(line, stream_name)
+                    if event is not None:
+                        event_queue.put(event)
+            except (OSError, ValueError):
+                pass
+            finally:
+                event_queue.put(stream_finished)
 
         stdout_thread = threading.Thread(
             target=read_stream, args=(process.stdout, "stdout"), daemon=True
@@ -201,26 +299,63 @@ class CodexRunner:
         )
         stdout_thread.start()
         stderr_thread.start()
+        cleanup_deadline: float | None = None
+        open_streams = 2
         try:
-            try:
-                process.stdin.write(full_prompt)
-                process.stdin.close()
-            except BrokenPipeError:
-                pass
-            timed_out = False
-            try:
-                return_code = process.wait(timeout=self.timeout)
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                self._terminate(process)
-                return_code = process.returncode
-            stdout_thread.join()
-            stderr_thread.join()
+            submitted = self._submit_prompt(process, full_prompt)
+            if cancelled_before_submit or not submitted:
+                self._terminate(process, process.pid)
+                cleanup_deadline = time.monotonic() + 0.5
+            while open_streams or process.poll() is None:
+                with self._state_changed:
+                    cancelled = self._cancel_requested
+                now = time.monotonic()
+                if cancelled and cleanup_deadline is None:
+                    self._terminate(process, process.pid)
+                    cleanup_deadline = time.monotonic() + 0.5
+                elif process.poll() is not None and cleanup_deadline is None:
+                    process.wait()
+                    if self._group_exists(process.pid):
+                        self._terminate(process, process.pid)
+                    cleanup_deadline = time.monotonic() + 0.5
+                elif now >= deadline and cleanup_deadline is None:
+                    timed_out = True
+                    self._terminate(process, process.pid)
+                    cleanup_deadline = time.monotonic() + 0.5
+                if cleanup_deadline is not None and now >= cleanup_deadline:
+                    self._close_pipe(process.stdout)
+                    self._close_pipe(process.stderr)
+                    break
+                wait_for = 0.02
+                if cleanup_deadline is None:
+                    wait_for = max(0.001, min(wait_for, deadline - now))
+                try:
+                    item = event_queue.get(timeout=wait_for)
+                except queue.Empty:
+                    continue
+                if item is stream_finished:
+                    open_streams -= 1
+                else:
+                    emit(item)
+            stdout_thread.join(timeout=0.2)
+            stderr_thread.join(timeout=0.2)
+            while True:
+                try:
+                    item = event_queue.get_nowait()
+                except queue.Empty:
+                    break
+                if item is not stream_finished:
+                    emit(item)
+            if process.poll() is None or self._group_exists(process.pid):
+                self._terminate(process, process.pid)
+            return_code = process.wait()
         finally:
             event_file.close()
-            with self._state_lock:
+            with self._state_changed:
                 cancelled = self._cancel_requested
-                self._process = None
+            if process.poll() is None or self._group_exists(process.pid):
+                self._terminate(process, process.pid)
+            self._release_active()
 
         if callback_error is not None and turn_error is None:
             turn_error = f"event callback failed: {callback_error}"

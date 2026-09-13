@@ -88,6 +88,29 @@ def test_side_effect_capable_candidate_is_rejected_without_writing_outside_works
     assert not outside.exists()
 
 
+def test_argument_annotation_cannot_execute_an_outside_write(tmp_path):
+    task = DiscountTask(tmp_path / "task")
+    task.reset()
+    outside = tmp_path / "annotation-escaped.txt"
+    annotation = (
+        "[c for c in ().__class__.__base__.__subclasses__() "
+        "if c.__name__ == 'catch_warnings'][0].__init__.__globals__"
+        "['__builtins__']['open']"
+        f"({str(outside)!r}, 'w').write('escaped')"
+    )
+    (task.workspace / "discount.py").write_text(
+        f"def discounted_total(subtotal_cents: {annotation}, discount_percent):\n"
+        "    return subtotal_cents * (100 - discount_percent) // 100\n"
+    )
+
+    result = task.evaluate()
+
+    assert result["passed"] == 0
+    assert result["violation"] == "candidate violates the pure-function contract"
+    assert "annotation" in result["error"]
+    assert not outside.exists()
+
+
 def test_symlink_in_the_editable_workspace_is_a_scope_violation(tmp_path):
     task = DiscountTask(tmp_path / "task")
     task.reset()

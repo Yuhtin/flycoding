@@ -1,5 +1,8 @@
 import json
+import os
 from pathlib import Path
+import signal
+import subprocess
 import threading
 import time
 
@@ -13,6 +16,8 @@ def _fixture_executable(tmp_path: Path) -> Path:
 import json
 import os
 from pathlib import Path
+import signal
+import subprocess
 import sys
 import time
 
@@ -26,9 +31,22 @@ capture.write_text(json.dumps({
 mode = os.environ.get("FLYCODEX_FIXTURE_MODE", "success")
 
 if mode != "omit-session":
-    print(json.dumps({"type": "thread.started", "thread_id": "session-fixture"}), flush=True)
+    print(json.dumps({"type": "thread.started", "thread_id": "session-fixture", "fixture_pid": os.getpid()}), flush=True)
 
-if mode == "delay":
+if mode in {"child-delay", "parent-exits"}:
+    child_ready = os.environ["FLYCODEX_CHILD_READY"]
+    child_source = (
+        "import os, signal, time; "
+        "signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+        f"open({child_ready!r}, 'w').write(str(os.getpid())); "
+        "time.sleep(30)"
+    )
+    subprocess.Popen([sys.executable, "-c", child_source])
+    deadline = time.monotonic() + 2
+    while not Path(child_ready).exists() and time.monotonic() < deadline:
+        time.sleep(0.01)
+
+if mode in {"delay", "child-delay"}:
     time.sleep(30)
 elif mode == "fail":
     print("fixture diagnostic on stdout", flush=True)
@@ -50,8 +68,17 @@ def _runner(tmp_path, monkeypatch, mode="success", **kwargs):
     capture = tmp_path / "capture.json"
     monkeypatch.setenv("FLYCODEX_FIXTURE_CAPTURE", str(capture))
     monkeypatch.setenv("FLYCODEX_FIXTURE_MODE", mode)
+    monkeypatch.setenv("FLYCODEX_CHILD_READY", str(tmp_path / "child-ready"))
     runner = CodexRunner(workspace, executable=str(_fixture_executable(tmp_path)), **kwargs)
     return runner, capture
+
+
+def _pid_exists(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
 
 
 def test_prompts_match_the_three_predeclared_actions_exactly():
@@ -188,3 +215,151 @@ def test_cancel_terminates_and_waits_for_the_active_process_group(tmp_path, monk
     assert not thread.is_alive()
     assert result["status"] == "cancelled"
     assert result["error"] == "Codex turn was cancelled"
+
+
+def test_overlapping_startup_is_rejected_before_a_second_process_spawns(tmp_path, monkeypatch):
+    runner, _ = _runner(tmp_path, monkeypatch)
+    original_popen = subprocess.Popen
+    first_entered = threading.Event()
+    release_first = threading.Event()
+    calls = 0
+    calls_lock = threading.Lock()
+
+    def delayed_first_spawn(*args, **kwargs):
+        nonlocal calls
+        with calls_lock:
+            calls += 1
+            call_number = calls
+        if call_number == 1:
+            first_entered.set()
+            assert release_first.wait(timeout=2)
+        return original_popen(*args, **kwargs)
+
+    monkeypatch.setattr("flycodex.codex.subprocess.Popen", delayed_first_spawn)
+    outcomes = []
+
+    def invoke():
+        try:
+            outcomes.append(runner.run("fixture", None, lambda event: None))
+        except Exception as exc:
+            outcomes.append(exc)
+
+    first = threading.Thread(target=invoke)
+    first.start()
+    assert first_entered.wait(timeout=2)
+    second = threading.Thread(target=invoke)
+    second.start()
+    second.join(timeout=1)
+    release_first.set()
+    first.join(timeout=2)
+    second.join(timeout=2)
+
+    assert calls == 1
+    assert sum(isinstance(outcome, RuntimeError) for outcome in outcomes) == 1
+    assert sum(
+        isinstance(outcome, dict) and outcome["status"] == "completed"
+        for outcome in outcomes
+    ) == 1
+
+
+def test_cancellation_during_startup_prevents_prompt_submission(tmp_path, monkeypatch):
+    runner, capture = _runner(tmp_path, monkeypatch)
+    original_popen = subprocess.Popen
+    startup_entered = threading.Event()
+    release_startup = threading.Event()
+
+    def delayed_spawn(*args, **kwargs):
+        startup_entered.set()
+        assert release_startup.wait(timeout=2)
+        return original_popen(*args, **kwargs)
+
+    monkeypatch.setattr("flycodex.codex.subprocess.Popen", delayed_spawn)
+    result = {}
+    run_thread = threading.Thread(
+        target=lambda: result.update(runner.run("must-not-send", None, lambda event: None))
+    )
+    run_thread.start()
+    assert startup_entered.wait(timeout=2)
+    cancel_thread = threading.Thread(target=runner.cancel)
+    cancel_thread.start()
+    release_startup.set()
+    cancel_thread.join(timeout=2)
+    run_thread.join(timeout=2)
+
+    assert not cancel_thread.is_alive()
+    assert not run_thread.is_alive()
+    assert result["status"] == "cancelled"
+    assert not capture.exists() or json.loads(capture.read_text())["prompt"] == ""
+
+
+def test_cancel_kills_a_sigterm_ignoring_descendant_and_finishes_readers(tmp_path, monkeypatch):
+    runner, _ = _runner(tmp_path, monkeypatch, mode="child-delay", timeout=30)
+    started = threading.Event()
+    parent_pid = []
+    result = {}
+
+    def on_event(event):
+        if event["type"] == "thread.started":
+            parent_pid.append(event["fixture_pid"])
+            started.set()
+
+    run_thread = threading.Thread(
+        target=lambda: result.update(runner.run("fixture", None, on_event))
+    )
+    run_thread.start()
+    assert started.wait(timeout=2)
+    child_ready = tmp_path / "child-ready"
+    deadline = time.monotonic() + 2
+    while not child_ready.exists() and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert child_ready.exists()
+    child_pid = int(child_ready.read_text())
+
+    runner.cancel()
+    run_thread.join(timeout=2)
+    finished = not run_thread.is_alive()
+    child_survived = _pid_exists(child_pid)
+    if not finished or child_survived:
+        try:
+            os.killpg(parent_pid[0], signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        run_thread.join(timeout=2)
+
+    assert finished
+    assert not child_survived
+    assert result["status"] == "cancelled"
+
+
+def test_direct_child_exit_kills_descendants_and_finishes_readers(tmp_path, monkeypatch):
+    runner, _ = _runner(tmp_path, monkeypatch, mode="parent-exits", timeout=0.5)
+    result = {}
+    parent_pid = []
+
+    def on_event(event):
+        if event["type"] == "thread.started":
+            parent_pid.append(event["fixture_pid"])
+
+    run_thread = threading.Thread(
+        target=lambda: result.update(runner.run("fixture", None, on_event))
+    )
+    run_thread.start()
+    child_ready = tmp_path / "child-ready"
+    deadline = time.monotonic() + 2
+    while not child_ready.exists() and time.monotonic() < deadline:
+        time.sleep(0.01)
+    assert child_ready.exists()
+    child_pid = int(child_ready.read_text())
+    run_thread.join(timeout=1)
+    finished = not run_thread.is_alive()
+    child_survived = _pid_exists(child_pid)
+    if not finished or child_survived:
+        try:
+            os.killpg(parent_pid[0], signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        run_thread.join(timeout=2)
+
+    assert finished
+    assert not child_survived
+    assert result["status"] == "completed"

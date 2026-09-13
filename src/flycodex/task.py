@@ -81,7 +81,7 @@ import sys
 
 ALLOWED_OPERATORS = (ast.Add, ast.Sub, ast.Mult, ast.FloorDiv, ast.Mod)
 ALLOWED_UNARY = (ast.UAdd, ast.USub)
-ARGUMENTS = {"subtotal_cents", "discount_percent"}
+ARGUMENTS = ("subtotal_cents", "discount_percent")
 
 
 class ContractError(ValueError):
@@ -113,10 +113,11 @@ def validate_module(tree):
         raise ContractError(f"unsupported syntax: {type(node).__name__}")
     function = tree.body[0]
     arguments = function.args
-    names = [argument.arg for argument in arguments.posonlyargs + arguments.args]
+    names = [argument.arg for argument in arguments.args]
     if (
         function.name != "discounted_total"
         or names != ["subtotal_cents", "discount_percent"]
+        or arguments.posonlyargs
         or arguments.vararg is not None
         or arguments.kwarg is not None
         or arguments.kwonlyargs
@@ -124,11 +125,16 @@ def validate_module(tree):
         or arguments.kw_defaults
         or function.decorator_list
         or function.returns is not None
+        or function.type_comment is not None
+        or getattr(function, "type_params", [])
         or len(function.body) != 1
         or not isinstance(function.body[0], ast.Return)
     ):
         raise ContractError("discounted_total must be one undecorated two-argument return function")
+    if any(argument.annotation is not None for argument in arguments.args):
+        raise ContractError("argument annotations are not supported")
     validate_expression(function.body[0].value)
+    return function.body[0].value
 
 
 def failed_cases(cases, error):
@@ -147,10 +153,13 @@ def main():
     try:
         source = candidate_path.read_text()
         tree = ast.parse(source, filename=str(candidate_path))
-        validate_module(tree)
+        expression = validate_module(tree)
         namespace = {"__builtins__": {}}
-        exec(compile(tree, str(candidate_path), "exec"), namespace)
-        function = namespace["discounted_total"]
+        compiled_expression = compile(
+            ast.fix_missing_locations(ast.Expression(body=expression)),
+            str(candidate_path),
+            "eval",
+        )
     except (SyntaxError, ContractError) as exc:
         name = type(exc).__name__
         print(json.dumps(failed_cases(cases, f"{name}: {exc}"), sort_keys=True))
@@ -163,7 +172,7 @@ def main():
     tests = []
     for case in cases:
         try:
-            actual = function(*case["args"])
+            actual = eval(compiled_expression, namespace, dict(zip(ARGUMENTS, case["args"])))
             passed = type(actual) is int and actual == case["expected"]
             tests.append({"id": case["id"], "passed": passed, "actual": actual})
         except Exception as exc:
