@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "flycodex"
+version = "0.1.0"
+description = "A reproducible full-connectome neural control pilot for Codex."
+requires-python = ">=3.11"
+dependencies = [
+  "numpy>=2.0",
+  "pandas>=2.2",
+  "Pillow>=10.0",
+  "pyarrow>=17.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/flycodex"]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
