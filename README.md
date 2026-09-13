@@ -41,10 +41,18 @@ O armazenamento usa locks POSIX e o transporte usa grupos de processos; Windows
 não foi validado. Nenhuma credencial pertence aos arquivos do projeto.
 
 ```sh
+git clone https://github.com/Yuhtin/flycodex
+cd flycodex
 rtk proxy uv sync --group dev
 rtk proxy uv run flycodex --help
 rtk proxy .venv/bin/python -m pytest
 ```
+
+A execução real de `flycodex run` é suportada a partir desse checkout editável.
+Antes de carregar o grafo ou iniciar o Codex, o comando confirma que a raiz Git
+é dona do `src/flycodex/pilot.py` carregado. Uma instalação por wheel pode usar
+os comandos de leitura `status`, `serve` e `report`, mas `run` a recusa com um
+diagnóstico que aponta para o fluxo de clone acima.
 
 Os testes usam somente executáveis controlados e políticas determinísticas,
 identificados como **sintéticos**. Não baixam dados, não executam a CLI real do
@@ -111,8 +119,17 @@ rtk proxy uv run flycodex report --run-dir runs/pilot --output-dir docs/results
 
 O relatório exporta `pilot.json` e `pilot.md`, identificados como reais ou
 sintéticos. Omite eventos brutos e IDs de sessão e substitui caminhos locais
-conhecidos em diagnósticos. Revise os artefatos antes de qualquer publicação;
-os comandos não criam repositórios remotos nem publicam resultados.
+conhecidos em diagnósticos. Ao exportar para um diretório novo, copie também os
+PNGs referenciados de `runs/pilot/public/` para um subdiretório `inputs/` do
+destino; `report` não copia imagens. Por exemplo:
+
+```sh
+rtk proxy mkdir -p export/pilot/inputs
+rtk proxy cp runs/pilot/public/*.png export/pilot/inputs/
+```
+
+Revise os artefatos antes de qualquer publicação; os comandos não criam
+repositórios remotos nem publicam resultados.
 
 ## Parada, orçamento e retomada
 

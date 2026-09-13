@@ -9,8 +9,9 @@ from PIL import Image
 import pytest
 
 from flycodex.codex import CodexRunner
+from flycodex import pilot as pilot_module
 from flycodex.pilot import Pilot, verify_data, write_report
-from flycodex.storage import RunStore
+from flycodex.storage import RunStore, atomic_save_json
 from flycodex.task import DiscountTask
 
 
@@ -84,6 +85,7 @@ def test_six_pristine_attempts_final_feedback_and_memory_retention(tmp_path, con
     assert result["budget"]["used"] == 6
     for name, attempt in attempts.items():
         assert attempt["status"] == "success"
+        assert attempt["workspace"] == str((tmp_path / "run/attempts" / name / "workspace").resolve())
         assert attempt["baseline"]["passed"] == 1
         assert len(attempt["turns"]) == 1
         turn = attempt["turns"][0]
@@ -106,6 +108,52 @@ def test_six_pristine_attempts_final_feedback_and_memory_retention(tmp_path, con
     report = write_report(tmp_path / "run", tmp_path / "report")
     assert report["evidence"] == "synthetic"
     assert "events" not in report
+    for name, attempt in report["attempts"].items():
+        assert attempt["turns"][0]["feedback_input"] == result["attempts"][name]["turns"][0]["feedback_input"]
+
+
+def test_report_exports_sanitized_run_recovery_error_without_completed_turns(tmp_path):
+    run_dir = tmp_path / "run"
+    public = run_dir / "public"
+    public.mkdir(parents=True)
+    raw_error = f"Inspect {run_dir.resolve()}/journal.jsonl before recovery."
+    atomic_save_json(public / "snapshot.json", {
+        "evidence": "synthetic",
+        "status": "recovery_error",
+        "error": raw_error,
+        "budget": {"used": 1},
+        "settings": {
+            "model": "synthetic-model",
+            "codex_version": "synthetic executable fixture",
+            "source_revision": "fixture-revision",
+            "source_dirty": False,
+        },
+        "attempts": {
+            "adaptive-1": {
+                "status": "running",
+                "condition": "adaptive",
+                "turns": [],
+            }
+        },
+    })
+
+    report = write_report(run_dir, tmp_path / "report")
+
+    assert report["error"] == "Inspect <run>/journal.jsonl before recovery."
+    assert "Recovery error: Inspect <run>/journal.jsonl before recovery." in (tmp_path / "report/pilot.md").read_text()
+
+
+def test_genuine_settings_reject_an_installed_package_before_data_or_codex(tmp_path, monkeypatch):
+    installed_module = tmp_path / "site-packages/flycodex/pilot.py"
+    installed_module.parent.mkdir(parents=True)
+    installed_module.write_text("# wheel-installed module\n")
+    monkeypatch.setattr(pilot_module, "__file__", str(installed_module))
+    monkeypatch.setattr(pilot_module, "verify_data", lambda _: pytest.fail("graph data was loaded"))
+
+    with pytest.raises(RuntimeError, match="editable Git checkout") as error:
+        pilot_module._settings(tmp_path / "missing-data", "must-not-run", "genuine")
+
+    assert "git clone https://github.com/Yuhtin/flycodex" in str(error.value)
 
 
 def test_noop_exhausts_equal_budgets_and_reuses_only_own_session(tmp_path, controlled_codex):

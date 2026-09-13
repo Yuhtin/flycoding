@@ -2,6 +2,7 @@
 import http.client
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import threading
@@ -76,3 +77,61 @@ def test_cli_missing_data_is_nonzero_and_spends_nothing(tmp_path):
     assert result.returncode == 1
     assert "Prepared source required" in result.stderr
     assert not (tmp_path / "run/state.json").exists()
+
+
+def test_dashboard_uses_prior_evaluation_and_coalesces_readable_item_events():
+    if not shutil.which("node"):
+        pytest.skip("Node.js is required for the dashboard logic regression test")
+    app = Path(__file__).parents[1] / "src/flycodex/web/app.js"
+    script = r'''
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const emptyNode = {addEventListener() {}, textContent: '', value: 'live'};
+const context = {
+  document: {getElementById() { return emptyNode; }, querySelectorAll() { return []; }},
+  fetch() { return new Promise(() => {}); },
+  setTimeout() {}, Option: function() {}
+};
+vm.createContext(context);
+vm.runInContext(fs.readFileSync(process.argv[1], 'utf8'), context);
+
+const firstEvaluation = {passed: 3, total: 5, tests: []};
+const attempt = {
+  baseline: {passed: 1, total: 5, tests: []},
+  turns: [
+    {step: 1, evaluation: firstEvaluation},
+    {step: 2, infrastructure_error: 'evaluator unavailable'},
+  ]
+};
+assert.deepEqual(context.evaluationForTurn(attempt, attempt.turns[1]), firstEvaluation);
+
+const workspace = '/private/run/attempts/adaptive-1/workspace';
+const events = [
+  {type: 'item.started', item: {id: 'cmd', type: 'command_execution', command: `python ${workspace}/test_discount.py`, aggregated_output: 'running', exit_code: null}},
+  {type: 'item.completed', item: {id: 'cmd', type: 'command_execution', command: `python ${workspace}/test_discount.py`, aggregated_output: 'ok', exit_code: 0}},
+  {type: 'item.started', item: {id: 'file', type: 'file_change', changes: [{kind: 'update', path: `${workspace}/discount.py`}]}},
+  {type: 'item.completed', item: {id: 'file', type: 'file_change', changes: [{kind: 'update', path: `${workspace}/discount.py`}]}},
+  {type: 'turn.completed'}
+];
+const unchanged = JSON.stringify(events);
+assert.equal(context.recordedWorkspace({turns: [{events}]}, 'adaptive-1'), workspace);
+const projected = context.coalesceItemEvents(events);
+assert.equal(projected.length, 3);
+assert.equal(JSON.stringify(projected.map(event => event.item?.id || event.type)), '["cmd","file","turn.completed"]');
+const readable = projected.map(event => context.readableEvent(event, workspace)).join('\n\n');
+assert.match(readable, /python test_discount\.py/);
+assert.match(readable, /\[saída 0\]/);
+assert.match(readable, /\[arquivo update\] discount\.py/);
+assert.doesNotMatch(readable, /\/private\/run/);
+assert.doesNotMatch(readable, /saída null/);
+assert.equal(JSON.stringify(events), unchanged);
+
+const running = context.readableEvent(events[0], workspace);
+assert.match(running, /running/);
+assert.doesNotMatch(running, /saída null/);
+''';
+    result = subprocess.run(
+        ["node", "-e", script, str(app)], capture_output=True, text=True, timeout=5
+    )
+    assert result.returncode == 0, result.stderr

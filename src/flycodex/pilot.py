@@ -23,6 +23,13 @@ class RecoveryError(RuntimeError):
     """Persisted state cannot safely support another attempt."""
 
 
+_EDITABLE_CHECKOUT_MESSAGE = (
+    "Genuine runs require an editable Git checkout of Flycodex whose Git root "
+    "owns src/flycodex/pilot.py. Install it with: git clone "
+    "https://github.com/Yuhtin/flycodex && cd flycodex && uv sync"
+)
+
+
 def verify_data(data_dir: Path) -> dict:
     """Read-only verification of every dataset input used by the runtime."""
     from .neural import policy
@@ -42,18 +49,40 @@ def _command_output(argv):
     return subprocess.run(argv, capture_output=True, text=True, check=True, timeout=30).stdout.strip()
 
 
+def _source_checkout(source_file: Path | None = None) -> Path:
+    """Return the editable checkout that owns this module or reject the install."""
+    module = Path(source_file or __file__).resolve()
+    try:
+        candidate = module.parents[2]
+    except IndexError as exc:
+        raise RuntimeError(_EDITABLE_CHECKOUT_MESSAGE) from exc
+    try:
+        root = Path(_command_output(["git", "-C", str(candidate), "rev-parse", "--show-toplevel"])).resolve()
+        tracked = _command_output([
+            "git", "-C", str(root), "ls-files", "--error-unmatch", "--", "src/flycodex/pilot.py",
+        ])
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError(_EDITABLE_CHECKOUT_MESSAGE) from exc
+    if root != candidate or tracked != "src/flycodex/pilot.py" or (root / tracked).resolve() != module:
+        raise RuntimeError(_EDITABLE_CHECKOUT_MESSAGE)
+    return root
+
+
 def _settings(data_dir, model, evidence):
     if not model:
         raise ValueError("An explicit Codex model is required")
     if evidence == "genuine":
+        if not shutil.which("git"):
+            raise RuntimeError("Required executable missing: git")
+        source = _source_checkout()
         data = verify_data(data_dir)
-        for executable in ("codex", "git", "rtk", "python", "c++"):
+        for executable in ("codex", "rtk", "python", "c++"):
             if not shutil.which(executable):
                 raise RuntimeError(f"Required executable missing: {executable}")
         version = _command_output(["codex", "--version"])
     else:
         data, version = {"verified": False, "label": "synthetic fixture"}, "synthetic executable fixture"
-    source = Path(__file__).resolve().parents[2]
+        source = Path(__file__).resolve().parents[2]
     revision = _command_output(["git", "-C", str(source), "rev-parse", "HEAD"])
     dirty = bool(_command_output(["git", "-C", str(source), "status", "--porcelain"]))
     return {"model": model, "codex_version": version, "source_revision": revision,
@@ -176,6 +205,7 @@ class Pilot:
     def _attempt(self, store, attempt):
         name, condition = attempt["id"], attempt["condition"]
         task = self.task_factory(self.root / "attempts" / name)
+        attempt["workspace"] = str(task.workspace)
         policy = None
         try:
             task.reset()
@@ -306,6 +336,8 @@ def write_report(run_dir: Path, output_dir: Path) -> dict:
               "model": settings["model"], "codex_version": settings["codex_version"],
               "source_revision": settings["source_revision"], "source_dirty": settings["source_dirty"],
               "attempts": {}, "limitations": "Six attempts measure mechanism operation only; they do not demonstrate task learning, generalization, statistical significance, language ability or cognition."}
+    if state.get("error"):
+        report["error"] = state["error"]
     for name in ATTEMPT_ORDER:
         if name not in state["attempts"]:
             continue
@@ -315,7 +347,7 @@ def write_report(run_dir: Path, output_dir: Path) -> dict:
                                     "error": attempt.get("error"), "turns": []}
         for turn in attempt["turns"]:
             report["attempts"][name]["turns"].append({key: turn[key] for key in (
-                "step", "send_id", "input", "choice", "prompt", "evaluation", "feedback", "infrastructure_error",
+                "step", "send_id", "input", "feedback_input", "choice", "prompt", "evaluation", "feedback", "infrastructure_error",
                 "weights_before", "weights_after_choice", "weights_after_feedback") if key in turn})
             if "codex" in turn:
                 report["attempts"][name]["turns"][-1]["execution"] = {key: turn["codex"].get(key) for key in ("status", "error", "usage")}
@@ -326,8 +358,10 @@ def write_report(run_dir: Path, output_dir: Path) -> dict:
     output.mkdir(parents=True, exist_ok=True)
     atomic_save_json(output / "pilot.json", report)
     lines = ["# Flycodex pilot", "", f"Evidence: **{report['evidence']}**. Status: **{report['status']}**.",
-             f"Model: `{report['model']}`. Reserved sends: {report['budget']['used']}/30.", "",
-             "| Attempt | Result | Instructions | Final passing tests |", "| --- | --- | ---: | ---: |"]
+             f"Model: `{report['model']}`. Reserved sends: {report['budget']['used']}/30."]
+    if report.get("error"):
+        lines.extend(["", f"Recovery error: {report['error']}"])
+    lines.extend(["", "| Attempt | Result | Instructions | Final passing tests |", "| --- | --- | ---: | ---: |"])
     for name, attempt in report["attempts"].items():
         evaluated = [t["evaluation"] for t in attempt["turns"] if "evaluation" in t]
         score = evaluated[-1]["passed"] if evaluated else "—"

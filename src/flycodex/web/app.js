@@ -6,6 +6,48 @@ const order = ['adaptive-1','frozen-1','random-1','adaptive-2','frozen-2','rando
 let current = null;
 function text(id, value) { byId(id).textContent = value; }
 function turns(state) { return order.flatMap(name => (state.attempts[name]?.turns || []).map(turn => ({name,turn,key:`${name}:${turn.step}`}))); }
+function evaluationForTurn(attempt, turn) {
+  const turnIndex = attempt.turns.indexOf(turn);
+  for (let index = turnIndex; index >= 0; index -= 1) {
+    if (attempt.turns[index].evaluation) return attempt.turns[index].evaluation;
+  }
+  return attempt.baseline;
+}
+function coalesceItemEvents(events) {
+  const projected = [];
+  const itemIndexes = new Map();
+  for (const event of events) {
+    const item = event.item || {};
+    const coalesced = item.id && (item.type === 'command_execution' || item.type === 'file_change');
+    if (!coalesced || !itemIndexes.has(item.id)) {
+      if (coalesced) itemIndexes.set(item.id, projected.length);
+      projected.push(event);
+    } else {
+      projected[itemIndexes.get(item.id)] = event;
+    }
+  }
+  return projected;
+}
+function relativeToWorkspace(value, workspace) {
+  if (!workspace || typeof value !== 'string') return value;
+  const root = workspace.replace(/\/+$/, '');
+  if (value === root) return '.';
+  return value.split(root + '/').join('');
+}
+function recordedWorkspace(attempt, name) {
+  if (attempt.workspace) return attempt.workspace;
+  const marker = `/attempts/${name}/workspace`;
+  for (const turn of attempt.turns || []) {
+    for (const event of turn.events || []) {
+      for (const change of event.item?.changes || []) {
+        const path = change.path || '';
+        const end = path.indexOf(marker) + marker.length;
+        if (end >= marker.length && (path.length === end || path[end] === '/')) return path.slice(0, end);
+      }
+    }
+  }
+  return '';
+}
 function renderSelection() {
   if (!current) return;
   const all = turns(current);
@@ -30,7 +72,7 @@ function renderSelection() {
   text('gate',choice.gate_spikes ?? '—');
   const feedback = turn.feedback;
   text('feedback',feedback ? ({'-1':'Negativo','0':'Neutro','1':'Positivo'}[feedback.signal] + (feedback.delivered_to_neural ? '' : ' · registrado')) : 'Não entregue');
-  const evaluation = turn.evaluation || current.attempts[name].baseline;
+  const evaluation = evaluationForTurn(current.attempts[name], turn);
   text('score',evaluation ? `${evaluation.passed} / ${evaluation.total}` : '—');
   const tests = byId('tests'); tests.replaceChildren();
   for (const item of evaluation?.tests || []) {
@@ -40,15 +82,15 @@ function renderSelection() {
   text('violation',evaluation?.violation || turn.infrastructure_error || turn.codex?.error || '');
   text('trace',JSON.stringify({attempt:name,step:turn.step,choice,feedback,weights_before:turn.weights_before,weights_after_choice:turn.weights_after_choice,weights_after_feedback:turn.weights_after_feedback},null,2));
 }
-function readableEvent(event) {
+function readableEvent(event, workspace) {
   const item = event.item || {};
   if (item.type === 'agent_message' || item.type === 'reasoning') return item.text || '';
   if (item.type === 'command_execution') {
     const output = item.aggregated_output || '';
-    const result = item.exit_code === undefined ? '' : `\n[saída ${item.exit_code}]`;
-    return `$ ${item.command || ''}\n${output}${result}`;
+    const result = item.exit_code == null ? '' : `\n[saída ${item.exit_code}]`;
+    return `$ ${relativeToWorkspace(item.command || '', workspace)}\n${relativeToWorkspace(output, workspace)}${result}`;
   }
-  if (item.type === 'file_change') return (item.changes || []).map(change => `[arquivo ${change.kind || 'alterado'}] ${change.path || ''}`).join('\n');
+  if (item.type === 'file_change') return (item.changes || []).map(change => `[arquivo ${change.kind || 'alterado'}] ${relativeToWorkspace(change.path || '', workspace)}`).join('\n');
   if (event.type === 'thread.started') return '[sessão iniciada]';
   if (event.type === 'turn.started') return '[instrução em execução]';
   if (event.type === 'turn.completed') return '[instrução concluída]';
@@ -59,11 +101,13 @@ function readableEvent(event) {
 function renderEvents(entry, live) {
   const {name,turn} = entry;
   const events = turn.events || [];
+  const workspace = recordedWorkspace(current.attempts[name], name);
+  const readable = coalesceItemEvents(events);
   text('terminal-scope',`${name} · instrução ${turn.step} · ${live ? 'acompanhando' : 'histórico'} · últimos 200 eventos`);
   text('terminal-state',live && current.busy ? 'Codex em execução' : 'Registro da instrução');
   const terminal = byId('events');
   const atEnd = terminal.scrollHeight - terminal.scrollTop - terminal.clientHeight < 40;
-  terminal.textContent = events.length ? events.map(readableEvent).filter(Boolean).join('\n\n') : 'Nenhum evento registrado para esta instrução.';
+  terminal.textContent = readable.length ? readable.map(event => readableEvent(event, workspace)).filter(Boolean).join('\n\n') : 'Nenhum evento registrado para esta instrução.';
   text('raw-events',events.length ? events.map(event => JSON.stringify(event,null,2)).join('\n\n') : 'Nenhum evento.');
   if (atEnd) terminal.scrollTop = terminal.scrollHeight;
 }
