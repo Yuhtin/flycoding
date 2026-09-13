@@ -1,0 +1,99 @@
+{
+  "kind": "genuine-pilot-artifact-audit",
+  "date": "2026-09-13",
+  "source_revision": "a16e1713f340a15a4e87f2d5651536f03aa9fe3a",
+  "reserved_and_completed_sends": 9,
+  "pending_sends": 0,
+  "successful_attempts": 6,
+  "distinct_sessions": 6,
+  "verified_png_and_rgb_pairs": 18,
+  "actual_session_settings": {
+    "model": "gpt-6-astra",
+    "approval_policy": "never",
+    "sandbox": "workspace-write",
+    "dedicated_workspaces_verified": true
+  },
+  "adaptive_memory_retention_verified": true,
+  "frozen_weights_unchanged": true,
+  "attempts": {
+    "adaptive-1": {
+      "actions": [
+        "fix"
+      ],
+      "feedback": [
+        1
+      ],
+      "same_session_across_turns": true,
+      "verified_session_contexts": 1,
+      "initial_weight_sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+      "final_weight_sha256": "02b10b3a3a5be2ec027ec36bee990b8c931ed8dd7992a30b89da0bb2a01031c9"
+    },
+    "adaptive-2": {
+      "actions": [
+        "fix"
+      ],
+      "feedback": [
+        1
+      ],
+      "same_session_across_turns": true,
+      "verified_session_contexts": 1,
+      "initial_weight_sha256": "02b10b3a3a5be2ec027ec36bee990b8c931ed8dd7992a30b89da0bb2a01031c9",
+      "final_weight_sha256": "d5368d7f8d1d7da3ec0af2a632a7af7e9bb9b43c71b19a52b636fa819a01587e"
+    },
+    "frozen-1": {
+      "actions": [
+        "fix"
+      ],
+      "feedback": [
+        1
+      ],
+      "same_session_across_turns": true,
+      "verified_session_contexts": 1,
+      "initial_weight_sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+      "final_weight_sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7"
+    },
+    "frozen-2": {
+      "actions": [
+        "fix"
+      ],
+      "feedback": [
+        1
+      ],
+      "same_session_across_turns": true,
+      "verified_session_contexts": 1,
+      "initial_weight_sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+      "final_weight_sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7"
+    },
+    "random-1": {
+      "actions": [
+        "test",
+        "investigate",
+        "fix"
+      ],
+      "feedback": [
+        0,
+        0,
+        1
+      ],
+      "same_session_across_turns": true,
+      "verified_session_contexts": 3,
+      "initial_weight_sha256": null,
+      "final_weight_sha256": null
+    },
+    "random-2": {
+      "actions": [
+        "investigate",
+        "fix"
+      ],
+      "feedback": [
+        0,
+        1
+      ],
+      "same_session_across_turns": true,
+      "verified_session_contexts": 2,
+      "initial_weight_sha256": null,
+      "final_weight_sha256": null
+    }
+  },
+  "limitations": "Confirms saved artifacts and actual session configuration, not task learning or generalization."
+}

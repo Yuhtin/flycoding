@@ -1,0 +1,1165 @@
+{
+  "attempts": {
+    "adaptive-1": {
+      "baseline": {
+        "error": null,
+        "passed": 1,
+        "tests": [
+          {
+            "actual": 5000,
+            "id": "no_discount",
+            "passed": true
+          },
+          {
+            "actual": 9975,
+            "id": "partial_discount",
+            "passed": false
+          },
+          {
+            "actual": 6300,
+            "id": "total_discount",
+            "passed": false
+          },
+          {
+            "actual": -40,
+            "id": "zero_subtotal",
+            "passed": false
+          },
+          {
+            "actual": 966,
+            "id": "rounding_down",
+            "passed": false
+          }
+        ],
+        "total": 5,
+        "violation": null
+      },
+      "condition": "adaptive",
+      "error": null,
+      "seed": null,
+      "status": "success",
+      "turns": [
+        {
+          "choice": {
+            "action": "fix",
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.9362235369044356,
+            "difference_hz": 4.0,
+            "gate_spikes": 14,
+            "input_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6",
+            "left_hz": 28.0,
+            "memory": {
+              "changed_edges": 0,
+              "mean_efficacy": 1.0,
+              "minimum_efficacy": 1.0,
+              "plastic_edges": 7835,
+              "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+              "weights_frozen": false
+            },
+            "reason": "right_threshold",
+            "right_hz": 32.0,
+            "simulated_ms": 500.0,
+            "spike_sha256": "19486a3b34cfd1e8a49f1acf3cd7d6fd4f9d69540275f1222462800fe2d7fd81",
+            "total_spikes": 392732,
+            "window_ms": 500
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 5,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 7500,
+                "id": "partial_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "total_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "zero_subtotal",
+                "passed": true
+              },
+              {
+                "actual": 669,
+                "id": "rounding_down",
+                "passed": true
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "execution": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 45952,
+              "input_tokens": 51875,
+              "output_tokens": 242,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "feedback": {
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.6282042081584223,
+            "delivered_to_neural": true,
+            "input_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5",
+            "memory": {
+              "changed_edges": 2633,
+              "mean_efficacy": 1.002578854560852,
+              "minimum_efficacy": 0.9300442337989807,
+              "plastic_edges": 7835,
+              "sha256": "02b10b3a3a5be2ec027ec36bee990b8c931ed8dd7992a30b89da0bb2a01031c9",
+              "weights_frozen": false
+            },
+            "signal": 1,
+            "simulated_ms": 700.0,
+            "spike_sha256": "98d6d881a1daa50e27ab1989067f74f60d5e2ca7c3b1d846f3a537a5091a42a1",
+            "stimulus": "reward",
+            "stimulus_ms": 200,
+            "total_spikes": 199794,
+            "window_ms": 200
+          },
+          "input": {
+            "file": "adaptive-1-1-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Corrija a fun\u00e7\u00e3o de desconto, preservando os testes.",
+          "send_id": "send-bfaab3ca001445388c692c5701122f3d",
+          "step": 1,
+          "weights_after_choice": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": false
+          },
+          "weights_after_feedback": {
+            "changed_edges": 2633,
+            "mean_efficacy": 1.002578854560852,
+            "minimum_efficacy": 0.9300442337989807,
+            "plastic_edges": 7835,
+            "sha256": "02b10b3a3a5be2ec027ec36bee990b8c931ed8dd7992a30b89da0bb2a01031c9",
+            "weights_frozen": false
+          },
+          "weights_before": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": false
+          }
+        }
+      ]
+    },
+    "adaptive-2": {
+      "baseline": {
+        "error": null,
+        "passed": 1,
+        "tests": [
+          {
+            "actual": 5000,
+            "id": "no_discount",
+            "passed": true
+          },
+          {
+            "actual": 9975,
+            "id": "partial_discount",
+            "passed": false
+          },
+          {
+            "actual": 6300,
+            "id": "total_discount",
+            "passed": false
+          },
+          {
+            "actual": -40,
+            "id": "zero_subtotal",
+            "passed": false
+          },
+          {
+            "actual": 966,
+            "id": "rounding_down",
+            "passed": false
+          }
+        ],
+        "total": 5,
+        "violation": null
+      },
+      "condition": "adaptive",
+      "error": null,
+      "seed": null,
+      "status": "success",
+      "turns": [
+        {
+          "choice": {
+            "action": "fix",
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.9340601203148253,
+            "difference_hz": 4.0,
+            "gate_spikes": 14,
+            "input_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6",
+            "left_hz": 28.0,
+            "memory": {
+              "changed_edges": 2633,
+              "mean_efficacy": 1.0039989948272705,
+              "minimum_efficacy": 0.9090175628662109,
+              "plastic_edges": 7835,
+              "sha256": "fac827d0c3a45df83393accd2b398f09678ed11ac64ffaec7260e77096b5e293",
+              "weights_frozen": false
+            },
+            "reason": "right_threshold",
+            "right_hz": 32.0,
+            "simulated_ms": 500.0,
+            "spike_sha256": "19486a3b34cfd1e8a49f1acf3cd7d6fd4f9d69540275f1222462800fe2d7fd81",
+            "total_spikes": 392732,
+            "window_ms": 500
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 5,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 7500,
+                "id": "partial_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "total_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "zero_subtotal",
+                "passed": true
+              },
+              {
+                "actual": 669,
+                "id": "rounding_down",
+                "passed": true
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "execution": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 45696,
+              "input_tokens": 51500,
+              "output_tokens": 244,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "feedback": {
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.6300852060667239,
+            "delivered_to_neural": true,
+            "input_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5",
+            "memory": {
+              "changed_edges": 2811,
+              "mean_efficacy": 1.0067051649093628,
+              "minimum_efficacy": 0.8385668992996216,
+              "plastic_edges": 7835,
+              "sha256": "d5368d7f8d1d7da3ec0af2a632a7af7e9bb9b43c71b19a52b636fa819a01587e",
+              "weights_frozen": false
+            },
+            "signal": 1,
+            "simulated_ms": 700.0,
+            "spike_sha256": "d6b370795fcade02f1ecae56a4a817474079e627d3653a9f50460a645906b1de",
+            "stimulus": "reward",
+            "stimulus_ms": 200,
+            "total_spikes": 200315,
+            "window_ms": 200
+          },
+          "input": {
+            "file": "adaptive-2-1-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Corrija a fun\u00e7\u00e3o de desconto, preservando os testes.",
+          "send_id": "send-3b022bb61a514b438f1e0ef33be9612d",
+          "step": 1,
+          "weights_after_choice": {
+            "changed_edges": 2633,
+            "mean_efficacy": 1.0039989948272705,
+            "minimum_efficacy": 0.9090175628662109,
+            "plastic_edges": 7835,
+            "sha256": "fac827d0c3a45df83393accd2b398f09678ed11ac64ffaec7260e77096b5e293",
+            "weights_frozen": false
+          },
+          "weights_after_feedback": {
+            "changed_edges": 2811,
+            "mean_efficacy": 1.0067051649093628,
+            "minimum_efficacy": 0.8385668992996216,
+            "plastic_edges": 7835,
+            "sha256": "d5368d7f8d1d7da3ec0af2a632a7af7e9bb9b43c71b19a52b636fa819a01587e",
+            "weights_frozen": false
+          },
+          "weights_before": {
+            "changed_edges": 2633,
+            "mean_efficacy": 1.002578854560852,
+            "minimum_efficacy": 0.9300442337989807,
+            "plastic_edges": 7835,
+            "sha256": "02b10b3a3a5be2ec027ec36bee990b8c931ed8dd7992a30b89da0bb2a01031c9",
+            "weights_frozen": false
+          }
+        }
+      ]
+    },
+    "frozen-1": {
+      "baseline": {
+        "error": null,
+        "passed": 1,
+        "tests": [
+          {
+            "actual": 5000,
+            "id": "no_discount",
+            "passed": true
+          },
+          {
+            "actual": 9975,
+            "id": "partial_discount",
+            "passed": false
+          },
+          {
+            "actual": 6300,
+            "id": "total_discount",
+            "passed": false
+          },
+          {
+            "actual": -40,
+            "id": "zero_subtotal",
+            "passed": false
+          },
+          {
+            "actual": 966,
+            "id": "rounding_down",
+            "passed": false
+          }
+        ],
+        "total": 5,
+        "violation": null
+      },
+      "condition": "frozen",
+      "error": null,
+      "seed": null,
+      "status": "success",
+      "turns": [
+        {
+          "choice": {
+            "action": "fix",
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.9306037551141344,
+            "difference_hz": 4.0,
+            "gate_spikes": 14,
+            "input_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6",
+            "left_hz": 28.0,
+            "memory": {
+              "changed_edges": 0,
+              "mean_efficacy": 1.0,
+              "minimum_efficacy": 1.0,
+              "plastic_edges": 7835,
+              "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+              "weights_frozen": true
+            },
+            "reason": "right_threshold",
+            "right_hz": 32.0,
+            "simulated_ms": 500.0,
+            "spike_sha256": "19486a3b34cfd1e8a49f1acf3cd7d6fd4f9d69540275f1222462800fe2d7fd81",
+            "total_spikes": 392732,
+            "window_ms": 500
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 5,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 7500,
+                "id": "partial_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "total_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "zero_subtotal",
+                "passed": true
+              },
+              {
+                "actual": 669,
+                "id": "rounding_down",
+                "passed": true
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "execution": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 57984,
+              "input_tokens": 69321,
+              "output_tokens": 252,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "feedback": {
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.6149507940863259,
+            "delivered_to_neural": true,
+            "input_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5",
+            "memory": {
+              "changed_edges": 0,
+              "mean_efficacy": 1.0,
+              "minimum_efficacy": 1.0,
+              "plastic_edges": 7835,
+              "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+              "weights_frozen": true
+            },
+            "signal": 1,
+            "simulated_ms": 700.0,
+            "spike_sha256": "9e19d66c311eca778ad9c6b52d89b61fcfe3130645fe973c5299e7c7c50fd36a",
+            "stimulus": "reward",
+            "stimulus_ms": 200,
+            "total_spikes": 199631,
+            "window_ms": 200
+          },
+          "input": {
+            "file": "frozen-1-1-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Corrija a fun\u00e7\u00e3o de desconto, preservando os testes.",
+          "send_id": "send-fc433ddb01fe43d39880aab3f655c9e8",
+          "step": 1,
+          "weights_after_choice": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": true
+          },
+          "weights_after_feedback": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": true
+          },
+          "weights_before": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": true
+          }
+        }
+      ]
+    },
+    "frozen-2": {
+      "baseline": {
+        "error": null,
+        "passed": 1,
+        "tests": [
+          {
+            "actual": 5000,
+            "id": "no_discount",
+            "passed": true
+          },
+          {
+            "actual": 9975,
+            "id": "partial_discount",
+            "passed": false
+          },
+          {
+            "actual": 6300,
+            "id": "total_discount",
+            "passed": false
+          },
+          {
+            "actual": -40,
+            "id": "zero_subtotal",
+            "passed": false
+          },
+          {
+            "actual": 966,
+            "id": "rounding_down",
+            "passed": false
+          }
+        ],
+        "total": 5,
+        "violation": null
+      },
+      "condition": "frozen",
+      "error": null,
+      "seed": null,
+      "status": "success",
+      "turns": [
+        {
+          "choice": {
+            "action": "fix",
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.9330532120075077,
+            "difference_hz": 4.0,
+            "gate_spikes": 14,
+            "input_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6",
+            "left_hz": 28.0,
+            "memory": {
+              "changed_edges": 0,
+              "mean_efficacy": 1.0,
+              "minimum_efficacy": 1.0,
+              "plastic_edges": 7835,
+              "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+              "weights_frozen": true
+            },
+            "reason": "right_threshold",
+            "right_hz": 32.0,
+            "simulated_ms": 500.0,
+            "spike_sha256": "19486a3b34cfd1e8a49f1acf3cd7d6fd4f9d69540275f1222462800fe2d7fd81",
+            "total_spikes": 392732,
+            "window_ms": 500
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 5,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 7500,
+                "id": "partial_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "total_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "zero_subtotal",
+                "passed": true
+              },
+              {
+                "actual": 669,
+                "id": "rounding_down",
+                "passed": true
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "execution": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 45696,
+              "input_tokens": 51500,
+              "output_tokens": 238,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "feedback": {
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.6178021649830043,
+            "delivered_to_neural": true,
+            "input_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5",
+            "memory": {
+              "changed_edges": 0,
+              "mean_efficacy": 1.0,
+              "minimum_efficacy": 1.0,
+              "plastic_edges": 7835,
+              "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+              "weights_frozen": true
+            },
+            "signal": 1,
+            "simulated_ms": 700.0,
+            "spike_sha256": "9e19d66c311eca778ad9c6b52d89b61fcfe3130645fe973c5299e7c7c50fd36a",
+            "stimulus": "reward",
+            "stimulus_ms": 200,
+            "total_spikes": 199631,
+            "window_ms": 200
+          },
+          "input": {
+            "file": "frozen-2-1-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Corrija a fun\u00e7\u00e3o de desconto, preservando os testes.",
+          "send_id": "send-02d019f5e7de45d5970da4bc04424b1f",
+          "step": 1,
+          "weights_after_choice": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": true
+          },
+          "weights_after_feedback": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": true
+          },
+          "weights_before": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": true
+          }
+        }
+      ]
+    },
+    "random-1": {
+      "baseline": {
+        "error": null,
+        "passed": 1,
+        "tests": [
+          {
+            "actual": 5000,
+            "id": "no_discount",
+            "passed": true
+          },
+          {
+            "actual": 9975,
+            "id": "partial_discount",
+            "passed": false
+          },
+          {
+            "actual": 6300,
+            "id": "total_discount",
+            "passed": false
+          },
+          {
+            "actual": -40,
+            "id": "zero_subtotal",
+            "passed": false
+          },
+          {
+            "actual": 966,
+            "id": "rounding_down",
+            "passed": false
+          }
+        ],
+        "total": 5,
+        "violation": null
+      },
+      "condition": "random",
+      "error": null,
+      "seed": 1729,
+      "status": "success",
+      "turns": [
+        {
+          "choice": {
+            "action": "test",
+            "reason": "seeded_uniform_random",
+            "seed": 1729
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 1,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 9975,
+                "id": "partial_discount",
+                "passed": false
+              },
+              {
+                "actual": 6300,
+                "id": "total_discount",
+                "passed": false
+              },
+              {
+                "actual": -40,
+                "id": "zero_subtotal",
+                "passed": false
+              },
+              {
+                "actual": 966,
+                "id": "rounding_down",
+                "passed": false
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "execution": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 45440,
+              "input_tokens": 51372,
+              "output_tokens": 230,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "feedback": {
+            "delivered_to_neural": false,
+            "reason": "random_control",
+            "signal": 0
+          },
+          "input": {
+            "file": "random-1-1-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Execute os testes e relate o resultado.",
+          "send_id": "send-6860b80b223546dfacd512777ace3a29",
+          "step": 1
+        },
+        {
+          "choice": {
+            "action": "investigate",
+            "reason": "seeded_uniform_random",
+            "seed": 1729
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 1,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 9975,
+                "id": "partial_discount",
+                "passed": false
+              },
+              {
+                "actual": 6300,
+                "id": "total_discount",
+                "passed": false
+              },
+              {
+                "actual": -40,
+                "id": "zero_subtotal",
+                "passed": false
+              },
+              {
+                "actual": 966,
+                "id": "rounding_down",
+                "passed": false
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "execution": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 80384,
+              "input_tokens": 87248,
+              "output_tokens": 431,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "feedback": {
+            "delivered_to_neural": false,
+            "reason": "random_control",
+            "signal": 0
+          },
+          "input": {
+            "file": "random-1-2-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Analise a falha e explique a prov\u00e1vel causa, sem editar.",
+          "send_id": "send-0c92eeae005e4e19aff1c98a2a27d822",
+          "step": 2
+        },
+        {
+          "choice": {
+            "action": "fix",
+            "reason": "seeded_uniform_random",
+            "seed": 1729
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 5,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 7500,
+                "id": "partial_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "total_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "zero_subtotal",
+                "passed": true
+              },
+              {
+                "actual": 669,
+                "id": "rounding_down",
+                "passed": true
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "execution": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 116352,
+              "input_tokens": 124070,
+              "output_tokens": 625,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "feedback": {
+            "delivered_to_neural": false,
+            "reason": "random_control",
+            "signal": 1
+          },
+          "input": {
+            "file": "random-1-3-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Corrija a fun\u00e7\u00e3o de desconto, preservando os testes.",
+          "send_id": "send-b0f31954c9d14021af2f4ce0a1573229",
+          "step": 3
+        }
+      ]
+    },
+    "random-2": {
+      "baseline": {
+        "error": null,
+        "passed": 1,
+        "tests": [
+          {
+            "actual": 5000,
+            "id": "no_discount",
+            "passed": true
+          },
+          {
+            "actual": 9975,
+            "id": "partial_discount",
+            "passed": false
+          },
+          {
+            "actual": 6300,
+            "id": "total_discount",
+            "passed": false
+          },
+          {
+            "actual": -40,
+            "id": "zero_subtotal",
+            "passed": false
+          },
+          {
+            "actual": 966,
+            "id": "rounding_down",
+            "passed": false
+          }
+        ],
+        "total": 5,
+        "violation": null
+      },
+      "condition": "random",
+      "error": null,
+      "seed": 1730,
+      "status": "success",
+      "turns": [
+        {
+          "choice": {
+            "action": "investigate",
+            "reason": "seeded_uniform_random",
+            "seed": 1730
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 1,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 9975,
+                "id": "partial_discount",
+                "passed": false
+              },
+              {
+                "actual": 6300,
+                "id": "total_discount",
+                "passed": false
+              },
+              {
+                "actual": -40,
+                "id": "zero_subtotal",
+                "passed": false
+              },
+              {
+                "actual": 966,
+                "id": "rounding_down",
+                "passed": false
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "execution": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 45824,
+              "input_tokens": 51934,
+              "output_tokens": 260,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "feedback": {
+            "delivered_to_neural": false,
+            "reason": "random_control",
+            "signal": 0
+          },
+          "input": {
+            "file": "random-2-1-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Analise a falha e explique a prov\u00e1vel causa, sem editar.",
+          "send_id": "send-94e3ba436b9746c6b98b9f694b5ba43c",
+          "step": 1
+        },
+        {
+          "choice": {
+            "action": "fix",
+            "reason": "seeded_uniform_random",
+            "seed": 1730
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 5,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 7500,
+                "id": "partial_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "total_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "zero_subtotal",
+                "passed": true
+              },
+              {
+                "actual": 669,
+                "id": "rounding_down",
+                "passed": true
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "execution": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 81408,
+              "input_tokens": 88345,
+              "output_tokens": 453,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "feedback": {
+            "delivered_to_neural": false,
+            "reason": "random_control",
+            "signal": 1
+          },
+          "input": {
+            "file": "random-2-2-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Corrija a fun\u00e7\u00e3o de desconto, preservando os testes.",
+          "send_id": "send-5369f3400b024fd385eb19eb821e6201",
+          "step": 2
+        }
+      ]
+    }
+  },
+  "budget": {
+    "conditions": {
+      "adaptive": 2,
+      "frozen": 2,
+      "random": 5
+    },
+    "limit": 30,
+    "per_attempt_limit": 5,
+    "per_condition_limit": 10,
+    "remaining": 21,
+    "used": 9
+  },
+  "codex_version": "codex-cli 0.154.0",
+  "evidence": "genuine",
+  "limitations": "Six attempts measure mechanism operation only; they do not demonstrate task learning, generalization, statistical significance, language ability or cognition.",
+  "model": "gpt-6-astra",
+  "source_dirty": false,
+  "source_revision": "a16e1713f340a15a4e87f2d5651536f03aa9fe3a",
+  "status": "completed"
+}

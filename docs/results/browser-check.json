@@ -1,0 +1,17 @@
+{
+  "evidence": "genuine",
+  "browser": "153.0.8010.36",
+  "date": "2026-09-13",
+  "viewports": [
+    1440,
+    390
+  ],
+  "attempt_rows": 6,
+  "recorded_turns": 9,
+  "selected_turn": "adaptive-1 / 1",
+  "selected_image_hash_matches": true,
+  "selected_response_matches": true,
+  "horizontal_overflow": false,
+  "javascript_errors": [],
+  "screenshot": "dashboard.png"
+}

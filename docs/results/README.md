@@ -1,10 +1,38 @@
 # Resultados medidos
 
-Estes arquivos registram verificações reais feitas em 13 de setembro de 2026,
-num Mac ARM64 com 16 GiB de RAM. Não contêm chamadas ao Codex nem resultados
-do piloto de programação.
+Estes arquivos registram o piloto real e as verificações do núcleo feitas em
+13 de setembro de 2026, num Mac ARM64 com 16 GiB de RAM.
+
+## Piloto no Codex
+
+As seis tentativas tiveram sucesso, consumindo nove reservas, todas concluídas.
+Cada tentativa começou com 1/5 testes passando e terminou com 5/5, sem violação.
+Foram duas instruções na condição adaptável, duas na congelada e cinco na
+aleatória. As quatro tentativas neurais escolheram Corrigir de primeira;
+as aleatórias seguiram Testar → Investigar → Corrigir e Investigar → Corrigir.
+
+A memória adaptável foi preservada entre tentativas e os pesos congelados
+permaneceram iguais. Não houve vantagem da adaptação sobre o controle
+congelado; mudanças de pesos não demonstram aprendizado da tarefa.
+
+- [pilot.md](pilot.md): resultados por tentativa.
+- [pilot.json](pilot.json): escolhas, sinais, avaliações, uso e hashes.
+- [pilot-checks.json](pilot-checks.json): conferência das nove reservas,
+  seis sessões dedicadas, retomadas, pesos e 18 imagens.
+- [inputs/](inputs/): PNGs originais de observação e feedback, com os nomes
+  registrados pelo controlador. Seus hashes de arquivo e de pixels foram
+  conferidos; os nomes no relatório se referem a este diretório.
+- [dashboard.png](dashboard.png) e [browser-check.json](browser-check.json):
+  painel real, conferido em desktop e celular.
+
+Os registros da CLI confirmaram `gpt-6-astra`, aprovação `never` e sandbox
+`workspace-write` nos workspaces dedicados. Cada tentativa usou uma sessão
+distinta; os turnos da mesma tentativa retomaram o mesmo ID. Eventos brutos,
+IDs de sessão, checkpoints e dados volumosos permanecem locais.
 
 ## Origem e referência numérica
+
+As verificações abaixo não enviaram instruções ao Codex.
 
 [reference-check.json](reference-check.json) contém os hashes dos três arquivos
 de origem e dos 11 arrays compilados. O grafo retido tem 166.700 neurônios e

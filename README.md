@@ -10,6 +10,28 @@ repete essa ordem. Cada tentativa começa com o mesmo bug e uma sessão nova.
 Há no máximo 5 instruções por tentativa, 10 por condição e 30 no piloto inteiro.
 Sucesso antecipado encerra a tentativa sem transferir a sobra de orçamento.
 
+## Piloto real
+
+Em 13/09/2026, o piloto completou as seis tentativas com **9 envios ao Codex**.
+Todas começaram com 1/5 testes passando e terminaram com 5/5, sem violações.
+
+| Condição | Sucessos | Envios |
+| --- | ---: | ---: |
+| Rede adaptável | 2/2 | 2 |
+| Pesos congelados | 2/2 | 2 |
+| Aleatória uniforme | 2/2 | 5 |
+
+As duas condições neurais escolheram Corrigir de primeira. A memória adaptável
+mudou e foi preservada, mas teve o mesmo desempenho da rede congelada: este
+piloto **não demonstrou vantagem de aprendizado**. Quem escreve o código é o
+Codex; a rede seleciona uma das três instruções fixas.
+
+![Painel com uma escolha neural e a resposta real do Codex](docs/results/dashboard.png)
+
+[Relatório e evidências](docs/results/README.md) ·
+[Resultados por tentativa](docs/results/pilot.md) ·
+[Traces completos sem eventos brutos](docs/results/pilot.json).
+
 ## Instalação
 
 Requisitos: macOS ou Linux, Python 3.11+, `uv`, Git, `curl`, compilador C++17
