@@ -91,16 +91,21 @@ def _verify_graph(data_dir: Path) -> None:
 def _obtain_sources(data_dir: Path) -> dict:
     """Verify local source files or resume an authenticated HTTPS curl download."""
     data_dir.mkdir(parents=True, exist_ok=True)
-    missing = [item for name, item in _locks().items() if not (data_dir / name).exists()]
-    # Download plus a complete retained-graph compile keeps an edge partial,
-    # normalized Arrow, and graph output live at once.
-    edge_bytes = _locks()["edges.feather"]["bytes"]
-    _require_free_space(data_dir, sum(item["bytes"] for item in missing) + 2 * edge_bytes, "source download and graph preparation")
+    locks = _locks()
+    valid = {
+        name: target.exists() and target.stat().st_size == expected["bytes"] and _sha256(target) == expected["sha256"]
+        for name, expected in locks.items()
+        for target in [data_dir / name]
+    }
+    _require_free_space(
+        data_dir,
+        sum(expected["bytes"] for name, expected in locks.items() if not valid[name]),
+        "source download",
+    )
     report = {}
-    for name, expected in _locks().items():
+    for name, expected in locks.items():
         target = data_dir / name
-        valid = target.exists() and target.stat().st_size == expected["bytes"] and _sha256(target) == expected["sha256"]
-        if not valid:
+        if not valid[name]:
             partial = target.with_suffix(target.suffix + ".partial")
             subprocess.run(
                 ["curl", "--fail", "--location", "--continue-at", "-", "--output", str(partial), expected["url"]],

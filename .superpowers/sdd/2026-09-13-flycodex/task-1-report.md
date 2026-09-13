@@ -160,3 +160,30 @@ complete checkpoint-state restoration, and 200 ms reward/aversive pulses. The
 paired dark/bright comparison records equal initial dynamic-state digests
 before the two input windows. These mechanism checks do not demonstrate task
 learning or cognition.
+
+## Fix round 2 — reuse and panel boundary regressions
+
+- Source verification now reserves only space for source files that are actually
+  absent or invalid. The separate normalization/compilation reserve runs only
+  after `prepare_data` decides a graph must be built, so a valid existing graph
+  can be reused on a low-free-space volume.
+- The result bar uses its full inclusive pixel width. At `passed == total`, the
+  green region includes its rightmost x=308 column; at zero passed tests, the
+  whole region remains red.
+
+RED command:
+
+```text
+rtk proxy .venv/bin/python -m pytest tests/test_neural.py tests/test_panel.py -q
+```
+
+Relevant output: `2 failed, 16 passed` — the valid-source check incorrectly
+requested compile space and `render_panel(5, 5).getpixel((308, 24))` was gray.
+
+GREEN command:
+
+```text
+rtk proxy .venv/bin/python -m pytest tests/test_neural.py tests/test_panel.py -q
+```
+
+Result: `18 passed`.

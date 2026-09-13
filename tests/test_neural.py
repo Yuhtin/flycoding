@@ -3,6 +3,7 @@ import pytest
 
 from flycodex.neural import NeuralPolicy, decode_counts, decode_rates
 from flycodex.neural.policy import STATE_FIELDS
+import flycodex.neural.policy as policy_module
 from flycodex.neural.rule import advance
 
 
@@ -102,3 +103,13 @@ def test_restore_validates_every_array_before_mutating_runtime_state(tmp_path):
         policy.restore(checkpoint)
 
     assert brain.weight.tolist() == [3.0]
+
+
+def test_source_verification_does_not_reserve_compile_space_when_nothing_is_missing(tmp_path, monkeypatch):
+    source = tmp_path / "edges.feather"
+    source.write_bytes(b"x")
+    locked = {"edges.feather": {"bytes": 1, "sha256": __import__("hashlib").sha256(b"x").hexdigest()}}
+    monkeypatch.setattr(policy_module, "_locks", lambda: locked)
+    monkeypatch.setattr(policy_module.shutil, "disk_usage", lambda path: type("Usage", (), {"free": 0})())
+
+    assert policy_module._obtain_sources(tmp_path)["edges.feather"]["verified"] is True

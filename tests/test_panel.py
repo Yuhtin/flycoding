@@ -18,6 +18,10 @@ def test_panel_has_no_failure_color_when_every_test_passes():
     assert (192, 82, 73) not in render_panel(5, 5).get_flattened_data()
 
 
+def test_panel_full_passing_bar_covers_its_inclusive_right_edge():
+    assert render_panel(5, 5).getpixel((308, 24)) == (73, 170, 111)
+
+
 def test_panel_has_no_passing_color_when_no_test_passes():
     assert (73, 170, 111) not in render_panel(0, 5).get_flattened_data()
 
