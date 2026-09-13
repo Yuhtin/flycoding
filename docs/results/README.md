@@ -15,6 +15,7 @@ A memória adaptável foi preservada entre tentativas e os pesos congelados
 permaneceram iguais. Não houve vantagem da adaptação sobre o controle
 congelado; mudanças de pesos não demonstram aprendizado da tarefa.
 
+- [verification.md](verification.md): testes, pacote e revisão final da entrega.
 - [pilot.md](pilot.md): resultados por tentativa.
 - [pilot.json](pilot.json): escolhas, sinais, avaliações, uso e hashes.
 - [pilot-checks.json](pilot-checks.json): conferência das nove reservas,

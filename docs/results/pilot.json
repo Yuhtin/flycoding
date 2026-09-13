@@ -150,6 +150,11 @@
             "total_spikes": 199794,
             "window_ms": 200
           },
+          "feedback_input": {
+            "file": "adaptive-1-1-feedback.png",
+            "png_sha256": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+            "rgb_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5"
+          },
           "input": {
             "file": "adaptive-1-1-input.png",
             "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
@@ -334,6 +339,11 @@
             "stimulus_ms": 200,
             "total_spikes": 200315,
             "window_ms": 200
+          },
+          "feedback_input": {
+            "file": "adaptive-2-1-feedback.png",
+            "png_sha256": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+            "rgb_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5"
           },
           "input": {
             "file": "adaptive-2-1-input.png",
@@ -520,6 +530,11 @@
             "total_spikes": 199631,
             "window_ms": 200
           },
+          "feedback_input": {
+            "file": "frozen-1-1-feedback.png",
+            "png_sha256": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+            "rgb_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5"
+          },
           "input": {
             "file": "frozen-1-1-input.png",
             "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
@@ -705,6 +720,11 @@
             "total_spikes": 199631,
             "window_ms": 200
           },
+          "feedback_input": {
+            "file": "frozen-2-1-feedback.png",
+            "png_sha256": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+            "rgb_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5"
+          },
           "input": {
             "file": "frozen-2-1-input.png",
             "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
@@ -834,6 +854,11 @@
             "reason": "random_control",
             "signal": 0
           },
+          "feedback_input": {
+            "file": "random-1-1-feedback.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
           "input": {
             "file": "random-1-1-input.png",
             "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
@@ -898,6 +923,11 @@
             "reason": "random_control",
             "signal": 0
           },
+          "feedback_input": {
+            "file": "random-1-2-feedback.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
           "input": {
             "file": "random-1-2-input.png",
             "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
@@ -961,6 +991,11 @@
             "delivered_to_neural": false,
             "reason": "random_control",
             "signal": 1
+          },
+          "feedback_input": {
+            "file": "random-1-3-feedback.png",
+            "png_sha256": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+            "rgb_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5"
           },
           "input": {
             "file": "random-1-3-input.png",
@@ -1067,6 +1102,11 @@
             "reason": "random_control",
             "signal": 0
           },
+          "feedback_input": {
+            "file": "random-2-1-feedback.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
           "input": {
             "file": "random-2-1-input.png",
             "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
@@ -1130,6 +1170,11 @@
             "delivered_to_neural": false,
             "reason": "random_control",
             "signal": 1
+          },
+          "feedback_input": {
+            "file": "random-2-2-feedback.png",
+            "png_sha256": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+            "rgb_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5"
           },
           "input": {
             "file": "random-2-2-input.png",
