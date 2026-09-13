@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from flycodex.neural import decode_counts, decode_rates
+from flycodex.neural import NeuralPolicy, decode_counts, decode_rates
+from flycodex.neural.policy import STATE_FIELDS
 from flycodex.neural.rule import advance
 
 
@@ -52,3 +53,52 @@ def test_candidate_rule_freeze_preserves_efficacy_during_passive_decay():
 
     assert efficacy.tolist() == [0.4]
     assert efficacy_state.tolist() == [0.0]
+
+
+def test_feedback_reports_a_window_trace_without_a_policy_decision():
+    policy = object.__new__(NeuralPolicy)
+    policy._brain = lambda: type("Brain", (), {"gate": np.array([], dtype=np.int32), "reward": np.array([1]), "aversive": np.array([2]), "cell_ids": {}, "clock": np.array([0]), "dt": 0.1, "memory": lambda self: {}})()
+    policy._raw_window = lambda rgb, duration_ms, stimulation: {"counts": np.array([0], dtype=np.int32), "compute_seconds": 0.0, "window_ms": duration_ms, "brain": policy._brain()}
+
+    result = policy.feedback(np.zeros((1, 1, 3), dtype=np.uint8), 0)
+
+    assert "action" not in result
+    assert "reason" not in result
+    assert result["window_ms"] == 200
+    assert result["stimulus_ms"] == 0
+
+
+def test_restore_rejects_a_checkpoint_missing_runtime_state(tmp_path):
+    policy = object.__new__(NeuralPolicy)
+    brain = type("Brain", (), {"ids": np.array([1], dtype=np.int64), "ptr": np.array([0, 0], dtype=np.int64), "build": {"source_sha256": "source"}})()
+    policy.learning = False
+    policy._brain = lambda: brain
+    checkpoint = tmp_path / "missing-state.npz"
+    np.savez(checkpoint, metadata='{"model": "flycodex-full-graph-v1", "learning": false, "graph_ids_sha256": "' + __import__("hashlib").sha256(brain.ids.tobytes()).hexdigest() + '", "graph_ptr_sha256": "' + __import__("hashlib").sha256(brain.ptr.tobytes()).hexdigest() + '", "kernel": {"source_sha256": "source"}}')
+
+    with pytest.raises(ValueError, match="(?i)checkpoint state"):
+        policy.restore(checkpoint)
+
+
+def test_restore_validates_every_array_before_mutating_runtime_state(tmp_path):
+    policy = object.__new__(NeuralPolicy)
+    brain = type("Brain", (), {})()
+    for name in STATE_FIELDS:
+        setattr(brain, name, np.array([3.0 if name == "weight" else 0.0], dtype=np.float64))
+    brain.ids = np.array([1], dtype=np.int64)
+    brain.ptr = np.array([0, 0], dtype=np.int64)
+    brain.post = np.array([], dtype=np.int32)
+    brain.plastic_edges = np.array([], dtype=np.int64)
+    brain.build = {"source_sha256": "source"}
+    brain.configuration_signature = lambda: {}
+    policy.learning = False
+    policy._brain = lambda: brain
+    checkpoint = tmp_path / "nonfinite-state.npz"
+    stored = {name: getattr(brain, name).copy() for name in STATE_FIELDS}
+    stored["memory_w"][:] = np.nan
+    np.savez(checkpoint, metadata=__import__("json").dumps(policy._checkpoint_metadata(brain)), **stored)
+
+    with pytest.raises(ValueError, match="Nonfinite checkpoint state"):
+        policy.restore(checkpoint)
+
+    assert brain.weight.tolist() == [3.0]

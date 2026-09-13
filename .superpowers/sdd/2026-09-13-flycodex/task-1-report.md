@@ -92,3 +92,71 @@ no nonzero candidate weight should be read as task learning.
 The test suite covers the required compact behaviors and compile/package smoke
 checks. The exact frozen reference regression passed. The full feedback probe
 remains intentionally deferred; the model is not claimed as validated.
+
+## Fix round 1 — review findings
+
+Addressed all six Important findings.
+
+- Copied the complete upstream `arrays.lock.json` and `neurons.lock.json`
+  exactly, including the corrected `weight` hash. Preparation now requires an
+  exact graph field set, verifies all 11 array hashes and dimensions, and uses
+  upstream's canonical transmitter JSON serialization plus normalized source-ID
+  equality check.
+- Added explicit free-space preflights before download and before compilation;
+  failures report required and available bytes.
+- Split raw neural-window traces from choice decoding. `feedback` never returns
+  `action` or `reason`; it reports `window_ms=200` and neutral
+  `stimulus_ms=0` because neutral feedback has no external pulse.
+- Corrected Pillow's inclusive rectangle endpoints. Fully passing panels have
+  no red failure pixels and fully failing panels have no green passing pixels.
+- Checkpoints now bind graph post IDs, plastic-edge selection, and complete
+  runtime configuration. Restore requires the exact state set, validates all
+  shapes/dtypes/floating values before mutation, and rejects partial or
+  nonfinite checkpoints transactionally.
+- The probe records reward and aversive traces, tests frozen weights after both
+  stimuli, compares complete dynamic state after restoration, and resets to an
+  identical dynamic start state before comparing dark and bright input.
+
+### Fix-round TDD evidence
+
+RED command:
+
+```text
+rtk proxy .venv/bin/python -m pytest tests/test_neural.py tests/test_panel.py -q
+```
+
+Relevant output:
+
+```text
+FAILED test_feedback_reports_a_window_trace_without_a_policy_decision
+FAILED test_restore_rejects_a_checkpoint_missing_runtime_state
+FAILED test_panel_has_no_failure_color_when_every_test_passes
+3 failed, 12 passed
+```
+
+GREEN command:
+
+```text
+rtk proxy .venv/bin/python -m pytest -q
+```
+
+Result: `16 passed`.
+
+### Live preparation and probe evidence
+
+`prepare_data(Path("data"))` reused the existing graph after verifying all
+sources, all 11 compiled arrays, and normalized-neuron identity. It reported
+166,700 neurons, 25,582,938 edges, and 124,177,617 synaptic contacts.
+
+A fresh preparation used hard links to the verified raw files in an isolated
+temporary directory, avoiding a duplicate 1.1 GiB download. It returned
+`prepared: true` with the same counts and graph SHA-256
+`346b8af85a11af13b8324e18669812c1924569e7d1adcb4e6f45cc461a2c344b`.
+The temporary data was removed afterward.
+
+`probe(Path("data"), Path("runs/task1-probe"))` reported adaptive reward
+weight change, identical frozen weights after reward and aversive feedback,
+complete checkpoint-state restoration, and 200 ms reward/aversive pulses. The
+paired dark/bright comparison records equal initial dynamic-state digests
+before the two input windows. These mechanism checks do not demonstrate task
+learning or cognition.

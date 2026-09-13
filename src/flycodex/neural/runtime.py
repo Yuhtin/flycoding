@@ -92,10 +92,13 @@ class FullGraphRuntime:
         self.r8_uv = np.clip(self.r8_uv, 0, 1)
         self.r8_channel = np.where(types.iloc[self.r8].eq("R8p"), 2, 1).astype(np.int32)
         self.r8_light = np.zeros(len(self.r8), dtype=np.float32)
+        corrected_edges = []
         for index in np.flatnonzero(types.str.startswith("R8")):
             edges = np.arange(self.ptr[index], self.ptr[index + 1])
             corrected = edges[types.iloc[self.post[edges]].eq("aMe12").to_numpy()]
+            corrected_edges.extend(corrected.tolist())
             self.weight[corrected] = np.abs(self.weight[corrected])
+        self.corrected_edges = np.asarray(corrected_edges, dtype=np.int64)
         kc = np.flatnonzero(types.str.startswith("KC")).astype(np.int32)
         reward = np.flatnonzero(types.eq("PAM11")).astype(np.int32)
         aversive = np.flatnonzero(types.eq("PPL101")).astype(np.int32)
@@ -159,6 +162,28 @@ class FullGraphRuntime:
     def memory(self) -> dict:
         values = self.weight[self.plastic_edges] / self.baseline_plastic
         return {"plastic_edges": len(values), "changed_edges": int(np.count_nonzero(self.weight[self.plastic_edges] != self.baseline_plastic)), "mean_efficacy": float(values.mean()), "minimum_efficacy": float(values.min()), "sha256": _digest(self.weight[self.plastic_edges]), "weights_frozen": not self.learning}
+
+    def configuration_signature(self) -> dict:
+        return {
+            "initial_weight": _digest(self.initial_weight),
+            "baseline_plastic": _digest(self.baseline_plastic),
+            "rest": _digest(self.rest),
+            "modulation_mask": _digest(self.modulation_mask),
+            "retina": _digest(self.retina),
+            "uv": _digest(self.uv),
+            "lamina": _digest(self.lamina),
+            "sugar": _digest(self.sugar),
+            "r8": _digest(self.r8),
+            "r8_uv": _digest(self.r8_uv),
+            "r8_channel": _digest(self.r8_channel),
+            "corrected_edges": _digest(self.corrected_edges),
+            "plastic_pre": _digest(self.plastic_pre),
+            "gain": _digest(self.gain),
+            "kc_mask": _digest(self.kc_mask),
+            "dan_index": _digest(self.dan_index),
+            "rule_sha256": hashlib.sha256(Path(__file__).with_name("rule.py").read_bytes()).hexdigest(),
+            "dt_ms": self.dt,
+        }
 
     def reset(self, keep_memory: bool) -> None:
         saved = self.weight[self.plastic_edges].copy(), self.memory_u.copy(), self.memory_w.copy()

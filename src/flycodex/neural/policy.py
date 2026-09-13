@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -17,6 +18,7 @@ import numpy as np
 
 
 UPSTREAM_REVISION = "78ef3e05ab0fa086032098558d893667068944a0"
+STATE_FIELDS = ("weight", "v", "g", "refractory", "drive", "previous_drive", "queue", "queue_count", "clock", "counts", "active", "flags", "nactive", "last", "eligibility", "eligibility_last", "modulation", "modulation_last", "adaptation", "luminance", "r8_light", "rate_kc", "rate_dan", "memory_u", "memory_w")
 
 
 def _sha256(path: Path) -> str:
@@ -25,6 +27,10 @@ def _sha256(path: Path) -> str:
         while chunk := handle.read(8 * 1024 * 1024):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _array_digest(array: np.ndarray) -> str:
+    return hashlib.sha256(array.tobytes()).hexdigest()
 
 
 def _atomic_json(path: Path, value: dict) -> None:
@@ -46,17 +52,50 @@ def _transmitter_signs(values) -> np.ndarray:
     return np.asarray(signs, dtype=np.int8)
 
 
-def _verify_graph(graph: Path) -> None:
+def _require_free_space(root: Path, required_bytes: int, operation: str) -> None:
+    available = shutil.disk_usage(root).free
+    if available < required_bytes:
+        raise OSError(
+            f"Insufficient disk space for {operation}: requires {required_bytes} bytes, available {available} bytes"
+        )
+
+
+def _verify_graph(data_dir: Path) -> None:
     expected = json.loads(Path(__file__).with_name("arrays.lock.json").read_text())
+    graph = data_dir / "graph.npz"
     with np.load(graph, allow_pickle=False) as arrays:
+        if set(arrays.files) != set(expected):
+            raise ValueError("Compiled graph fields mismatch")
         for name, value in expected.items():
             if name not in arrays or hashlib.sha256(arrays[name].tobytes()).hexdigest() != value:
                 raise ValueError(f"Compiled graph array provenance mismatch: {name}")
+        if len(arrays["ids"]) != 166700 or len(arrays["post"]) != 25582938:
+            raise ValueError("Wrong retained graph")
+    normalized = data_dir / "normalized" / "neurons.feather"
+    if not normalized.exists():
+        raise ValueError("Normalized neuron metadata missing")
+    import pyarrow.feather as feather
+
+    neurons = feather.read_table(normalized).to_pandas()
+    transmitter_values = json.dumps(
+        neurons.neurotransmitter.fillna("").astype(str).tolist(), separators=(",", ":")
+    ).encode()
+    identity = json.loads(Path(__file__).with_name("neurons.lock.json").read_text())
+    if hashlib.sha256(transmitter_values).hexdigest() != identity["neurotransmitter_values_sha256"]:
+        raise ValueError("Normalized transmitter values mismatch")
+    with np.load(graph, allow_pickle=False) as arrays:
+        if not np.array_equal(neurons.source_id.to_numpy(), arrays["ids"]):
+            raise ValueError("Normalized neuron order mismatch")
 
 
 def _obtain_sources(data_dir: Path) -> dict:
     """Verify local source files or resume an authenticated HTTPS curl download."""
     data_dir.mkdir(parents=True, exist_ok=True)
+    missing = [item for name, item in _locks().items() if not (data_dir / name).exists()]
+    # Download plus a complete retained-graph compile keeps an edge partial,
+    # normalized Arrow, and graph output live at once.
+    edge_bytes = _locks()["edges.feather"]["bytes"]
+    _require_free_space(data_dir, sum(item["bytes"] for item in missing) + 2 * edge_bytes, "source download and graph preparation")
     report = {}
     for name, expected in _locks().items():
         target = data_dir / name
@@ -100,6 +139,9 @@ def _normalize_and_compile(data_dir: Path, source_hashes: dict) -> dict:
     import pyarrow.feather as feather
     import pyarrow.ipc as ipc
 
+    _require_free_space(
+        data_dir, 2 * _locks()["edges.feather"]["bytes"], "normalization and graph compilation"
+    )
     normalized = data_dir / "normalized"
     normalized.mkdir(parents=True, exist_ok=True)
     annotations = feather.read_table(data_dir / "annotations.feather").to_pandas()
@@ -174,7 +216,7 @@ def _normalize_and_compile(data_dir: Path, source_hashes: dict) -> dict:
     with graph_partial.open("wb") as handle:
         np.savez(handle, ptr=ptr, post=post[order].astype(np.int32), weight=(count[order].astype(np.float32) * signs[pre[order]] * 0.275).astype(np.float32), ids=nodes.source_id.to_numpy(dtype=np.int64), retina=retina, uv=uv, confidence=np.asarray(confidence), hexes=np.asarray(hexes), lamina=np.flatnonzero(aligned.type.isin(["L1", "L2", "L3", "L5"])).astype(np.int32), sugar=np.flatnonzero(aligned.type.eq("LB3c")).astype(np.int32), superclass=np.asarray(nodes.superclass.fillna("unassigned"), dtype="U64"))
     graph_partial.replace(graph_path)
-    _verify_graph(graph_path)
+    _verify_graph(data_dir)
     report = {"dataset": "MaleCNS v1.0", "upstream_revision": UPSTREAM_REVISION, "neurons": len(nodes), "edges": retained_rows, "synaptic_contacts": contacts, "retina_mapped": len(retina), "source_hashes": source_hashes, "graph_sha256": _sha256(graph_path), "limitations": "Full retained graph with experimental visual projection and candidate dynamics; not a validated model of fly vision, learning, language, or cognition."}
     _atomic_json(data_dir / "manifest.json", report)
     return report
@@ -189,7 +231,7 @@ def prepare_data(data_dir: Path) -> dict:
     if graph.exists():
         # A verified upstream-compatible graph is reusable even if it was
         # prepared by another process and has an upstream-format manifest.
-        _verify_graph(graph)
+        _verify_graph(root)
         report = json.loads(manifest.read_text()) if manifest.exists() else {}
         return {**report, "prepared": False, "sources": sources, "graph_sha256": _sha256(graph)}
     report = _normalize_and_compile(root, sources)
@@ -218,29 +260,42 @@ class NeuralPolicy:
             self._runtime = FullGraphRuntime(self.data_dir, self.learning)
         return self._runtime
 
-    def _observe(self, rgb: np.ndarray, duration_ms: int, stimulation=None) -> dict:
-        from . import decode_counts
-
+    def _raw_window(self, rgb: np.ndarray, duration_ms: int, stimulation=None) -> dict:
         brain = self._brain()
         counts, compute_seconds = brain.window(rgb, duration_ms, stimulation)
-        decoded = decode_counts(
-            counts, left=brain.left, right=brain.right, gate=brain.gate,
-            seconds=duration_ms / 1000,
-        )
         return {
-            **decoded,
+            "counts": counts,
+            "brain": brain,
+            "window_ms": duration_ms,
+            "compute_seconds": compute_seconds,
+        }
+
+    @staticmethod
+    def _trace(raw: dict, rgb: np.ndarray) -> dict:
+        brain, counts = raw["brain"], raw["counts"]
+        return {
             "cell_ids": brain.cell_ids,
             "input_sha256": hashlib.sha256(np.asarray(rgb).tobytes()).hexdigest(),
             "spike_sha256": hashlib.sha256(counts.tobytes()).hexdigest(),
             "simulated_ms": float(brain.clock[0] * brain.dt),
-            "compute_seconds": compute_seconds,
+            "window_ms": raw["window_ms"],
+            "compute_seconds": raw["compute_seconds"],
             "total_spikes": int(counts.sum()),
             "memory": brain.memory(),
         }
 
     def choose(self, rgb: np.ndarray) -> dict:
         """Advance one 500 ms observation window and decode its real spikes."""
-        return self._observe(rgb, 500)
+        from . import decode_counts
+
+        raw = self._raw_window(rgb, 500)
+        return {
+            **decode_counts(
+                raw["counts"], left=raw["brain"].left, right=raw["brain"].right,
+                gate=raw["brain"].gate, seconds=0.5,
+            ),
+            **self._trace(raw, rgb),
+        }
 
     def feedback(self, rgb: np.ndarray, signal: int) -> dict:
         """Deliver one separate 200 ms reward, aversive, or neutral interval."""
@@ -253,8 +308,13 @@ class NeuralPolicy:
             target, label = brain.reward, "reward"
         elif signal < 0:
             target, label = brain.aversive, "aversive"
-        result = self._observe(rgb, 200, target)
-        return {**result, "signal": int(signal), "stimulus": label, "stimulus_ms": 200 if signal else 0}
+        raw = self._raw_window(rgb, 200, target)
+        return {
+            **self._trace(raw, rgb),
+            "signal": int(signal),
+            "stimulus": label,
+            "stimulus_ms": 200 if signal else 0,
+        }
 
     def reset(self, keep_memory: bool = False) -> None:
         if self._runtime is not None:
@@ -264,27 +324,50 @@ class NeuralPolicy:
         brain = self._brain()
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        state = ["weight", "v", "g", "refractory", "drive", "previous_drive", "queue", "queue_count", "clock", "counts", "active", "flags", "nactive", "last", "eligibility", "eligibility_last", "modulation", "modulation_last", "adaptation", "luminance", "r8_light", "rate_kc", "rate_dan", "memory_u", "memory_w"]
-        metadata = {"model": "flycodex-full-graph-v1", "learning": self.learning, "graph_ids_sha256": hashlib.sha256(brain.ids.tobytes()).hexdigest(), "graph_ptr_sha256": hashlib.sha256(brain.ptr.tobytes()).hexdigest(), "kernel": brain.build}
+        metadata = self._checkpoint_metadata(brain)
         partial = path.with_suffix(path.suffix + ".partial")
         with partial.open("wb") as handle:
-            np.savez_compressed(handle, metadata=json.dumps(metadata), **{name: getattr(brain, name) for name in state})
+            np.savez_compressed(handle, metadata=json.dumps(metadata), **{name: getattr(brain, name) for name in STATE_FIELDS})
         partial.replace(path)
 
     def restore(self, path: Path) -> None:
         brain = self._brain()
         with np.load(path, allow_pickle=False) as saved:
+            expected_files = {"metadata", *STATE_FIELDS}
+            if set(saved.files) != expected_files:
+                raise ValueError("Checkpoint state set mismatch")
             metadata = json.loads(str(saved["metadata"]))
-            expected = {"model": "flycodex-full-graph-v1", "learning": self.learning, "graph_ids_sha256": hashlib.sha256(brain.ids.tobytes()).hexdigest(), "graph_ptr_sha256": hashlib.sha256(brain.ptr.tobytes()).hexdigest(), "kernel": brain.build}
+            expected = self._checkpoint_metadata(brain)
             if metadata != expected:
                 raise ValueError("Checkpoint provenance mismatch")
-            for name in saved.files:
-                if name == "metadata":
-                    continue
+            for name in STATE_FIELDS:
                 current = getattr(brain, name)
                 if saved[name].shape != current.shape or saved[name].dtype != current.dtype:
                     raise ValueError("Checkpoint array mismatch")
-                current[:] = saved[name]
+                if saved[name].dtype.kind == "f" and not np.isfinite(saved[name]).all():
+                    raise ValueError("Nonfinite checkpoint state")
+            for name in STATE_FIELDS:
+                getattr(brain, name)[:] = saved[name]
+
+    def _checkpoint_metadata(self, brain) -> dict:
+        return {
+            "model": "flycodex-full-graph-v1",
+            "learning": self.learning,
+            "kernel": brain.build,
+            "graph_ids_sha256": _array_digest(brain.ids),
+            "graph_ptr_sha256": _array_digest(brain.ptr),
+            "graph_post_sha256": _array_digest(brain.post),
+            "plastic_edges_sha256": _array_digest(brain.plastic_edges),
+            "configuration": brain.configuration_signature(),
+        }
+
+    def _state_digest(self) -> str:
+        brain = self._brain()
+        digest = hashlib.sha256()
+        for name in STATE_FIELDS:
+            digest.update(name.encode() + b"\0")
+            digest.update(getattr(brain, name).tobytes())
+        return digest.hexdigest()
 
     def memory(self) -> dict:
         return self._brain().memory() if self._runtime is not None else {"initialized": False, "learning": self.learning}
@@ -297,28 +380,41 @@ def probe(data_dir: Path, output_dir: Path) -> dict:
     dark = np.zeros((180, 320, 3), dtype=np.uint8)
     bright = np.full((180, 320, 3), 255, dtype=np.uint8)
     adaptive = NeuralPolicy(data_dir, learning=True)
+    dark_start = adaptive._state_digest()
     dark_response = adaptive.choose(dark)
+    adaptive.reset()
+    bright_start = adaptive._state_digest()
     bright_response = adaptive.choose(bright)
     before = adaptive.memory()
-    feedback = adaptive.feedback(bright, 1)
+    reward_feedback = adaptive.feedback(bright, 1)
     after = adaptive.memory()
     checkpoint = output / "probe-checkpoint.npz"
     adaptive.save(checkpoint)
+    checkpoint_state = adaptive._state_digest()
     adaptive.reset()
     adaptive.restore(checkpoint)
+    restored_state = adaptive._state_digest()
+    aversive = NeuralPolicy(data_dir, learning=True)
+    aversive.choose(bright)
+    aversive_feedback = aversive.feedback(bright, -1)
     frozen = NeuralPolicy(data_dir, learning=False)
     frozen.choose(bright)
     frozen_before = frozen.memory()
-    frozen.feedback(bright, -1)
-    frozen_after = frozen.memory()
+    frozen_reward = frozen.feedback(bright, 1)
+    frozen_after_reward = frozen.memory()
+    frozen_aversive = frozen.feedback(bright, -1)
+    frozen_after_aversive = frozen.memory()
     report = {
         "codex_invoked": False,
         "dark": dark_response,
         "bright": bright_response,
-        "feedback": feedback,
+        "paired_input_start_state": {"dark": dark_start, "bright": bright_start, "identical": dark_start == bright_start},
+        "reward_feedback": reward_feedback,
+        "aversive_feedback": aversive_feedback,
         "adaptive_weight_changed": before["sha256"] != after["sha256"],
-        "frozen_weights_identical": frozen_before["sha256"] == frozen_after["sha256"],
-        "checkpoint_restored": adaptive.memory()["sha256"] == after["sha256"],
+        "frozen_reward_weights_identical": frozen_before["sha256"] == frozen_after_reward["sha256"],
+        "frozen_aversive_weights_identical": frozen_after_reward["sha256"] == frozen_after_aversive["sha256"],
+        "checkpoint_restored": checkpoint_state == restored_state,
         "limitations": "A response or changed candidate efficacy does not establish task learning, language ability, or cognition.",
     }
     _atomic_json(output / "probe.json", report)

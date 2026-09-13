@@ -47,6 +47,8 @@ def render_panel(
     # Test status: passing and failing areas share the fixed third region.
     left, top, right, bottom = regions[2]
     split = left + round((right - left) * passed / total)
-    draw.rectangle((left, top, split, bottom), fill=(73, 170, 111))
-    draw.rectangle((split, top, right, bottom), fill=(192, 82, 73))
+    if split > left:
+        draw.rectangle((left, top, split - 1, bottom), fill=(73, 170, 111))
+    if split < right:
+        draw.rectangle((split, top, right, bottom), fill=(192, 82, 73))
     return image
