@@ -6,6 +6,8 @@ import subprocess
 import threading
 import time
 
+import pytest
+
 from flycodex.codex import CodexRunner, PROMPTS
 
 
@@ -363,3 +365,63 @@ def test_direct_child_exit_kills_descendants_and_finishes_readers(tmp_path, monk
     assert finished
     assert not child_survived
     assert result["status"] == "completed"
+
+
+def test_event_callback_can_cancel_its_own_turn_without_deadlocking(tmp_path, monkeypatch):
+    runner, _ = _runner(tmp_path, monkeypatch, mode="delay", timeout=30)
+    result = {}
+
+    def on_event(event):
+        if event["type"] == "thread.started":
+            runner.cancel()
+
+    run_thread = threading.Thread(
+        target=lambda: result.update(runner.run("fixture", None, on_event))
+    )
+    run_thread.start()
+    run_thread.join(timeout=1)
+    finished_without_help = not run_thread.is_alive()
+    if not finished_without_help:
+        with runner._state_changed:
+            runner._active = False
+            runner._state_changed.notify_all()
+        run_thread.join(timeout=2)
+
+    assert finished_without_help
+    assert result["status"] == "cancelled"
+
+
+@pytest.mark.parametrize("setup_error", [OSError("log unavailable"), KeyboardInterrupt()])
+def test_setup_failure_or_interrupt_reaps_published_process_and_releases_lifecycle(
+    tmp_path, monkeypatch, setup_error
+):
+    runner, _ = _runner(tmp_path, monkeypatch, mode="delay", timeout=30)
+    original_popen = subprocess.Popen
+    spawned = []
+
+    def recording_spawn(*args, **kwargs):
+        process = original_popen(*args, **kwargs)
+        spawned.append(process)
+        return process
+
+    original_open = Path.open
+
+    def failing_event_log(path, *args, **kwargs):
+        if path == runner.events_path:
+            raise setup_error
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr("flycodex.codex.subprocess.Popen", recording_spawn)
+    monkeypatch.setattr(Path, "open", failing_event_log)
+
+    with pytest.raises(type(setup_error)):
+        runner.run("fixture", None, lambda event: None)
+
+    active_after_error = runner._active
+    process_survived = spawned[0].poll() is None
+    if active_after_error or process_survived:
+        runner._terminate(spawned[0], spawned[0].pid)
+        runner._release_active()
+
+    assert not active_after_error
+    assert not process_survived

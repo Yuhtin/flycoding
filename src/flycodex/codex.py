@@ -56,6 +56,7 @@ class CodexRunner:
         self._state_changed = threading.Condition(self._state_lock)
         self._termination_lock = threading.Lock()
         self._active = False
+        self._owner_thread: int | None = None
         self._process: subprocess.Popen[str] | None = None
         self._process_group: int | None = None
         self._cancel_requested = False
@@ -140,17 +141,21 @@ class CodexRunner:
 
     def cancel(self) -> None:
         """Cancel startup or terminate the active group, then await cleanup."""
+        caller = threading.get_ident()
         with self._state_changed:
             if not self._active:
                 return
             self._cancel_requested = True
             self._state_changed.notify_all()
-            while self._active and self._process is None:
+            owns_run = caller == self._owner_thread
+            while not owns_run and self._active and self._process is None:
                 self._state_changed.wait()
             process = self._process
             process_group = self._process_group
         if process is not None and process_group is not None:
             self._terminate(process, process_group)
+        if owns_run:
+            return
         with self._state_changed:
             while self._active:
                 self._state_changed.wait()
@@ -173,22 +178,15 @@ class CodexRunner:
             self._process = None
             self._process_group = None
             self._active = False
+            self._owner_thread = None
             self._state_changed.notify_all()
-
-    def _startup_failed(self, session_id: str | None, exc: OSError) -> dict[str, Any]:
-        self._release_active()
-        return {
-            "session_id": session_id,
-            "status": "failed",
-            "usage": {},
-            "error": f"could not start Codex: {exc}",
-        }
 
     def _claim_active(self) -> float:
         with self._state_changed:
             if self._active:
                 raise RuntimeError("a Codex turn is already active")
             self._active = True
+            self._owner_thread = threading.get_ident()
             self._process = None
             self._process_group = None
             self._cancel_requested = False
@@ -228,80 +226,93 @@ class CodexRunner:
         if not self.workspace.is_dir():
             raise ValueError(f"workspace does not exist: {self.workspace}")
         deadline = self._claim_active()
-
-        full_prompt = (
-            prompt
-            if session_id is not None
-            else f"{INITIAL_CONTEXT}\nSelected instruction:\n{prompt}"
-        )
+        process: subprocess.Popen[str] | None = None
+        event_file = None
+        started_readers: list[threading.Thread] = []
         try:
-            process = subprocess.Popen(
-                self._arguments(session_id),
-                cwd=self.workspace,
-                env=self._environment(),
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,
-                start_new_session=True,
+            full_prompt = (
+                prompt
+                if session_id is not None
+                else f"{INITIAL_CONTEXT}\nSelected instruction:\n{prompt}"
             )
-        except OSError as exc:
-            return self._startup_failed(session_id, exc)
-        cancelled_before_submit = self._publish_process(process)
-
-        reported_session = session_id
-        usage: dict[str, Any] = {}
-        turn_completed = False
-        turn_error: str | None = None
-        callback_error: Exception | None = None
-        timed_out = False
-        event_queue: queue.Queue[object] = queue.Queue()
-        stream_finished = object()
-        self.events_path.parent.mkdir(parents=True, exist_ok=True)
-        event_file = self.events_path.open("a")
-
-        def emit(event: dict[str, Any]) -> None:
-            nonlocal reported_session, usage, turn_completed, turn_error, callback_error
-            event_file.write(json.dumps(event, sort_keys=True) + "\n")
-            event_file.flush()
-            os.fsync(event_file.fileno())
-            event_type = event.get("type")
-            if event_type == "thread.started" and isinstance(event.get("thread_id"), str):
-                reported_session = event["thread_id"]
-            elif event_type == "turn.completed":
-                turn_completed = True
-                if isinstance(event.get("usage"), dict):
-                    usage = event["usage"]
-            elif event_type in {"turn.failed", "error"}:
-                turn_error = _event_error(event.get("error", event))
             try:
-                on_event(event)
-            except Exception as exc:
-                callback_error = exc
+                process = subprocess.Popen(
+                    self._arguments(session_id),
+                    cwd=self.workspace,
+                    env=self._environment(),
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    bufsize=1,
+                    start_new_session=True,
+                )
+            except OSError as exc:
+                return {
+                    "session_id": session_id,
+                    "status": "failed",
+                    "usage": {},
+                    "error": f"could not start Codex: {exc}",
+                }
+            cancelled_before_submit = self._publish_process(process)
 
-        def read_stream(stream, stream_name: str) -> None:
-            try:
-                for line in stream:
-                    event = self._parse_event(line, stream_name)
-                    if event is not None:
-                        event_queue.put(event)
-            except (OSError, ValueError):
-                pass
-            finally:
-                event_queue.put(stream_finished)
+            reported_session = session_id
+            usage: dict[str, Any] = {}
+            turn_completed = False
+            turn_error: str | None = None
+            callback_error: Exception | None = None
+            timed_out = False
+            event_queue: queue.Queue[object] = queue.Queue()
+            stream_finished = object()
+            self.events_path.parent.mkdir(parents=True, exist_ok=True)
+            event_file = self.events_path.open("a")
 
-        stdout_thread = threading.Thread(
-            target=read_stream, args=(process.stdout, "stdout"), daemon=True
-        )
-        stderr_thread = threading.Thread(
-            target=read_stream, args=(process.stderr, "stderr"), daemon=True
-        )
-        stdout_thread.start()
-        stderr_thread.start()
-        cleanup_deadline: float | None = None
-        open_streams = 2
-        try:
+            def emit(event: dict[str, Any]) -> None:
+                nonlocal reported_session, usage, turn_completed, turn_error, callback_error
+                event_file.write(json.dumps(event, sort_keys=True) + "\n")
+                event_file.flush()
+                os.fsync(event_file.fileno())
+                event_type = event.get("type")
+                if event_type == "thread.started" and isinstance(
+                    event.get("thread_id"), str
+                ):
+                    reported_session = event["thread_id"]
+                elif event_type == "turn.completed":
+                    turn_completed = True
+                    if isinstance(event.get("usage"), dict):
+                        usage = event["usage"]
+                elif event_type in {"turn.failed", "error"}:
+                    turn_error = _event_error(event.get("error", event))
+                try:
+                    on_event(event)
+                except Exception as exc:
+                    callback_error = exc
+
+            def read_stream(stream, stream_name: str) -> None:
+                try:
+                    for line in stream:
+                        event = self._parse_event(line, stream_name)
+                        if event is not None:
+                            event_queue.put(event)
+                except (OSError, ValueError):
+                    pass
+                finally:
+                    event_queue.put(stream_finished)
+
+            readers = [
+                threading.Thread(
+                    target=read_stream, args=(process.stdout, "stdout"), daemon=True
+                ),
+                threading.Thread(
+                    target=read_stream, args=(process.stderr, "stderr"), daemon=True
+                ),
+            ]
+            for reader in readers:
+                reader.start()
+                started_readers.append(reader)
+
+            cleanup_deadline: float | None = None
+            open_streams = 2
             submitted = self._submit_prompt(process, full_prompt)
             if cancelled_before_submit or not submitted:
                 self._terminate(process, process.pid)
@@ -337,8 +348,8 @@ class CodexRunner:
                     open_streams -= 1
                 else:
                     emit(item)
-            stdout_thread.join(timeout=0.2)
-            stderr_thread.join(timeout=0.2)
+            for reader in started_readers:
+                reader.join(timeout=0.2)
             while True:
                 try:
                     item = event_queue.get_nowait()
@@ -349,37 +360,54 @@ class CodexRunner:
             if process.poll() is None or self._group_exists(process.pid):
                 self._terminate(process, process.pid)
             return_code = process.wait()
-        finally:
-            event_file.close()
             with self._state_changed:
                 cancelled = self._cancel_requested
-            if process.poll() is None or self._group_exists(process.pid):
-                self._terminate(process, process.pid)
-            self._release_active()
-
-        if callback_error is not None and turn_error is None:
-            turn_error = f"event callback failed: {callback_error}"
-        if cancelled:
-            status = "cancelled"
-            error = "Codex turn was cancelled"
-        elif timed_out:
-            status = "timed_out"
-            error = f"Codex turn exceeded {self.timeout} seconds"
-        elif return_code != 0 or turn_error is not None:
-            status = "failed"
-            error = turn_error or f"Codex exited with status {return_code}"
-        elif not turn_completed:
-            status = "failed"
-            error = "Codex exited without a turn.completed event"
-        elif session_id is None and reported_session is None:
-            status = "failed"
-            error = "Codex did not report a session ID"
-        else:
-            status = "completed"
-            error = None
-        return {
-            "session_id": reported_session,
-            "status": status,
-            "usage": usage,
-            "error": error,
-        }
+            if callback_error is not None and turn_error is None:
+                turn_error = f"event callback failed: {callback_error}"
+            if cancelled:
+                status = "cancelled"
+                error = "Codex turn was cancelled"
+            elif timed_out:
+                status = "timed_out"
+                error = f"Codex turn exceeded {self.timeout} seconds"
+            elif return_code != 0 or turn_error is not None:
+                status = "failed"
+                error = turn_error or f"Codex exited with status {return_code}"
+            elif not turn_completed:
+                status = "failed"
+                error = "Codex exited without a turn.completed event"
+            elif session_id is None and reported_session is None:
+                status = "failed"
+                error = "Codex did not report a session ID"
+            else:
+                status = "completed"
+                error = None
+            return {
+                "session_id": reported_session,
+                "status": status,
+                "usage": usage,
+                "error": error,
+            }
+        finally:
+            try:
+                if process is not None:
+                    try:
+                        if process.stdin is not None and not process.stdin.closed:
+                            process.stdin.close()
+                    except (BrokenPipeError, OSError):
+                        pass
+                    if process.poll() is None or self._group_exists(process.pid):
+                        self._terminate(process, process.pid)
+                    for reader, stream in zip(
+                        started_readers, (process.stdout, process.stderr)
+                    ):
+                        if reader.is_alive():
+                            self._close_pipe(stream)
+                    for reader in started_readers:
+                        reader.join(timeout=0.2)
+            finally:
+                try:
+                    if event_file is not None:
+                        event_file.close()
+                finally:
+                    self._release_active()
