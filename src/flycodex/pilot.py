@@ -207,7 +207,7 @@ class Pilot:
                 rng = random.Random(attempt["seed"])
             runner = self.runner_factory(task.workspace, self.model)
             for step in range(1, 6):
-                turn = {"step": step}
+                turn = {"step": step, "events": []}
                 attempt["turns"].append(turn)
                 self._phase(store, attempt, "input_start")
                 observation = render_panel(before["passed"], before["total"])
@@ -231,6 +231,8 @@ class Pilot:
                 self.state["busy"] = True
                 self._persist(store, "codex_busy", attempt=name)
                 def on_event(event):
+                    turn["events"].append(event)
+                    turn["events"] = turn["events"][-200:]
                     self.state["events"].append(event)
                     self.state["events"] = self.state["events"][-200:]
                     self._persist(store, "codex_event", attempt=name, send_id=send_id, payload=event)

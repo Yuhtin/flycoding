@@ -228,3 +228,12 @@ def test_frozen_choice_weight_drift_stops_before_send(tmp_path, controlled_codex
 def test_synthetic_override_cannot_claim_genuine_evidence(tmp_path):
     with pytest.raises(ValueError, match="synthetic"):
         Pilot(tmp_path / "run", tmp_path / "data", model="model", policy_factory=SyntheticPolicy)
+
+
+def test_history_preserves_each_turns_own_codex_response(tmp_path, controlled_codex):
+    result = synthetic_pilot(tmp_path, controlled_codex).run()
+    for name, attempt in result["attempts"].items():
+        turn = attempt["turns"][0]
+        assert turn["events"][0]["thread_id"] == "synthetic-" + name
+        assert turn["events"][-1]["type"] == "turn.completed"
+        assert turn["events"][1]["item"]["text"].startswith("<script>")

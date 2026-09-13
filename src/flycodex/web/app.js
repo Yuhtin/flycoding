@@ -13,6 +13,7 @@ function renderSelection() {
   const entry = selected === 'live' ? all.at(-1) : all.find(item => item.key === selected);
   if (!entry) return;
   const {name,turn} = entry;
+  renderEvents(entry, selected === 'live');
   const choice = turn.choice || {};
   const image = byId('sensory');
   if (turn.input) {
@@ -39,6 +40,33 @@ function renderSelection() {
   text('violation',evaluation?.violation || turn.infrastructure_error || turn.codex?.error || '');
   text('trace',JSON.stringify({attempt:name,step:turn.step,choice,feedback,weights_before:turn.weights_before,weights_after_choice:turn.weights_after_choice,weights_after_feedback:turn.weights_after_feedback},null,2));
 }
+function readableEvent(event) {
+  const item = event.item || {};
+  if (item.type === 'agent_message' || item.type === 'reasoning') return item.text || '';
+  if (item.type === 'command_execution') {
+    const output = item.aggregated_output || '';
+    const result = item.exit_code === undefined ? '' : `\n[saída ${item.exit_code}]`;
+    return `$ ${item.command || ''}\n${output}${result}`;
+  }
+  if (item.type === 'file_change') return (item.changes || []).map(change => `[arquivo ${change.kind || 'alterado'}] ${change.path || ''}`).join('\n');
+  if (event.type === 'thread.started') return '[sessão iniciada]';
+  if (event.type === 'turn.started') return '[instrução em execução]';
+  if (event.type === 'turn.completed') return '[instrução concluída]';
+  if (event.type === 'turn.failed' || event.type === 'error') return `[falha] ${event.message || event.error?.message || 'Veja o evento bruto.'}`;
+  if (event.type === 'diagnostic') return `[${event.stream || 'diagnóstico'}] ${event.message || ''}`;
+  return `[${event.type || 'evento'}] ${item.type || ''}`;
+}
+function renderEvents(entry, live) {
+  const {name,turn} = entry;
+  const events = turn.events || [];
+  text('terminal-scope',`${name} · instrução ${turn.step} · ${live ? 'acompanhando' : 'histórico'} · últimos 200 eventos`);
+  text('terminal-state',live && current.busy ? 'Codex em execução' : 'Registro da instrução');
+  const terminal = byId('events');
+  const atEnd = terminal.scrollHeight - terminal.scrollTop - terminal.clientHeight < 40;
+  terminal.textContent = events.length ? events.map(readableEvent).filter(Boolean).join('\n\n') : 'Nenhum evento registrado para esta instrução.';
+  text('raw-events',events.length ? events.map(event => JSON.stringify(event,null,2)).join('\n\n') : 'Nenhum evento.');
+  if (atEnd) terminal.scrollTop = terminal.scrollHeight;
+}
 function render(state) {
   current = state;
   text('run-status',labels[state.status] || state.status);
@@ -58,9 +86,6 @@ function render(state) {
     for (const value of values) { const cell = document.createElement('td'); cell.textContent = value; row.append(cell); }
     tbody.append(row);
   }
-  const terminal = byId('events'); const atEnd = terminal.scrollHeight - terminal.scrollTop - terminal.clientHeight < 40;
-  terminal.textContent = state.events?.length ? state.events.map(event => JSON.stringify(event,null,2)).join('\n\n') : 'Aguardando eventos…';
-  if (atEnd) terminal.scrollTop = terminal.scrollHeight;
   renderSelection();
 }
 byId('history').addEventListener('change',renderSelection);
