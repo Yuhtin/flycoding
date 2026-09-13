@@ -56,6 +56,7 @@ class CodexRunner:
         self._state_changed = threading.Condition(self._state_lock)
         self._termination_lock = threading.Lock()
         self._active = False
+        self._claim_token: object | None = None
         self._owner_thread: int | None = None
         self._process: subprocess.Popen[str] | None = None
         self._process_group: int | None = None
@@ -173,24 +174,33 @@ class CodexRunner:
         except (json.JSONDecodeError, ValueError):
             return {"type": "diagnostic", "stream": stream_name, "message": line}
 
-    def _release_active(self) -> None:
+    def _owns_claim(self, claim_token: object) -> bool:
         with self._state_changed:
+            return self._active and self._claim_token is claim_token
+
+    def _release_active(self, claim_token: object) -> None:
+        with self._state_changed:
+            if self._claim_token is not claim_token:
+                return
             self._process = None
             self._process_group = None
             self._active = False
+            self._claim_token = None
             self._owner_thread = None
             self._state_changed.notify_all()
 
-    def _claim_active(self) -> float:
+    def _claim_active(self, claim_token: object) -> float:
+        deadline = time.monotonic() + self.timeout
         with self._state_changed:
             if self._active:
                 raise RuntimeError("a Codex turn is already active")
             self._active = True
+            self._claim_token = claim_token
             self._owner_thread = threading.get_ident()
             self._process = None
             self._process_group = None
             self._cancel_requested = False
-        return time.monotonic() + self.timeout
+        return deadline
 
     def _publish_process(self, process: subprocess.Popen[str]) -> bool:
         with self._state_changed:
@@ -225,11 +235,12 @@ class CodexRunner:
         """Submit exactly one prompt, streaming and durably recording events."""
         if not self.workspace.is_dir():
             raise ValueError(f"workspace does not exist: {self.workspace}")
-        deadline = self._claim_active()
+        claim_token = object()
         process: subprocess.Popen[str] | None = None
         event_file = None
         started_readers: list[threading.Thread] = []
         try:
+            deadline = self._claim_active(claim_token)
             full_prompt = (
                 prompt
                 if session_id is not None
@@ -389,25 +400,26 @@ class CodexRunner:
                 "error": error,
             }
         finally:
-            try:
-                if process is not None:
-                    try:
-                        if process.stdin is not None and not process.stdin.closed:
-                            process.stdin.close()
-                    except (BrokenPipeError, OSError):
-                        pass
-                    if process.poll() is None or self._group_exists(process.pid):
-                        self._terminate(process, process.pid)
-                    for reader, stream in zip(
-                        started_readers, (process.stdout, process.stderr)
-                    ):
-                        if reader.is_alive():
-                            self._close_pipe(stream)
-                    for reader in started_readers:
-                        reader.join(timeout=0.2)
-            finally:
+            if self._owns_claim(claim_token):
                 try:
-                    if event_file is not None:
-                        event_file.close()
+                    if process is not None:
+                        try:
+                            if process.stdin is not None and not process.stdin.closed:
+                                process.stdin.close()
+                        except (BrokenPipeError, OSError):
+                            pass
+                        if process.poll() is None or self._group_exists(process.pid):
+                            self._terminate(process, process.pid)
+                        for reader, stream in zip(
+                            started_readers, (process.stdout, process.stderr)
+                        ):
+                            if reader.is_alive():
+                                self._close_pipe(stream)
+                        for reader in started_readers:
+                            reader.join(timeout=0.2)
                 finally:
-                    self._release_active()
+                    try:
+                        if event_file is not None:
+                            event_file.close()
+                    finally:
+                        self._release_active(claim_token)

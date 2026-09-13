@@ -252,11 +252,15 @@ def test_overlapping_startup_is_rejected_before_a_second_process_spawns(tmp_path
     second = threading.Thread(target=invoke)
     second.start()
     second.join(timeout=1)
+    owner_after_rejection = runner._owner_thread
+    active_after_rejection = runner._active
     release_first.set()
     first.join(timeout=2)
     second.join(timeout=2)
 
     assert calls == 1
+    assert active_after_rejection
+    assert owner_after_rejection == first.ident
     assert sum(isinstance(outcome, RuntimeError) for outcome in outcomes) == 1
     assert sum(
         isinstance(outcome, dict) and outcome["status"] == "completed"
@@ -391,6 +395,28 @@ def test_event_callback_can_cancel_its_own_turn_without_deadlocking(tmp_path, mo
     assert result["status"] == "cancelled"
 
 
+def test_interrupt_immediately_after_claim_releases_only_that_invocation(tmp_path, monkeypatch):
+    runner, _ = _runner(tmp_path, monkeypatch)
+    original_claim = runner._claim_active
+
+    def interrupt_after_claim(*args):
+        original_claim(*args)
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(runner, "_claim_active", interrupt_after_claim)
+    with pytest.raises(KeyboardInterrupt):
+        runner.run("fixture", None, lambda event: None)
+
+    active_after_interrupt = runner._active
+    if active_after_interrupt:
+        with runner._state_changed:
+            runner._active = False
+            runner._owner_thread = None
+            runner._state_changed.notify_all()
+
+    assert not active_after_interrupt
+
+
 @pytest.mark.parametrize("setup_error", [OSError("log unavailable"), KeyboardInterrupt()])
 def test_setup_failure_or_interrupt_reaps_published_process_and_releases_lifecycle(
     tmp_path, monkeypatch, setup_error
@@ -421,7 +447,11 @@ def test_setup_failure_or_interrupt_reaps_published_process_and_releases_lifecyc
     process_survived = spawned[0].poll() is None
     if active_after_error or process_survived:
         runner._terminate(spawned[0], spawned[0].pid)
-        runner._release_active()
+        with runner._state_changed:
+            runner._active = False
+            runner._claim_token = None
+            runner._owner_thread = None
+            runner._state_changed.notify_all()
 
     assert not active_after_error
     assert not process_survived
