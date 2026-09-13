@@ -1,0 +1,146 @@
+{
+  "kind": "neural-mechanism-probe",
+  "date": "2026-09-13",
+  "upstream_revision": "78ef3e05ab0fa086032098558d893667068944a0",
+  "codex_invoked": false,
+  "dark": {
+    "action": "fix",
+    "reason": "right_threshold",
+    "left_hz": 14.0,
+    "right_hz": 22.0,
+    "difference_hz": 8.0,
+    "gate_spikes": 13,
+    "cell_ids": {
+      "left": [
+        "10162"
+      ],
+      "right": [
+        "10059"
+      ],
+      "gate": [
+        "10527",
+        "555871"
+      ]
+    },
+    "input_sha256": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b",
+    "spike_sha256": "a333d73b54c57c9309ea98e42d5486077c24f6280bceea324a36c062b146981d",
+    "simulated_ms": 500.0,
+    "window_ms": 500,
+    "compute_seconds": 0.5713937896653078,
+    "total_spikes": 135364,
+    "memory": {
+      "plastic_edges": 7835,
+      "changed_edges": 0,
+      "mean_efficacy": 1.0,
+      "minimum_efficacy": 1.0,
+      "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+      "weights_frozen": false
+    }
+  },
+  "bright": {
+    "action": "fix",
+    "reason": "right_threshold",
+    "left_hz": 30.0,
+    "right_hz": 32.0,
+    "difference_hz": 2.0,
+    "gate_spikes": 17,
+    "cell_ids": {
+      "left": [
+        "10162"
+      ],
+      "right": [
+        "10059"
+      ],
+      "gate": [
+        "10527",
+        "555871"
+      ]
+    },
+    "input_sha256": "07a38b70bc25eaddf9c4c4184b18fd9015598d321c56e013eac1b284f1eabe9b",
+    "spike_sha256": "ebe7a19f372bd46b5980d077ded8674d13cac6356617550a7ea751286bb122a5",
+    "simulated_ms": 500.0,
+    "window_ms": 500,
+    "compute_seconds": 0.9812047879677266,
+    "total_spikes": 416674,
+    "memory": {
+      "plastic_edges": 7835,
+      "changed_edges": 724,
+      "mean_efficacy": 1.000038504600525,
+      "minimum_efficacy": 1.0,
+      "sha256": "bcf3c8aeac570fba5ed0ec6d2d0c9e5a4e16e24606ed7e763af696da7409e94a",
+      "weights_frozen": false
+    }
+  },
+  "paired_input_start_state": {
+    "dark": "e2a76a43b98b6811a87dcb245f0ff75be63ab02d4a774116374fd74b57446284",
+    "bright": "e2a76a43b98b6811a87dcb245f0ff75be63ab02d4a774116374fd74b57446284",
+    "identical": true
+  },
+  "reward_feedback": {
+    "cell_ids": {
+      "left": [
+        "10162"
+      ],
+      "right": [
+        "10059"
+      ],
+      "gate": [
+        "10527",
+        "555871"
+      ]
+    },
+    "input_sha256": "07a38b70bc25eaddf9c4c4184b18fd9015598d321c56e013eac1b284f1eabe9b",
+    "spike_sha256": "1eb9bae4180cdece20a7bf65601a17e6c5f4b78f6524bfbe27ec092a83044374",
+    "simulated_ms": 700.0,
+    "window_ms": 200,
+    "compute_seconds": 0.9000824118847959,
+    "total_spikes": 251105,
+    "memory": {
+      "plastic_edges": 7835,
+      "changed_edges": 2849,
+      "mean_efficacy": 0.9962121248245239,
+      "minimum_efficacy": 0.937778890132904,
+      "sha256": "1d2f2c37891edb4fc761db4c85fc12744006f6fc63b169e6866188f31a4e690d",
+      "weights_frozen": false
+    },
+    "signal": 1,
+    "stimulus": "reward",
+    "stimulus_ms": 200
+  },
+  "aversive_feedback": {
+    "cell_ids": {
+      "left": [
+        "10162"
+      ],
+      "right": [
+        "10059"
+      ],
+      "gate": [
+        "10527",
+        "555871"
+      ]
+    },
+    "input_sha256": "07a38b70bc25eaddf9c4c4184b18fd9015598d321c56e013eac1b284f1eabe9b",
+    "spike_sha256": "ea74cc9645cdc03b49c4fc5e0cd2535536904b6e56f355bd7c79911fb899be28",
+    "simulated_ms": 700.0,
+    "window_ms": 200,
+    "compute_seconds": 0.9089413720066659,
+    "total_spikes": 252164,
+    "memory": {
+      "plastic_edges": 7835,
+      "changed_edges": 1241,
+      "mean_efficacy": 1.0001699924468994,
+      "minimum_efficacy": 0.9983071088790894,
+      "sha256": "4c484848568ea93b3369b3709be1b69b3b46a78d62888cbe9ba2bf265134bc69",
+      "weights_frozen": false
+    },
+    "signal": -1,
+    "stimulus": "aversive",
+    "stimulus_ms": 200
+  },
+  "adaptive_weight_changed": true,
+  "frozen_reward_weights_identical": true,
+  "frozen_aversive_weights_identical": true,
+  "checkpoint_restored": true,
+  "limitations": "A response or changed candidate efficacy does not establish task learning, language ability, or cognition."
+}

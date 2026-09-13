@@ -1,0 +1,100 @@
+{
+  "kind": "pinned-upstream-reference-check",
+  "date": "2026-09-13",
+  "description": "Independent source/data and frozen numerical reference. This is not a Codex pilot or evidence of learning.",
+  "upstream_revision": "78ef3e05ab0fa086032098558d893667068944a0",
+  "machine": {
+    "architecture": "arm64",
+    "memory_gib": 16
+  },
+  "input": {
+    "width": 320,
+    "height": 180,
+    "rgb": [
+      240,
+      240,
+      240
+    ],
+    "neural_ms": 500,
+    "learning": false,
+    "stimulus": "none"
+  },
+  "source_files": {
+    "annotations.feather": {
+      "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-annotations-male-cns-v1.0-minconf-0.5.feather",
+      "bytes": 14483314,
+      "sha256": "2177e246113e4cfbf1e7772ec37c6da1955ff22e8063d0b1f833101f99a9a3b2"
+    },
+    "neurotransmitters.feather": {
+      "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-neurotransmitters-male-cns-v1.0.feather",
+      "bytes": 43282834,
+      "sha256": "95c9289220663abeb3409f3ad9e5a7f8a53f8093f5139d15502cd08da8879621"
+    },
+    "edges.feather": {
+      "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/connectome-weights-male-cns-v1.0-minconf-0.5.feather",
+      "bytes": 1051241946,
+      "sha256": "e35da783d1c686b2b58b3b87cd6a403ae43bfcfba8bff28e08ef752c1a56afc1"
+    }
+  },
+  "graph": {
+    "source_edge_rows": 151856684,
+    "retained_edge_rows": 25582938,
+    "excluded_edge_rows": 126273746,
+    "source_synaptic_contacts": 311833243,
+    "retained_synaptic_contacts": 124177617,
+    "excluded_synaptic_contacts": 187655626,
+    "retained_weight_one_edges": 10299701,
+    "retained_self_edges": 101
+  },
+  "verified_array_sha256": {
+    "ptr": "a29aa0296125a5daa972c12d17711360d01a1209cd9cd9d7ccb1f6959224bcaf",
+    "post": "4cc5e857d3481f433576f35ddb8d580cc33cf8e22b6651fa03e08cde5d956d90",
+    "weight": "d95171c2d59cfe3ebef2e5bd52be779b8f74754d718fc8941a93b8f2921c632b",
+    "ids": "6b6b40c3bddf84b1281ef0b18db06927c2bf61c5f4cb32a4219ec9b7839dc2e5",
+    "retina": "5ec145156d998f582e5d8f08c4174e10f7f853d34745118adab8589f192d04b4",
+    "uv": "51f7dafd4355a06176418e22373ffcdf5bc066f75050da6dcbaaaccbad55a714",
+    "confidence": "4ecf882056a959ebb9053f89b766eeae7cf05aab4d65beb4d3d88a034dc7061a",
+    "hexes": "315ab7bd1abc1ef0307e90f8fff484020cd556b8d2d877f84773c912bcf6f2ca",
+    "lamina": "22d6fa8ac7aa40700d09394aea1cf35226711d2efc78bc716882920ba180e47e",
+    "sugar": "89b057c7b57d5e783f608815b4219b17b54c812c3fa229bcb78b1cafa30d37a1",
+    "superclass": "3977d971fe3ef65ce97c5c9c5d6dcf0aea893bebc55311c8c886ebe0f5756d13"
+  },
+  "frozen_reference": {
+    "side": "BUY",
+    "left_hz": 30.0,
+    "right_hz": 34.0,
+    "difference_hz": 4.0,
+    "gate_spikes": 29,
+    "cell_ids": {
+      "left": [
+        "10162"
+      ],
+      "right": [
+        "10059"
+      ],
+      "gate": [
+        "10527",
+        "555871"
+      ]
+    },
+    "brain_ms": 500.0,
+    "compute_seconds": 0.908263917604927,
+    "stimulus": "none",
+    "stimulus_ms": 0.0,
+    "reward_spikes": 0,
+    "aversive_spikes": 16,
+    "KC_spikes": 16,
+    "total_spikes": 388867,
+    "spike_sha256": "776c33e872595a635845b0c3719c8343e425ee47ea968a242f2ba0cb79230704",
+    "input_sha256": "91c825f0cd45c67fd7c2358374b9d1aedca361b558c51e881d67aa9519a7f7c3",
+    "memory": {
+      "plastic_edges": 7835,
+      "changed_edges": 0,
+      "mean_efficacy": 1.0,
+      "minimum_efficacy": 1.0,
+      "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+      "model": "stonkfly-dual-compartment-v1"
+    },
+    "elapsed_seconds": 2.973505500005558
+  }
+}
