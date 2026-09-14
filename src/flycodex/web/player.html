@@ -15,7 +15,6 @@
     <div class="top-actions">
       <span class="recorded-mark">RECORDED RUN</span>
       <button id="play-toggle" type="button" class="play-button" disabled aria-describedby="player-status">Play</button>
-      <a class="observatory-link" href="/observatory">About <span aria-hidden="true">↗</span></a>
     </div>
   </header>
 
@@ -39,13 +38,9 @@
           <div class="screen-content">
             <section class="prompt-area" aria-labelledby="prompt-label">
               <span id="prompt-label" class="screen-label amber-label">Fly prompt</span>
-              <p id="decision-text">The measured circuit has not chosen yet.</p>
+              <p id="decision-text" hidden>The measured circuit has not chosen yet.</p>
             </section>
-            <section class="terminal-area" aria-labelledby="conversation-title">
-              <div class="terminal-head">
-                <h1 id="conversation-title">OpenCode</h1>
-                <span class="terminal-state">Muse Spark</span>
-              </div>
+            <section class="terminal-area" aria-label="Recorded OpenCode output">
               <div id="conversation" class="conversation" tabindex="0" aria-live="polite" aria-label="Recorded OpenCode output">
                 <p class="conversation-empty">Output appears after the fly chooses.</p>
               </div>
@@ -53,7 +48,6 @@
             </section>
           </div>
         </div>
-        <div id="timeline-label" class="scene-status">Ready · press Play</div>
       </div>
 
       <aside class="neural-hud" aria-label="Measured neural activity">

@@ -6,14 +6,15 @@ import {
   formatMetric,
   hudForBin,
   hudLabel,
+  rasterForHistory,
   rasterIndices,
   spikesPerSecond,
 } from '../src/flycodex/web/workstation-state.mjs';
 
 const activity = {
   bins: [
-    {phase: 'choice', t_start_ms: 0, t_end_ms: 100, indices: [20, 4, 99], counts: [0, 3, 2], total_spikes: 5},
-    {phase: 'feedback', t_start_ms: 500, t_end_ms: 700, indices: [4, 7], counts: [5, 1], total_spikes: 6},
+    {at_ms: 0, phase: 'choice', t_start_ms: 0, t_end_ms: 100, indices: [20, 4, 99], counts: [0, 3, 2], total_spikes: 5},
+    {at_ms: 700, phase: 'feedback', t_start_ms: 500, t_end_ms: 700, indices: [4, 7], counts: [5, 1], total_spikes: 6},
   ],
 };
 
@@ -33,6 +34,8 @@ test('raster subset is deterministic and never exceeds measured cells', () => {
   assert.deepEqual(indices, [4, 7, 99]);
   assert.deepEqual(rasterIndices({...activity, bins: [...activity.bins].reverse()}, RASTER_CELLS), indices);
   assert.deepEqual(hudForBin(activity.bins[1], indices).raster, [5, 1, 0]);
+  assert.deepEqual(rasterForHistory(activity, indices, 50), [3, 0, 2]);
+  assert.deepEqual(rasterForHistory(activity, indices, 700), [8, 1, 2]);
 });
 
 test('HUD labels distinguish ready, paused, execution waiting, and measured activity', () => {

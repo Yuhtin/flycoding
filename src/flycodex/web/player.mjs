@@ -1,6 +1,6 @@
 import {createWorkstationView} from '/workstation-view.js';
 import {buttonLabel, createPlayerState, frameFor, reducePlayerState, validatePayload, viewReadiness} from './player-state.mjs';
-import {formatMetric, hudForBin, hudLabel, rasterIndices, RASTER_CELLS} from './workstation-state.mjs';
+import {formatMetric, hudForBin, hudLabel, rasterForHistory, rasterIndices, RASTER_CELLS} from './workstation-state.mjs';
 
 const byId = id => document.getElementById(id);
 const bodyStage = byId('body-stage');
@@ -15,7 +15,7 @@ let viewReady = false;
 let frameHandle = null;
 let previousTimestamp = 0;
 let renderedEvents = 0;
-let lastBinKey = null;
+let lastRevealKey = null;
 let lastMeasuredHud = null;
 let rasterIndexSubset = [];
 let userAtConversationEnd = true;
@@ -84,13 +84,14 @@ function renderRaster(values) {
 
 function updateHud(frame) {
   const timelineActive = state.playing || state.status === 'paused';
-  if (timelineActive && frame.activeBin) {
-    const key = `${frame.activeBin.phase}:${frame.activeBin.at_ms}`;
-    if (key !== lastBinKey) {
-      lastBinKey = key;
+  const revealed = timelineActive ? state.activity?.bins.filter(bin => bin.at_ms <= frame.elapsedMs) || [] : [];
+  const revealKey = revealed.at(-1)?.at_ms ?? null;
+  if (timelineActive && revealKey !== lastRevealKey) {
+    lastRevealKey = revealKey;
+    if (frame.activeBin) {
       lastMeasuredHud = hudForBin(frame.activeBin, rasterIndexSubset);
-      renderRaster(lastMeasuredHud.raster);
     }
+    renderRaster(rasterForHistory(state.activity, rasterIndexSubset, frame.elapsedMs));
   }
   const label = hudLabel({status: state.status, playing: state.playing, phase: frame.phase, hasBin: Boolean(frame.activeBin)});
   setText('hud-state', label);
@@ -116,10 +117,6 @@ function appendMessage(event) {
   const entry = document.createElement('article');
   entry.className = 'conversation-entry';
   entry.dataset.kind = 'message';
-  const label = document.createElement('span');
-  label.className = 'entry-label';
-  label.textContent = 'OpenCode';
-  entry.append(label);
   const text = document.createElement('p');
   text.textContent = event.text;
   entry.append(text);
@@ -171,9 +168,8 @@ function renderConversation(events) {
 
 function updateScreen(frame) {
   const timelineActive = state.playing || state.status === 'paused';
-  const label = timelineActive ? phaseLabel(frame.phase) : state.status === 'complete' ? 'Complete' : state.status === 'error' ? 'Unavailable' : 'Ready · press Play';
-  setText('timeline-label', label);
   setText('decision-text', frame.decision?.text || 'The measured circuit has not chosen yet.');
+  byId('decision-text').hidden = !frame.decision;
   renderConversation(frame.events);
   const resultLine = byId('result-line');
   resultLine.hidden = !frame.result;
@@ -226,7 +222,7 @@ function onPlay() {
   else state = replaying ? reducePlayerState(state, {type: 'REPLAY'}) : reducePlayerState(state, {type: 'PLAY'});
   if (replaying) {
     lastMeasuredHud = null;
-    lastBinKey = null;
+    lastRevealKey = null;
     clearRaster();
   }
   render();
@@ -237,19 +233,21 @@ async function loadPayload() {
   stopClock();
   state = reducePlayerState(state, {type: 'RETRY'});
   lastMeasuredHud = null;
-  lastBinKey = null;
+  lastRevealKey = null;
   rasterIndexSubset = [];
   clearRaster();
   clearConversation();
   render();
   try {
-    const [runResponse, activityResponse] = await Promise.all([fetch('/watch/run.json', {cache: 'no-store'}), fetch('/watch/activity.json', {cache: 'no-store'})]);
-    if (!runResponse.ok || !activityResponse.ok) throw new Error('Recorded run data is unavailable.');
-    const [run, activity] = await Promise.all([runResponse.json(), activityResponse.json()]);
-    const valid = validatePayload(run, activity);
+    const [runResponse, activityResponse, manifestResponse] = await Promise.all([fetch('/watch/run.json', {cache: 'no-store'}), fetch('/watch/activity.json', {cache: 'no-store'}), fetch('/brain/manifest.json', {cache: 'no-store'})]);
+    if (!runResponse.ok || !activityResponse.ok || !manifestResponse.ok) throw new Error('Recorded run or anatomy data is unavailable.');
+    const [run, activity, manifest] = await Promise.all([runResponse.json(), activityResponse.json(), manifestResponse.json()]);
+    if (!manifest || !Number.isInteger(manifest.total_neurons) || manifest.total_neurons <= 0 || !manifest.neuron_order_sha256) throw new Error('Loaded anatomy manifest is invalid.');
+    const valid = validatePayload(run, activity, manifest.neuron_order_sha256);
     if (!valid.ok) throw new Error(valid.reason);
     state = reducePlayerState(state, {type: 'PAYLOAD_READY', run, activity});
     rasterIndexSubset = rasterIndices(activity, RASTER_CELLS);
+    setText('hud-neurons', formatMetric(manifest.total_neurons));
     setText('recording-model', run.model);
     setText('provenance-copy', `Measured neural activity and the OpenCode response come from one preserved run. Source ${run.source_revision}. Play does not start a coding backend.`);
     render();

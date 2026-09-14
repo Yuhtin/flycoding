@@ -38,6 +38,17 @@ export function rasterForBin(bin, indices) {
   return (indices || []).map(index => values.get(index) || 0);
 }
 
+export function rasterForHistory(activity, indices, elapsedMs) {
+  const totals = new Map();
+  for (const bin of activity?.bins || []) {
+    if (!Number.isFinite(bin.at_ms) || bin.at_ms > elapsedMs) continue;
+    for (const [index, count] of (bin.indices || []).map((value, position) => [value, bin.counts?.[position]])) {
+      if (Number.isInteger(index) && positive(count)) totals.set(index, (totals.get(index) || 0) + count);
+    }
+  }
+  return (indices || []).map(index => totals.get(index) || 0);
+}
+
 export function hudForBin(bin, indices) {
   if (!bin) return {activeNeuronCount: null, spikesPerSecond: null, raster: null};
   return {
