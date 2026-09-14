@@ -31,9 +31,9 @@ export function createWorkstationView(container, options = {}) {
   const abort = new AbortController();
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(31, 1, 0.1, 100);
+  const camera = new THREE.PerspectiveCamera(29, 1, 0.1, 100);
   camera.up.set(0, 0, 1);
-  camera.position.set(5.0, -12.0, 6.0);
+  camera.position.set(7.0, -11.0, 6.8);
   const cameraTarget = new THREE.Vector3(0.2, 0.35, 2.35);
 
   const colors = {
@@ -130,11 +130,11 @@ export function createWorkstationView(container, options = {}) {
     if (monitorParts) {
       const {shell, bezel, stand, foot, led, monitorX, monitorY, monitorZ, frameDepth} = monitorParts;
       const x = narrowViewport ? 0 : monitorX;
-      const raised = narrowViewport ? 1.5 : 0;
+      const raised = narrowViewport ? 1.5 : 1.3;
       shell.position.set(x, monitorY, monitorZ + raised);
       bezel.position.set(x, monitorY - 0.2, monitorZ + raised);
-      stand.position.set(x, monitorY + 0.02, narrowViewport ? 1.78 : 1.08);
-      stand.scale.z = narrowViewport ? 2.2 : 1;
+      stand.position.set(x, monitorY + 0.02, raised ? 1.78 : 1.08);
+      stand.scale.z = raised ? 2.2 : 1;
       foot.position.set(x, monitorY - 0.05, 0.39);
       led.position.set(x, monitorY - 0.23, monitorZ + raised - 1.61);
       if (screenObject) screenObject.position.set(x, monitorY - frameDepth / 2 - 0.025, monitorZ + raised);
@@ -200,18 +200,15 @@ export function createWorkstationView(container, options = {}) {
     });
   }
 
-  function applyTypingMotion(seconds, typing) {
-    if (!typingLegs || !typing?.active) return;
-    const cadence = Number.isFinite(typing.cadence) && typing.cadence > 0 ? typing.cadence : 1;
-    const activeSide = Math.floor(seconds * cadence * 2.4) % 2;
+  function applyTypingMotion(_seconds, typing = {}) {
+    if (!typingLegs) return;
     for (const [side, chain] of typingLegs.entries()) {
-      const tap = side === activeSide ? 1 : 0.12;
-      // Keep the authored pose dominant: the measured full-tap displacement is
-      // about 0.21 world units at the front claws.
-      // Rotate each front-leg joint around the model's local X axis.  The GLB
-      // is aligned along +Y at the workstation, so this lifts the claw over
-      // the key tops instead of sliding it across the keyboard.
-      const angles = [0.012 * tap, -0.072 * tap, 0.105 * tap, -0.078 * tap, 0.042 * tap, -0.018 * tap];
+      const requestedLift = side === 0 ? typing.left : typing.right;
+      const lift = Number.isFinite(requestedLift) ? Math.max(0, Math.min(1, requestedLift)) : 0;
+      const strength = 0.8 + 0.6 * lift;
+      // The baseline keeps both claws on the key plane between cues. Audio
+      // supplies a smooth 180 ms pre-cue lift in [0, 1], with zero at contact.
+      const angles = [0.018 * strength, -0.108 * strength, 0.158 * strength, -0.117 * strength, 0.063 * strength, -0.027 * strength];
       chain.forEach((node, index) => {
         if (!node) return;
         const rotation = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), angles[index]);
@@ -244,7 +241,7 @@ export function createWorkstationView(container, options = {}) {
         quaternion.slerp(nextQuaternion, fraction);
         node.quaternion.copy(quaternion);
       });
-      if (state.mode === 'working') applyTypingMotion(Number.isFinite(state.elapsedMs) ? state.elapsedMs / 1000 : clipTime, state.typing);
+      applyTypingMotion(Number.isFinite(state.elapsedMs) ? state.elapsedMs / 1000 : clipTime, state.mode === 'working' ? state.typing : undefined);
     }
     camera.lookAt(cameraTarget);
     renderer?.render(scene, camera);
@@ -329,6 +326,7 @@ export function createWorkstationView(container, options = {}) {
       ['coxa_T1_right', 'femur_T1_right', 'tibia_T1_right', 'tarsus_T1_right', 'tarsus2_T1_right', 'tarsus3_T1_right'].map((name) => model.getObjectByName(name)),
     ];
     applyFrame(motion.clips.idle.frames[0]);
+    applyTypingMotion(0, state.typing);
     const bounds = new THREE.Box3().setFromObject(model);
     const floorZ = model.scale.z * (ground.source_z - ground.clearance) + model.position.z;
     model.position.z += 0.23 - floorZ;
@@ -336,9 +334,9 @@ export function createWorkstationView(container, options = {}) {
     applyViewportLayout();
     const center = bounds.getCenter(new THREE.Vector3());
     if (narrowViewport) cameraTarget.set(0, 0, 3);
-    else cameraTarget.set(0.25, 0.35, Math.max(2.05, center.z + 0.6));
-    const basePosition = narrowViewport ? new THREE.Vector3(0, -23.0, 8.0) : new THREE.Vector3(5.0, -12.0, 6.0);
-    const distanceScale = narrowViewport ? 1 : Math.max(1, 0.9 / camera.aspect);
+    else cameraTarget.set(0.25, 0.35, Math.max(2.45, center.z + 1.0));
+    const basePosition = narrowViewport ? new THREE.Vector3(0, -23.0, 8.0) : new THREE.Vector3(7.0, -11.0, 6.8);
+    const distanceScale = narrowViewport ? 1 : 1.22 * Math.max(1, 0.9 / camera.aspect);
     camera.position.copy(basePosition).sub(cameraTarget).multiplyScalar(distanceScale).add(cameraTarget);
     renderer.domElement.dataset.ready = 'true';
     status(paused ? 'Flybody ready · motion paused' : 'Flybody ready · procedural motion');
