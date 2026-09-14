@@ -271,7 +271,7 @@ export function createWorkstationView(container, options = {}) {
     model = gltf.scene;
     model.scale.setScalar(15);
     model.position.set(-2.35, -1.15, 0.0);
-    model.rotation.z = -Math.PI / 2;
+    model.rotation.z = 0.25;
     scene.add(model);
     nodes = motion.bodies.map((body) => {
       const node = model.getObjectByName(body.name);
