@@ -1,67 +1,70 @@
-# Resultados medidos
+# Measured results
 
-Estes arquivos registram o piloto real e as verificações do núcleo feitas em
-13 de setembro de 2026, num Mac ARM64 com 16 GiB de RAM.
+These files record the genuine pilot and neural mechanism checks performed on
+September 13, 2026, on a 16 GiB ARM64 Mac. The English flybody presentation was
+added afterward; it does not change those measurements.
 
-## Piloto no Codex
+## Codex pilot
 
-As seis tentativas tiveram sucesso, consumindo nove reservas, todas concluídas.
-Cada tentativa começou com 1/5 testes passando e terminou com 5/5, sem violação.
-Foram duas instruções na condição adaptável, duas na congelada e cinco na
-aleatória. As quatro tentativas neurais escolheram Corrigir de primeira;
-as aleatórias seguiram Testar → Investigar → Corrigir e Investigar → Corrigir.
+All six attempts succeeded, using nine reservations, all completed. Each
+attempt started with 1/5 tests passing and finished at 5/5 with no violation.
+The adaptive condition used two calls, frozen weights used two, and uniform
+random choice used five. Every neural attempt chose Fix immediately. Random
+attempts followed Test → Investigate → Fix and Investigate → Fix.
 
-A memória adaptável foi preservada entre tentativas e os pesos congelados
-permaneceram iguais. Não houve vantagem da adaptação sobre o controle
-congelado; mudanças de pesos não demonstram aprendizado da tarefa.
+Adaptive memory persisted between attempts and frozen weights remained
+identical. Adaptation showed no advantage over the frozen control. Weight
+changes alone do not demonstrate task learning.
 
-- [verification.md](verification.md): testes, pacote e revisão final da entrega.
-- [pilot.md](pilot.md): resultados por tentativa.
-- [pilot.json](pilot.json): escolhas, sinais, avaliações, uso e hashes.
-- [pilot-checks.json](pilot-checks.json): conferência das nove reservas,
-  seis sessões dedicadas, retomadas, pesos e 18 imagens.
-- [inputs/](inputs/): PNGs originais de observação e feedback, com os nomes
-  registrados pelo controlador. Seus hashes de arquivo e de pixels foram
-  conferidos; os nomes no relatório se referem a este diretório.
-- [dashboard.png](dashboard.png) e [browser-check.json](browser-check.json):
-  painel real, conferido em desktop e celular.
+- [verification.md](verification.md): verification of the original pilot release.
+- [pilot.md](pilot.md): attempt outcomes.
+- [pilot.json](pilot.json): choices, feedback, evaluations, usage, and hashes.
+- [pilot-checks.json](pilot-checks.json): audit of nine reservations, six dedicated sessions, continuation, weights, and 18 images.
+- [inputs/](inputs/): original observation and feedback PNGs. Both file and pixel hashes were verified; exported filenames refer to this directory.
+- [dashboard.png](dashboard.png): dashboard presentation. The current screenshot may show the later flybody interface; the measurements retain their original source revision.
+- [browser-check.json](browser-check.json): browser verification from the original release.
 
-Os registros da CLI confirmaram `gpt-6-astra`, aprovação `never` e sandbox
-`workspace-write` nos workspaces dedicados. Cada tentativa usou uma sessão
-distinta; os turnos da mesma tentativa retomaram o mesmo ID. Eventos brutos,
-IDs de sessão, checkpoints e dados volumosos permanecem locais.
+CLI records confirmed `gpt-6-astra`, approval `never`, and sandbox
+`workspace-write` in dedicated workspaces. Every attempt used a different
+session; turns within an attempt resumed its explicit ID. Full raw events,
+session IDs, checkpoints, and volumetric data stay local. The viewing demo
+includes only selected, sanitized events from these sessions.
 
-## Origem e referência numérica
+Historical prompts and original agent messages remain in their recorded
+language. English display translations are presentation aids, not replacement
+source records.
 
-As verificações abaixo não enviaram instruções ao Codex.
+## Source and numerical reference
 
-[reference-check.json](reference-check.json) contém os hashes dos três arquivos
-de origem e dos 11 arrays compilados. O grafo retido tem 166.700 neurônios e
-25.582.938 arestas, representando 124.177.617 contatos sinápticos.
+The checks below sent no instructions to Codex.
 
-Com uma imagem uniforme RGB 240, pesos congelados e 500 ms simulados, a
-adaptação reproduziu exatamente os 388.867 disparos da implementação original
-fixada. O hash dos disparos foi
+[reference-check.json](reference-check.json) contains hashes for all three
+source files and 11 compiled arrays. The retained graph has 166,700 neurons
+and 25,582,938 edges, representing 124,177,617 synaptic contacts.
+
+With uniform RGB 240 input, frozen weights, and 500 ms of simulated time, the
+adaptation exactly reproduced the pinned original implementation's 388,867
+spikes. The spike hash was
 `776c33e872595a635845b0c3719c8343e425ee47ea968a242f2ba0cb79230704`.
-Essa comparação verifica uma trajetória numérica; não valida a fisiologia
-modelada nem todas as trajetórias possíveis.
+This verifies one numerical trajectory; it does not validate the modeled
+physiology or every possible trajectory.
 
-## Entrada, feedback e memória
+## Input, feedback, and memory
 
-[neural-probe.json](neural-probe.json) compara imagens uniformes a partir do
-mesmo estado inicial. Cada observação dura 500 ms simulados.
+[neural-probe.json](neural-probe.json) compares uniform images from the same
+initial state. Each observation advances 500 ms of simulated time.
 
-| Entrada | Esquerda | Direita | Habilitação | Escolha |
+| Input | Left | Right | Gate | Choice |
 | --- | ---: | ---: | ---: | --- |
-| RGB 0 | 14 Hz | 22 Hz | 13 disparos | Corrigir |
-| RGB 255 | 30 Hz | 32 Hz | 17 disparos | Corrigir |
+| RGB 0 | 14 Hz | 22 Hz | 13 spikes | Fix |
+| RGB 255 | 30 Hz | 32 Hz | 17 spikes | Fix |
 
-A entrada alterou a atividade, mas ambas produziram a mesma instrução. O probe
-também registrou janelas separadas de feedback positivo e negativo de 200 ms,
-alteração dos pesos adaptáveis, pesos congelados idênticos após ambos os
-estímulos e restauração completa do estado salvo.
+The input changed activity, but both images produced the same instruction.
+The probe also recorded separate 200 ms positive and negative feedback
+intervals, changes to adaptive weights, identical frozen weights after both
+stimuli, and complete restoration of saved state.
 
-A regra do upstream pode alterar pesos durante a própria observação, antes
-do estímulo externo. Portanto, alteração de pesos isoladamente não demonstra
-que o feedback ensinou a tarefa. Estes testes não estabelecem aprendizado,
-compreensão de linguagem ou capacidade de programar.
+The upstream rule can change weights during observation before any external
+feedback. Consequently, weight changes alone do not show that feedback taught
+the task. These checks do not establish learning, language understanding, or
+an ability to program.

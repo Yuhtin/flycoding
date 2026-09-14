@@ -1,16 +1,29 @@
-# Verificação da entrega
+# Original release verification
 
-Verificação local em 13/09/2026, após as correções de `751c3c9`.
+Local verification on September 13, 2026, after fixes in `751c3c9`.
 
-- `rtk proxy .venv/bin/python -m pytest`: **77 testes passaram**, em 15,33 s. Os testes são sintéticos e não enviam instruções ao Codex.
-- `rtk proxy uv build`: distribuição de fontes e wheel gerados. Recursos neurais, núcleo C++ e assets do painel presentes; dados e sessões não incluídos.
-- Wheel extraído numa pasta temporária fora do Git: importação, ajuda e `status` funcionaram. A verificação de origem recusou a instalação não editável com diagnóstico explícito, sem carregar o grafo ou executar Codex.
-- Painel real conferido em 1440 px e 390 px, sem erro JavaScript ou transbordamento horizontal. A imagem selecionada corresponde ao hash e à resposta da tentativa histórica exibida.
-- Os 18 pares de hashes PNG/RGB do relatório público foram conferidos contra as imagens publicadas.
-- A revisão automatizada independente do conjunto encontrou cinco ajustes menores; uma revisão restrita às correções confirmou todos resolvidos, sem pendências.
+- `rtk proxy .venv/bin/python -m pytest`: **77 tests passed** in 15.33 seconds. Tests were synthetic and sent no instructions to Codex.
+- `rtk proxy uv build`: source distribution and wheel built successfully. Neural resources, C++ kernel, and dashboard assets were present; datasets and sessions were excluded.
+- Wheel extracted outside Git: import, help, and `status` worked. Source verification rejected the noneditable installation with an explicit diagnostic, without loading the graph or executing Codex.
+- Genuine dashboard checked at 1440 px and 390 px, with no JavaScript errors or horizontal overflow. The selected image matched the hash and response of the displayed historical attempt.
+- All 18 public PNG/RGB hash pairs matched the published images.
+- An independent automated whole-branch review found five minor issues. A scoped re-review confirmed all five fixed, with no outstanding findings.
 
-O piloto real foi executado anteriormente em `a16e1713f340a15a4e87f2d5651536f03aa9fe3a`, com árvore limpa. As correções posteriores de apresentação, exportação e instalação não foram tratadas como uma nova execução. O relatório preserva essa revisão original, seis sucessos e nove envios; nenhuma chamada adicional foi feita para finalizar a entrega.
+The genuine pilot ran earlier on clean source revision
+`a16e1713f340a15a4e87f2d5651536f03aa9fe3a`. Later presentation, export, and
+installation fixes were not treated as a new execution. The report preserves
+that original revision, six successes, and nine calls. No additional calls
+were made to complete the release.
 
-## Decisão de revisão registrada
+The flybody/English update is a later presentation change. This historical
+verification record describes the original release, not tests of the new
+body viewer.
 
-Uma revisão intermediária das correções do avaliador foi bloqueada automaticamente duas vezes por possível risco de segurança, inclusive quando solicitada apenas inspeção estática defensiva. O coordenador realizou a inspeção estática local e usou a evidência dos testes existentes. O custo dessa decisão foi perder uma perspectiva independente naquela etapa. A revisão final independente do conjunto e a revisão das últimas correções foram concluídas posteriormente.
+## Recorded review decision
+
+An intermediate review of evaluator fixes was automatically blocked twice
+for possible security risk, including a request for defensive static-only
+inspection. The coordinator performed local static inspection and used the
+existing test evidence. The cost was losing an independent perspective at
+that stage. Independent whole-branch and final scoped reviews completed
+subsequently.
