@@ -27,6 +27,7 @@ export function createWorkstationView(container, options = {}) {
   let keyboardGroup = null;
   let desktopModelPosition = null;
   let narrowViewport = false;
+  let typingLegs = null;
   const abort = new AbortController();
 
   const scene = new THREE.Scene();
@@ -199,6 +200,19 @@ export function createWorkstationView(container, options = {}) {
     });
   }
 
+  function applyTypingMotion(seconds) {
+    if (!typingLegs) return;
+    for (const [side, chain] of typingLegs.entries()) {
+      const tap = Math.max(0, Math.sin(seconds * 8.5 + side * Math.PI));
+      const angles = [0.12 * tap, -0.72 * tap, 1.05 * tap, -0.78 * tap, 0.42 * tap, -0.18 * tap];
+      chain.forEach((node, index) => {
+        if (!node) return;
+        const rotation = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), angles[index]);
+        node.quaternion.multiply(rotation);
+      });
+    }
+  }
+
   function animate(timestamp) {
     frameId = null;
     if (disposed) return;
@@ -223,6 +237,7 @@ export function createWorkstationView(container, options = {}) {
         quaternion.slerp(nextQuaternion, fraction);
         node.quaternion.copy(quaternion);
       });
+      if (state.mode === 'working') applyTypingMotion(Number.isFinite(state.elapsedMs) ? state.elapsedMs / 1000 : clipTime);
     }
     camera.lookAt(cameraTarget);
     renderer?.render(scene, camera);
@@ -294,7 +309,7 @@ export function createWorkstationView(container, options = {}) {
     if (!ground || !Number.isFinite(ground.source_z) || !Number.isFinite(ground.clearance)) throw new Error('Ground contact metadata is missing');
     model = gltf.scene;
     model.scale.setScalar(15);
-    model.position.set(-2.35, -1.15, 0.0);
+    model.position.set(-1.8, -1.4, 0.0);
     model.rotation.z = 0.25;
     scene.add(model);
     nodes = motion.bodies.map((body) => {
@@ -302,6 +317,10 @@ export function createWorkstationView(container, options = {}) {
       if (!node) throw new Error('Articulated body node missing');
       return node;
     });
+    typingLegs = [
+      ['coxa_T1_left', 'femur_T1_left', 'tibia_T1_left', 'tarsus_T1_left', 'tarsus2_T1_left', 'tarsus3_T1_left'].map((name) => model.getObjectByName(name)),
+      ['coxa_T1_right', 'femur_T1_right', 'tibia_T1_right', 'tarsus_T1_right', 'tarsus2_T1_right', 'tarsus3_T1_right'].map((name) => model.getObjectByName(name)),
+    ];
     applyFrame(motion.clips.idle.frames[0]);
     const bounds = new THREE.Box3().setFromObject(model);
     const floorZ = model.scale.z * (ground.source_z - ground.clearance) + model.position.z;
