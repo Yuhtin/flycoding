@@ -1,0 +1,31 @@
+{
+  "anatomy": {
+    "retained_neurons": 166700,
+    "verified_anatomical_positions": 139662,
+    "unplaced": 27038,
+    "source_order_and_coordinates_exact": true,
+    "all_readout_neurons_positioned": true,
+    "hashes": {
+      "neurons.json": "5f9a14498880fe46233a1c20660d69cfd000ffda50eea97067ebaca6512d9d0e",
+      "positions.bin": "4c565db8f2c748554192ea00dc4808bc086ea83ae88b17b7f0048ec156079eb1",
+      "indices.bin": "5c4922247f979c1c774f33ba86750c766104aaa95d71a806cf033ca165b6cf6d",
+      "manifest.json": "1f5ffad63d6738a22bf8f4b20b3d41563797c7d6121436711b8855dc8b45a2b6"
+    }
+  },
+  "neural": {
+    "bin_count": 50,
+    "bin_sum_matches_aggregate": true,
+    "observer_preserves_golden": true,
+    "elapsed_seconds": 4.373501874972135,
+    "measured": {
+      "action": "fix",
+      "left_hz": 28.0,
+      "right_hz": 32.0,
+      "gate_spikes": 14,
+      "total_spikes": 392732,
+      "spike_sha256": "19486a3b34cfd1e8a49f1acf3cd7d6fd4f9d69540275f1222462800fe2d7fd81",
+      "input_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+    }
+  },
+  "scope": "Real local full-graph computation; no coding backend invoked by these checks."
+}
