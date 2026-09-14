@@ -31,6 +31,7 @@ _PLAYER = {
 _WORKSTATION = {
     "/workstation-view.js": ("workstation-view.js", "text/javascript; charset=utf-8"),
     "/workstation-state.mjs": ("workstation-state.mjs", "text/javascript; charset=utf-8"),
+    "/workstation-audio.mjs": ("workstation-audio.mjs", "text/javascript; charset=utf-8"),
 }
 _IMAGE = re.compile(r"/images/((?:adaptive|frozen|random)-[12]-[1-5]-(?:input|feedback)\.png)\Z")
 _BRAIN = {

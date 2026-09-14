@@ -1,12 +1,14 @@
 import {createWorkstationView} from '/workstation-view.js';
 import {buttonLabel, createPlayerState, frameFor, reducePlayerState, validatePayload, viewReadiness} from './player-state.mjs';
 import {formatMetric, hudForBin, hudLabel, latestRevealedBin, rasterIndices, RASTER_CELLS, temporalRaster} from './workstation-state.mjs';
+import {buildCuePlan, createWorkstationAudio, typingStateAt} from './workstation-audio.mjs';
 
 const byId = id => document.getElementById(id);
 const bodyStage = byId('body-stage');
 const screen = byId('computer-screen');
 const raster = byId('brain-stage');
 const playButton = byId('play-toggle');
+const audioButton = byId('audio-toggle');
 const conversation = byId('conversation');
 const prefersReducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -21,6 +23,8 @@ let rasterIndexSubset = [];
 let userAtConversationEnd = true;
 let workstation;
 let rasterContext;
+let cuePlan = [];
+const audio = createWorkstationAudio();
 
 const RASTER_BACKGROUND = '#0b1718';
 
@@ -181,8 +185,9 @@ function updateScreen(frame) {
   else if (state.playing) setStatus(phaseLabel(frame.phase));
   else if (!viewReady) setStatus('Preparing the workstation…');
   else setStatus('Ready · one recorded run');
-  workstation?.setState({mode: frame.phase === 'choice' || frame.phase === 'execution' ? 'working' : frame.phase === 'feedback' ? 'success' : 'idle', action: state.run?.decision?.action || ''});
+  workstation?.setState({mode: frame.phase === 'choice' || frame.phase === 'execution' ? 'working' : frame.phase === 'feedback' ? 'success' : 'idle', action: state.run?.decision?.action || '', elapsedMs: frame.elapsedMs, typing: typingStateAt(cuePlan, frame.elapsedMs, state.playing)});
   workstation?.setPaused(!state.playing || prefersReducedMotion.matches);
+  audio.advance(frame.elapsedMs, state.playing && !prefersReducedMotion.matches);
   updateHud(frame);
 }
 
@@ -218,8 +223,13 @@ function startClock() {
 function onPlay() {
   if (!state.run || !state.activity || !viewReady) return;
   const replaying = state.status === 'complete';
+  const resuming = state.status === 'paused';
   if (state.playing) state = reducePlayerState(state, {type: 'PAUSE'});
   else state = replaying ? reducePlayerState(state, {type: 'REPLAY'}) : reducePlayerState(state, {type: 'PLAY'});
+  if (state.playing) {
+    if (resuming) audio.resume();
+    else audio.start(state.run);
+  }
   if (replaying) {
     lastMeasuredHud = null;
     lastRevealKey = null;
@@ -232,6 +242,7 @@ function onPlay() {
 async function loadPayload() {
   stopClock();
   state = reducePlayerState(state, {type: 'RETRY'});
+  audio.stop();
   lastMeasuredHud = null;
   lastRevealKey = null;
   rasterIndexSubset = [];
@@ -246,6 +257,7 @@ async function loadPayload() {
     const valid = validatePayload(run, activity, manifest.neuron_order_sha256);
     if (!valid.ok) throw new Error(valid.reason);
     state = reducePlayerState(state, {type: 'PAYLOAD_READY', run, activity});
+    cuePlan = buildCuePlan(run);
     rasterIndexSubset = rasterIndices(activity, RASTER_CELLS);
     setText('hud-neurons', formatMetric(manifest.total_neurons));
     setText('recording-model', run.model);
@@ -261,6 +273,12 @@ async function loadPayload() {
 
 createRaster();
 playButton.addEventListener('click', onPlay);
+audioButton.addEventListener('click', () => {
+  const muted = audio.setMuted(!audio.isMuted());
+  audioButton.setAttribute('aria-pressed', String(!muted));
+  audioButton.setAttribute('aria-label', muted ? 'Unmute sound effects' : 'Mute sound effects');
+  audioButton.textContent = muted ? 'Sound off' : 'Sound on';
+});
 byId('retry-button').addEventListener('click', () => {
   if (byId('retry-button').textContent === 'Reload page') { location.reload(); return; }
   byId('error-panel').hidden = true;
@@ -269,7 +287,15 @@ byId('retry-button').addEventListener('click', () => {
 conversation.addEventListener('scroll', () => {
   userAtConversationEnd = conversation.scrollHeight - conversation.scrollTop - conversation.clientHeight < 24;
 });
-prefersReducedMotion.addEventListener('change', () => workstation?.setPaused(!state.playing || prefersReducedMotion.matches));
+prefersReducedMotion.addEventListener('change', () => {
+  workstation?.setPaused(!state.playing || prefersReducedMotion.matches);
+  if (prefersReducedMotion.matches) audio.suspend();
+  else if (state.playing) audio.resume();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) audio.suspend();
+  else if (state.playing) audio.resume();
+});
 
 workstation = createWorkstationView(bodyStage, {
   screenElement: screen,
@@ -300,4 +326,5 @@ loadPayload();
 window.addEventListener('pagehide', () => {
   stopClock();
   workstation?.dispose();
+  audio.dispose();
 });

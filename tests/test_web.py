@@ -45,7 +45,7 @@ def request(address, path, method="GET"):
 
 def test_http_only_enumerated_artifacts_and_no_mutation(dashboard):
     address, root = dashboard
-    for path in ("/", "/observatory", "/app.js", "/style.css", "/player.css", "/player.mjs", "/player-state.mjs", "/workstation-view.js", "/workstation-state.mjs", "/watch/run.json", "/watch/activity.json", "/snapshot.json", "/images/adaptive-1-1-input.png"):
+    for path in ("/", "/observatory", "/app.js", "/style.css", "/player.css", "/player.mjs", "/player-state.mjs", "/workstation-view.js", "/workstation-state.mjs", "/workstation-audio.mjs", "/watch/run.json", "/watch/activity.json", "/snapshot.json", "/images/adaptive-1-1-input.png"):
         status, headers, body = request(address, path)
         assert status == 200
         assert headers["X-Content-Type-Options"] == "nosniff"
@@ -114,6 +114,13 @@ def test_workstation_hud_projection():
     if not state_test.is_file():
         pytest.skip("workstation state tests are supplied by the UI owner")
     result = subprocess.run(["node", "--test", str(state_test)], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_workstation_audio_projection():
+    if not shutil.which("node"):
+        pytest.skip("Node.js is required for workstation audio tests")
+    result = subprocess.run(["node", "--test", "tests/workstation_audio.mjs"], capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stdout + result.stderr
 
 
