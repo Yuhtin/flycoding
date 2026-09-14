@@ -22,8 +22,9 @@ rtk proxy uv sync --frozen
 rtk proxy uv run flycodex serve --demo --port 8765
 ```
 
-Open **http://127.0.0.1:8765** and press **Play replay**. Drag the fly to orbit the
-camera, scroll to zoom, and use the motion control to pause its animation.
+Open **http://127.0.0.1:8765**, select **Archive**, and press **Play replay**.
+Drag the fly or CNS to orbit, scroll to zoom, and use the motion control to
+pause the body animation.
 The replay uses a compressed presentation timeline and is labeled accordingly.
 It sends no prompts and cannot change the recorded experiment.
 
@@ -107,8 +108,10 @@ The first request loads the graph; cancellation takes effect at a neural bin
 boundary. Missing data is reported explicitly.
 
 The activity overlay shows measured windows with their simulation time and age.
-It stops showing new firing when the job finishes or disconnects. A changing
-input can change activity without changing the selected instruction.
+It clears the firing overlay when the job finishes or disconnects. Click a
+positioned neuron to inspect its measured count; activity from unplaced neurons
+is counted separately. A changing input can change activity without changing
+the selected instruction.
 
 ## Run a Codex pilot
 
@@ -166,7 +169,9 @@ rtk proxy uv run flycodex run --data-dir data --run-dir runs/muse-demo --backend
 The cap counts **prompt submissions**, including failed or uncertain started
 sends. A submission may contain multiple model/tool steps. The stored cap,
 backend, and model must match on resume. Success ends the attempt early.
-The observer itself never launches a coding backend.
+Select **Live coding** before starting the run to see its first neural window.
+The observer itself never launches a coding backend. Its input, readout, prompt,
+terminal, external score, feedback, and call cap follow the same recorded turn.
 
 OpenCode runs with an explicit model and session, isolated task configuration,
 restricted tool permissions, and sharing disabled. These are application-level
