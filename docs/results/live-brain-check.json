@@ -27,5 +27,43 @@
       "input_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
     }
   },
-  "scope": "Real local full-graph computation; no coding backend invoked by these checks."
+  "scope": "Real local full-graph computation; no coding backend invoked by these checks.",
+  "lab_observations": [
+    {
+      "kind": "dark",
+      "states": [
+        "completed",
+        "loading",
+        "running"
+      ],
+      "bins": 50,
+      "action": "fix",
+      "spikes": 135364,
+      "input_sha256": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b"
+    },
+    {
+      "kind": "light",
+      "states": [
+        "completed",
+        "loading",
+        "running"
+      ],
+      "bins": 50,
+      "action": "fix",
+      "spikes": 416674,
+      "input_sha256": "07a38b70bc25eaddf9c4c4184b18fd9015598d321c56e013eac1b284f1eabe9b"
+    },
+    {
+      "kind": "task",
+      "states": [
+        "completed",
+        "loading",
+        "running"
+      ],
+      "bins": 50,
+      "action": "fix",
+      "spikes": 392732,
+      "input_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+    }
+  ]
 }

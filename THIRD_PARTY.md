@@ -6,7 +6,7 @@
   Copyright © 2026 nftechie and DOOMFLY contributors; MIT licence in
   [LICENSE](LICENSE). Exact file provenance and adaptations are in
   [`src/flycodex/neural/PROVENANCE.md`](src/flycodex/neural/PROVENANCE.md).
-- [MaleCNS v1.0](https://male-cns.janelia.org/) data is downloaded separately
+- The full [MaleCNS v1.0](https://male-cns.janelia.org/) graph is downloaded separately
   from the MaleCNS collaboration (FlyEM at HHMI Janelia, University of
   Cambridge, MRC Laboratory of Molecular Biology, and Google Research)
   under the release's [CC BY 4.0 terms](https://creativecommons.org/licenses/by/4.0/).
@@ -14,7 +14,9 @@
   The source URLs, byte lengths, and
   SHA-256 hashes are pinned in `src/flycodex/neural/sources.lock.json`.
   The compiled graph and experimental dynamics are derived interpretations,
-  not an official dataset product.
+  not an official dataset product. The package includes derived soma positions
+  and neuron metadata under the same CC BY 4.0 terms; attribution and export
+  changes are documented in [brain provenance](src/flycodex/web/brain/PROVENANCE.md).
 - No trading, brokerage, market-data, or Codex client dependency is included.
 - The articulated browser model uses the actual visual meshes from
   [TuragaLab/flybody](https://github.com/TuragaLab/flybody), revision

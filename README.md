@@ -1,11 +1,11 @@
 # Flycodex
 
-**A fly picks the prompt. Codex does the coding.**
+**A simulated fly brain picks the prompt. OpenCode or Codex does the coding.**
 
-An experimental connectome controller chooses what to ask Codex while an
-articulated [flybody](https://github.com/TuragaLab/flybody) specimen moves beside
-the terminal. Watch the fly, inspect its neural readouts, and replay the real
-coding session from the dashboard.
+Watch an experimental connectome model receive task-state pixels, fire, and
+select an instruction for a coding terminal. The observatory pairs measured
+neural activity with the actual [flybody](https://github.com/TuragaLab/flybody)
+anatomy, the selected prompt, terminal output, and external test results.
 
 ![Flybody observatory with a recorded Codex session](docs/results/dashboard.png)
 
@@ -35,22 +35,33 @@ commands, omit the `rtk` or `rtk proxy` prefix if you do not have it installed.
 
 ## What is actually happening?
 
-A controller renders the task state into **320 × 180 RGB pixels**. A simulated
-network based on the MaleCNS connectome receives those pixels and selects one
-of three fixed instructions: **Investigate**, **Fix**, or **Test**. Codex works
-in a dedicated workspace. Five external tests score the result and provide
-positive, negative, or neutral feedback to the neural simulation.
+The brain selects **one of three fixed instructions**: Investigate, Fix, or
+Test. It does not write natural language. OpenCode or Codex receives the selected
+instruction and performs the coding work in a dedicated task workspace.
 
-The 3D specimen uses the actual flybody anatomy and articulated poses exported
-with MuJoCo. Its movements are **procedural session-state visualization**.
-They are not a trained locomotion policy or evidence that the connectome
-controls the displayed legs. The neural choice and the body animation have
-separate responsibilities, documented in the [presentation design](docs/superpowers/specs/2026-09-14-flybody-observatory-design.md).
+1. The task state becomes **320 × 180 RGB pixels**.
+2. The simulated MaleCNS network runs a **500 ms observation**.
+3. Measured DNp20 left/right activity and a DNpe017 gate determine the action.
+4. The coding backend receives the corresponding fixed prompt. Neural time pauses.
+5. Five external tests score the result, followed by a separate **200 ms feedback**
+   interval in the neural simulation.
 
-The dashboard is read-only. It shows the selected observation image and its
-hash, the chosen instruction, neural activity, feedback, test results, and
-recorded Codex output. English translations of historical Portuguese messages
-are identified; original text remains available. Unknown output stays original.
+The enlarged CNS view uses actual soma coordinates for **139,662 of 166,700
+retained neurons**. The other **27,038 neurons have no usable position** and
+are counted separately. Each activity bin contains measured simulated spikes
+from a 10 ms interval, bound to the same neuron order as the anatomy. These are
+soma positions, not reconstructed axons or a brain registered inside the fly's
+head. The model is experimental; activity does not establish biological fidelity,
+language understanding, or task learning.
+
+The 3D specimen uses the actual flybody geometry. Its resting motion is a
+**procedural presentation**, separate from neural computation. The connectome
+does not control the displayed legs, and the body is not running a trained gait.
+
+The modes distinguish a fresh local neural experiment, an observer of a separate
+coding process, and the original Codex archive. Historical recordings have no
+per-neuron temporal telemetry; the viewer does not invent it. English translations
+of historical Portuguese messages are identified, with original text available.
 
 ## The real pilot
 
@@ -78,7 +89,27 @@ The measured pilot used Portuguese prompts on revision
 presentation were added afterward. Historical records and their hashes are
 preserved; the new presentation is not another experimental run.
 
-## Run your own pilot
+## Run a live brain experiment
+
+Prepare the data once, then start the local lab:
+
+```sh
+rtk proxy uv sync --frozen
+rtk proxy uv run flycodex prepare --data-dir data
+rtk proxy uv run flycodex serve --lab --data-dir data --port 8767
+```
+
+Open **http://127.0.0.1:8767**. Choose the task's passing-test count or a uniform
+dark/light input, then start one observation. Each request computes a fresh
+frozen-network decision. No coding CLI or authentication is needed for the lab.
+The first request loads the graph; cancellation takes effect at a neural bin
+boundary. Missing data is reported explicitly.
+
+The activity overlay shows measured windows with their simulation time and age.
+It stops showing new firing when the job finishes or disconnects. A changing
+input can change activity without changing the selected instruction.
+
+## Run a Codex pilot
 
 Running the experiment requires macOS or Linux, Python 3.11+, `uv`, Git,
 `curl`, a C++17 compiler, RTK, and an authenticated Codex CLI. The runner uses
@@ -115,6 +146,33 @@ sending instructions. Codex uses `exec --json`, explicit session-ID resume,
 Each turn has a 300-second deadline; external evaluation has 30 seconds.
 Credentials stay in your local Codex configuration.
 
+## Use OpenCode with Muse Spark
+
+Install [OpenCode](https://opencode.ai/docs/cli/) and confirm the model is
+available with `opencode models opencode`. This adapter was developed against
+CLI **1.18.27**.
+The exact model below is the **Contributor Free** variant listed by
+[OpenCode Zen](https://opencode.ai/docs/zen/); availability and pricing can change.
+There is no automatic model fallback.
+
+Use a fresh run directory and start the observer in another terminal:
+
+```sh
+rtk proxy uv run flycodex serve --lab --data-dir data --run-dir runs/muse-demo --port 8767
+rtk proxy uv run flycodex run --data-dir data --run-dir runs/muse-demo --backend opencode --model opencode/muse-spark-1.3-contributor-free --max-calls 3 --stop-after-attempts 1
+```
+
+The cap counts **prompt submissions**, including failed or uncertain started
+sends. A submission may contain multiple model/tool steps. The stored cap,
+backend, and model must match on resume. Success ends the attempt early.
+The observer itself never launches a coding backend.
+
+OpenCode runs with an explicit model and session, isolated task configuration,
+restricted tool permissions, and sharing disabled. These are application-level
+tool permissions, **not an OS sandbox**. The original Codex adapter retains its
+`workspace-write` sandbox. Both runners record their actual backend identity
+and terminate their process group on cancellation or deadline.
+
 ## Experiment contract
 
 | Action | Current instruction |
@@ -138,7 +196,7 @@ Changing protected files disqualifies an attempt, even if its tests pass.
 Each neural choice advances **500 ms** of simulated time, with the upstream
 **0.1 ms** internal step. With DNpe017 firing, the DNp20 mean right-minus-left
 rate selects Fix at **≥ +2 Hz**, Test at **≤ −2 Hz**, and Investigate otherwise.
-The log distinguishes low activity from a directional choice. While Codex
+The log distinguishes low activity from a directional choice. While the coding backend
 works, the neural clock pauses.
 
 After every valid evaluation, including the final one, feedback is the sign
@@ -157,7 +215,7 @@ controls use seeds **1729** and **1730**.
 
 The fixed allocation is **5 calls per attempt, 10 per condition, 30 total**.
 An early success ends its attempt without transferring unused calls. Every
-send reserves budget durably before starting Codex. Pending or uncertain sends
+send reserves budget durably before starting the coding backend. Pending or uncertain sends
 still count; they are never automatically resent.
 
 ```sh
