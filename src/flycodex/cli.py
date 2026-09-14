@@ -31,7 +31,11 @@ def main(argv=None):
         if name in {"probe", "report"}:
             command.add_argument("--output-dir", type=Path, default=Path("runs/probe" if name == "probe" else "docs/results"))
         if name == "serve":
+            command.add_argument("--data-dir", type=Path, default=Path("data"),
+                                 help="Prepared neural data for --lab")
             command.add_argument("--port", type=int, default=8765)
+            command.add_argument("--lab", action="store_true",
+                                 help="Enable the local neural lab controls")
             command.add_argument("--demo", action="store_true", help="View the bundled genuine pilot; no run directory or Codex required")
     args = parser.parse_args(argv)
     try:
@@ -61,8 +65,12 @@ def main(argv=None):
             result = write_report(args.run_dir, args.output_dir)
         else:
             from .web import create_server
-            server = create_server(args.run_dir, port=args.port, demo=args.demo)
-            print(f"Observatory: http://127.0.0.1:{server.server_port} (read-only)", flush=True)
+            if args.demo and args.lab:
+                raise ValueError("--demo and --lab are mutually exclusive")
+            server = create_server(args.run_dir, port=args.port, demo=args.demo,
+                                   lab=args.lab, data_dir=args.data_dir)
+            mode = "lab" if args.lab else ("demo archive · read-only" if args.demo else "read-only")
+            print(f"Observatory: http://127.0.0.1:{server.server_port} ({mode})", flush=True)
             try:
                 server.serve_forever()
             finally:

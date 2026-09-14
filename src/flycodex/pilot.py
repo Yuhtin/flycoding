@@ -13,6 +13,7 @@ import subprocess
 import numpy as np
 
 from .codex import CodexRunner, PROMPTS
+from .activity import ActivityRecorder
 from .opencode import DEFAULT_MODEL as OPENCODE_DEFAULT_MODEL, OpenCodeRunner
 from .neural import NeuralPolicy
 from .panel import render_panel
@@ -307,6 +308,7 @@ class Pilot:
         task = self.task_factory(self.root / "attempts" / name)
         attempt["workspace"] = str(task.workspace)
         policy = None
+        activity_context = {"recorder": None}
         try:
             task.reset()
             self._phase(store, attempt, "baseline_evaluation_start")
@@ -315,7 +317,28 @@ class Pilot:
             if before["violation"]:
                 raise RuntimeError("Pristine task has a scope violation")
             if condition != "random":
-                policy = self.policy_factory(self.data_dir, learning=condition == "adaptive")
+                if self.policy_factory is NeuralPolicy:
+                    from .neural.activity import neuron_order_sha256
+
+                    with np.load(self.data_dir / "graph.npz", allow_pickle=False) as graph:
+                        order_hash = neuron_order_sha256(graph["ids"])
+                    public = self.root / "public"
+
+                    def on_activity(value):
+                        recorder = activity_context["recorder"]
+                        if recorder is not None:
+                            recorder.bin(value)
+
+                    policy = self.policy_factory(
+                        self.data_dir, learning=condition == "adaptive", on_activity=on_activity
+                    )
+                else:
+                    # Synthetic/legacy injected policies keep their exact
+                    # constructor contract; telemetry is a real NeuralPolicy
+                    # boundary only.
+                    order_hash = None
+                    public = None
+                    policy = self.policy_factory(self.data_dir, learning=condition == "adaptive")
                 prior = self.state["adaptive_checkpoint"] if condition == "adaptive" else None
                 if prior:
                     checkpoint = self.root / prior["file"]
@@ -343,6 +366,17 @@ class Pilot:
                 observation = render_panel(before["passed"], before["total"])
                 turn["input"] = self._image(observation, f"{name}-{step}-input.png")
                 self._phase(store, attempt, "choice_start")
+                if self.policy_factory is NeuralPolicy:
+                    recorder = ActivityRecorder(
+                        public,
+                        run=self.root.name,
+                        attempt=name,
+                        turn=step,
+                        phase="choice",
+                        neuron_order_sha256=order_hash,
+                    )
+                    activity_context["recorder"] = recorder
+                    recorder.start(window=f"{name}-{step}-choice", window_ms=500)
                 if policy:
                     turn["weights_before"] = policy.memory()
                     choice = policy.choose(np.asarray(observation))
@@ -354,6 +388,9 @@ class Pilot:
                     choice = {"action": rng.choice(list(PROMPTS)), "reason": "seeded_uniform_random", "seed": attempt["seed"]}
                 turn["choice"] = choice
                 turn["prompt"] = PROMPTS[choice["action"]]
+                if self.policy_factory is NeuralPolicy:
+                    recorder.end(choice=choice)
+                    activity_context["recorder"] = None
                 self._phase(store, attempt, "reserve_start")
                 send_id = store.reserve(name)
                 turn["send_id"] = send_id
@@ -405,7 +442,21 @@ class Pilot:
                 feedback_image = render_panel(evaluation["passed"], evaluation["total"])
                 turn["feedback_input"] = self._image(feedback_image, f"{name}-{step}-feedback.png")
                 if policy:
+                    if self.policy_factory is NeuralPolicy:
+                        recorder = ActivityRecorder(
+                            public,
+                            run=self.root.name,
+                            attempt=name,
+                            turn=step,
+                            phase="feedback",
+                            neuron_order_sha256=order_hash,
+                        )
+                        activity_context["recorder"] = recorder
+                        recorder.start(window=f"{name}-{step}-feedback", window_ms=200)
                     turn["feedback"] = {**policy.feedback(np.asarray(feedback_image), signal), "delivered_to_neural": True}
+                    if self.policy_factory is NeuralPolicy:
+                        recorder.end(feedback=turn["feedback"])
+                        activity_context["recorder"] = None
                     turn["weights_after_feedback"] = policy.memory()
                     self._check_frozen(condition, turn["weights_after_choice"], turn["weights_after_feedback"])
                     self._phase(store, attempt, "checkpoint_start")
