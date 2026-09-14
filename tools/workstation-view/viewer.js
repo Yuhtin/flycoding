@@ -23,6 +23,10 @@ export function createWorkstationView(container, options = {}) {
   let renderer = null;
   let cssRenderer = null;
   let screenObject = null;
+  let monitorParts = null;
+  let keyboardGroup = null;
+  let desktopModelPosition = null;
+  let narrowViewport = false;
   const abort = new AbortController();
 
   const scene = new THREE.Scene();
@@ -82,11 +86,12 @@ export function createWorkstationView(container, options = {}) {
     const screenWidth = 5.35;
     const screenHeight = 3.56;
     const frameDepth = 0.34;
-    box('monitor-shell', [screenWidth, frameDepth, screenHeight], [monitorX, monitorY, monitorZ], colors.screenFrame, {roughness: 0.42, metalness: 0.45});
-    box('monitor-bezel', [screenWidth - 0.24, 0.06, screenHeight - 0.24], [monitorX, monitorY - 0.2, monitorZ], colors.black, {roughness: 0.28, metalness: 0.25});
-    box('monitor-stand', [0.35, 0.38, 1.35], [monitorX, monitorY + 0.02, 1.08], colors.screenFrame, {roughness: 0.5, metalness: 0.48});
-    box('monitor-foot', [2.05, 1.18, 0.16], [monitorX, monitorY - 0.05, 0.39], colors.screenFrame, {roughness: 0.45, metalness: 0.42});
-    box('monitor-led', [0.32, 0.04, 0.025], [monitorX, monitorY - 0.23, 1.34], colors.cyan, {emissive: colors.cyan, emissiveIntensity: 2.2});
+    const shell = box('monitor-shell', [screenWidth, frameDepth, screenHeight], [monitorX, monitorY, monitorZ], colors.screenFrame, {roughness: 0.42, metalness: 0.45});
+    const bezel = box('monitor-bezel', [screenWidth - 0.24, 0.06, screenHeight - 0.24], [monitorX, monitorY - 0.2, monitorZ], colors.black, {roughness: 0.28, metalness: 0.25});
+    const stand = box('monitor-stand', [0.35, 0.38, 1.35], [monitorX, monitorY + 0.02, 1.08], colors.screenFrame, {roughness: 0.5, metalness: 0.48});
+    const foot = box('monitor-foot', [2.05, 1.18, 0.16], [monitorX, monitorY - 0.05, 0.39], colors.screenFrame, {roughness: 0.45, metalness: 0.42});
+    const led = box('monitor-led', [0.32, 0.04, 0.025], [monitorX, monitorY - 0.23, 1.34], colors.cyan, {emissive: colors.cyan, emissiveIntensity: 2.2});
+    monitorParts = {shell, bezel, stand, foot, led, monitorX, monitorY, monitorZ, frameDepth};
 
     const element = options.screenElement;
     if (!element) return;
@@ -102,6 +107,7 @@ export function createWorkstationView(container, options = {}) {
 
   function addKeyboard() {
     const keyboard = new THREE.Group();
+    keyboardGroup = keyboard;
     keyboard.position.set(0.15, -1.34, 0.3);
     keyboard.rotation.z = -0.035;
     keyboard.add(new THREE.Mesh(new THREE.BoxGeometry(3.9, 1.55, 0.16), material(colors.keyboard, {roughness: 0.55, metalness: 0.25})));
@@ -117,6 +123,23 @@ export function createWorkstationView(container, options = {}) {
     }
     scene.add(keyboard);
     box('mouse', [0.58, 0.9, 0.17], [4.05, -1.18, 0.4], colors.keyboard, {roughness: 0.5, metalness: 0.25});
+  }
+
+  function applyViewportLayout() {
+    if (monitorParts) {
+      const {shell, bezel, stand, foot, led, monitorX, monitorY, monitorZ, frameDepth} = monitorParts;
+      const x = narrowViewport ? 0 : monitorX;
+      const raised = narrowViewport ? 1.5 : 0;
+      shell.position.set(x, monitorY, monitorZ + raised);
+      bezel.position.set(x, monitorY - 0.2, monitorZ + raised);
+      stand.position.set(x, monitorY + 0.02, narrowViewport ? 1.78 : 1.08);
+      stand.scale.z = narrowViewport ? 2.2 : 1;
+      foot.position.set(x, monitorY - 0.05, 0.39);
+      led.position.set(x, monitorY - 0.23, monitorZ + raised - 1.61);
+      if (screenObject) screenObject.position.set(x, monitorY - frameDepth / 2 - 0.025, monitorZ + raised);
+    }
+    if (keyboardGroup) keyboardGroup.position.set(narrowViewport ? 0 : 0.15, narrowViewport ? -1.3 : -1.34, 0.3);
+    if (model && desktopModelPosition) model.position.set(narrowViewport ? -0.7 : desktopModelPosition.x, narrowViewport ? -2.5 : desktopModelPosition.y, desktopModelPosition.z);
   }
 
   function freeScene(object) {
@@ -241,10 +264,11 @@ export function createWorkstationView(container, options = {}) {
       renderer.setSize(width, height, false);
       cssRenderer.setSize(width, height);
       camera.aspect = width / height;
-      const narrow = camera.aspect < 0.8;
-      const basePosition = narrow ? new THREE.Vector3(0.8, -15.0, 6.8) : new THREE.Vector3(5.0, -12.0, 6.0);
-      const distanceScale = narrow ? 1 : Math.max(1, 0.9 / camera.aspect);
+      narrowViewport = camera.aspect < 0.8;
+      const basePosition = narrowViewport ? new THREE.Vector3(0, -23.0, 8.0) : new THREE.Vector3(5.0, -12.0, 6.0);
+      const distanceScale = narrowViewport ? 1 : Math.max(1, 0.9 / camera.aspect);
       camera.position.copy(basePosition).sub(cameraTarget).multiplyScalar(distanceScale).add(cameraTarget);
+      applyViewportLayout();
       camera.updateProjectionMatrix();
       requestRender();
     });
@@ -282,8 +306,14 @@ export function createWorkstationView(container, options = {}) {
     const bounds = new THREE.Box3().setFromObject(model);
     const floorZ = model.scale.z * (ground.source_z - ground.clearance) + model.position.z;
     model.position.z += 0.23 - floorZ;
+    desktopModelPosition = model.position.clone();
+    applyViewportLayout();
     const center = bounds.getCenter(new THREE.Vector3());
-    cameraTarget.set(0.25, 0.35, Math.max(2.05, center.z + 0.6));
+    if (narrowViewport) cameraTarget.set(0, 0, 3);
+    else cameraTarget.set(0.25, 0.35, Math.max(2.05, center.z + 0.6));
+    const basePosition = narrowViewport ? new THREE.Vector3(0, -23.0, 8.0) : new THREE.Vector3(5.0, -12.0, 6.0);
+    const distanceScale = narrowViewport ? 1 : Math.max(1, 0.9 / camera.aspect);
+    camera.position.copy(basePosition).sub(cameraTarget).multiplyScalar(distanceScale).add(cameraTarget);
     renderer.domElement.dataset.ready = 'true';
     status(paused ? 'Flybody ready · motion paused' : 'Flybody ready · procedural motion');
     options.onReady?.({model, scene, camera});
