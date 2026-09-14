@@ -187,7 +187,7 @@ function updateScreen(frame) {
   else setStatus('Ready · one recorded run');
   workstation?.setState({mode: frame.phase === 'choice' || frame.phase === 'execution' ? 'working' : frame.phase === 'feedback' ? 'success' : 'idle', action: state.run?.decision?.action || '', elapsedMs: frame.elapsedMs, typing: typingStateAt(cuePlan, frame.elapsedMs, state.playing)});
   workstation?.setPaused(!state.playing || prefersReducedMotion.matches);
-  audio.advance(frame.elapsedMs, state.playing && !prefersReducedMotion.matches);
+  audio.advance(frame.elapsedMs, state.playing && !prefersReducedMotion.matches && !document.hidden);
   updateHud(frame);
 }
 
