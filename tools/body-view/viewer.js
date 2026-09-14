@@ -173,7 +173,8 @@ export function createBodyView(container, options = {}) {
     const center = bounds.getCenter(new THREE.Vector3());
     const radius = bounds.getBoundingSphere(new THREE.Sphere()).radius;
     controls.target.copy(center);
-    const distance = radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.08 * Math.max(1, 0.82 / camera.aspect);
+    const framingScale = Math.min(1.2, Math.max(1, Number(options.framingScale) || 1));
+    const distance = radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.08 * Math.max(1, 0.82 / camera.aspect) / framingScale;
     camera.position.copy(center).add(new THREE.Vector3(0.85, -1.35, 0.85).normalize().multiplyScalar(distance));
     controls.update();
     const platform = new THREE.Mesh(new THREE.CircleGeometry(radius * 1.3, 80),

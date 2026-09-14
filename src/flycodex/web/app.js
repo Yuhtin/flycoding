@@ -1,144 +1,166 @@
-'use strict';
+import {createBodyView} from '/body-view.js';
+import {coalesceItemEvents, createReplay, evaluationForTurn, order, readableEvent, recordedWorkspace, translatePrompt, turns} from '/presentation.mjs';
+
 const byId = id => document.getElementById(id);
-const labels = {running:'Em execução',completed:'Concluído',paused:'Pausado',interrupted:'Interrompido',success:'Sucesso',budget_exhausted:'Limite atingido',execution_failure:'Falha de execução',infrastructure_failure:'Falha de infraestrutura',violation:'Violação da tarefa',aborted_interrupted:'Tentativa interrompida',recovery_error:'Reconciliação necessária',adaptive:'Adaptável',frozen:'Pesos congelados',random:'Aleatória uniforme'};
-const reasons = {gate_inactive:'Sem disparos de habilitação.',right_threshold:'Diferença ≥ +2 Hz com habilitação.',left_threshold:'Diferença ≤ −2 Hz com habilitação.',difference_below_threshold:'Diferença abaixo do limiar de 2 Hz.',seeded_uniform_random:'Escolha aleatória uniforme com semente registrada. Sem atividade neural.',synthetic_policy:'Política sintética de teste.'};
-const order = ['adaptive-1','frozen-1','random-1','adaptive-2','frozen-2','random-2'];
-let current = null;
-function text(id, value) { byId(id).textContent = value; }
-function turns(state) { return order.flatMap(name => (state.attempts[name]?.turns || []).map(turn => ({name,turn,key:`${name}:${turn.step}`}))); }
-function evaluationForTurn(attempt, turn) {
-  const turnIndex = attempt.turns.indexOf(turn);
-  for (let index = turnIndex; index >= 0; index -= 1) {
-    if (attempt.turns[index].evaluation) return attempt.turns[index].evaluation;
-  }
-  return attempt.baseline;
+const text = (id, value) => { const node = byId(id); if (node.textContent !== String(value)) node.textContent = value; };
+const labels = {running:'Running',completed:'Completed',paused:'Paused',interrupted:'Interrupted',success:'Success',budget_exhausted:'Budget exhausted',execution_failure:'Execution failed',infrastructure_failure:'Infrastructure failure',violation:'Task violation',aborted_interrupted:'Attempt interrupted',recovery_error:'Recovery required',adaptive:'Adaptive',frozen:'Frozen weights',random:'Uniform random'};
+const reasons = {gate_inactive:'No gating spikes: investigate.',right_threshold:'Right − left ≥ +2 Hz, with gating spikes.',left_threshold:'Right − left ≤ −2 Hz, with gating spikes.',difference_below_threshold:'The difference is below the 2 Hz threshold.',seeded_uniform_random:'Seeded uniform random choice. This condition does not use the neural circuit.',synthetic_policy:'Synthetic test policy.'};
+let current = null, replay = createReplay([]), translations = [], connected = false, snapshotText = '';
+const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
+let motionPaused = motionPreference.matches, motionChosen = false;
+let bodySignature = '', previousBusy = false, liveFeedback = 'idle';
+const body = createBodyView(byId('body-stage'), {framingScale:1.15, onStatus(message) { text('body-status', message); }});
+function updateMotion() {
+  const frame = replay.frame();
+  body.setPaused(motionPaused || (frame.active && !frame.playing));
+  text('motion-toggle', motionPaused ? 'Animate fly' : 'Pause motion');
+  byId('motion-toggle').setAttribute('aria-pressed', String(motionPaused));
 }
-function coalesceItemEvents(events) {
-  const projected = [];
-  const itemIndexes = new Map();
-  for (const event of events) {
-    const item = event.item || {};
-    const coalesced = item.id && (item.type === 'command_execution' || item.type === 'file_change');
-    if (!coalesced || !itemIndexes.has(item.id)) {
-      if (coalesced) itemIndexes.set(item.id, projected.length);
-      projected.push(event);
-    } else {
-      projected[itemIndexes.get(item.id)] = event;
+updateMotion();
+motionPreference.addEventListener('change', event => { if (!motionChosen) { motionPaused = event.matches; updateMotion(); } });
+byId('motion-toggle').addEventListener('click', () => { motionChosen = true; motionPaused = !motionPaused; updateMotion(); });
+byId('history').addEventListener('change', () => { replay.select(byId('history').value); liveFeedback = 'idle'; render(); });
+byId('replay-play').addEventListener('click', () => { replay.frame().playing ? replay.pause() : replay.play(); render(); });
+byId('replay-reset').addEventListener('click', () => { replay.reset(); render(); });
+byId('original-language').addEventListener('change', render);
+byId('image-kind').addEventListener('change', render);
+
+function setBody(mode, entry) {
+  const choice = entry?.turn.choice || {};
+  const signature = `${mode}:${entry?.key}:${connected}`;
+  if (signature !== bodySignature) {
+    body.setState({mode, action:choice.action, leftHz:choice.left_hz, rightHz:choice.right_hz});
+    bodySignature = signature;
+  }
+  text('body-mode', mode === 'working' ? (replay.frame().active ? 'Replaying work' : 'Working') : mode === 'success' ? 'Positive feedback' : mode === 'failure' ? 'Negative feedback' : 'Idle');
+  updateMotion();
+}
+function renderTable(frame) {
+  const entries = turns(current);
+  const shown = new Set(entries.slice(0, frame.completed).map(entry => entry.key));
+  const tbody = byId('attempts'); tbody.replaceChildren();
+  for (const name of order) {
+    const attempt = current.attempts?.[name];
+    const completedTurns = frame.active ? (attempt?.turns || []).filter(t => shown.has(`${name}:${t.step}`)) : attempt?.turns || [];
+    const latest = completedTurns.filter(t => t.evaluation).at(-1)?.evaluation || attempt?.baseline;
+    const allShown = !frame.active || (attempt?.turns?.length > 0 && completedTurns.length === attempt.turns.length);
+    const state = allShown ? labels[attempt?.status] || 'Waiting' : completedTurns.length ? 'Replay in progress' : 'Not replayed';
+    const row = document.createElement('tr');
+    for (const value of [name,labels[name.split('-')[0]],state,`${completedTurns.filter(t => t.send_id || t.reserved).length} / 5`,latest ? `${latest.passed} / ${latest.total}` : '—']) {
+      const cell = document.createElement('td'); cell.textContent = value; row.append(cell);
     }
+    tbody.append(row);
   }
-  return projected;
 }
-function relativeToWorkspace(value, workspace) {
-  if (!workspace || typeof value !== 'string') return value;
-  const root = workspace.replace(/\/+$/, '');
-  if (value === root) return '.';
-  return value.split(root + '/').join('');
-}
-function recordedWorkspace(attempt, name) {
-  if (attempt.workspace) return attempt.workspace;
-  const marker = `/attempts/${name}/workspace`;
-  for (const turn of attempt.turns || []) {
-    for (const event of turn.events || []) {
-      for (const change of event.item?.changes || []) {
-        const path = change.path || '';
-        const end = path.indexOf(marker) + marker.length;
-        if (end >= marker.length && (path.length === end || path[end] === '/')) return path.slice(0, end);
-      }
-    }
-  }
-  return '';
-}
-function renderSelection() {
-  if (!current) return;
+function render() {
+  const frame = replay.frame();
+  text('replay-play', frame.playing ? 'Pause replay' : frame.active && frame.phase !== 'complete' ? 'Resume replay' : 'Play replay');
+  text('replay-label', frame.active ? `Condensed replay · ${Math.floor(frame.elapsed / 1000)} / ${Math.round(frame.duration / 1000)} s` : `Recorded session · ${Math.round(frame.duration / 1000)} s replay`);
+  byId('replay-progress').value = frame.active ? frame.progress : 0;
+  if (!current) { setBody('idle'); return; }
   const all = turns(current);
-  const selected = byId('history').value;
-  const entry = selected === 'live' ? all.at(-1) : all.find(item => item.key === selected);
-  if (!entry) return;
+  const selection = byId('history').value;
+  const entry = frame.active ? frame.entry : selection === 'live' ? all.at(-1) : all.find(item => item.key === selection);
+  const demo = current.presentation?.mode === 'demo';
+  const successCount = Object.values(current.attempts || {}).filter(a => a.status === 'success').length;
+  text('run-status', frame.active ? (frame.phase === 'complete' ? 'Replay complete' : frame.playing ? 'Condensed replay' : 'Replay paused') : !connected ? 'Disconnected · saved record' : `${labels[current.status] || current.status}${current.status === 'completed' ? ` · ${successCount} / 6 successful` : ''}`);
+  text('evidence',current.evidence === 'genuine' ? (demo ? 'Genuine pilot · bundled demo' : 'Genuine experimental pilot') : 'SYNTHETIC · test fixture');
+  text('model',current.settings?.model || 'Model not recorded');
+  text('budget',`Recorded reservations ${current.budget?.used ?? 0} / ${current.budget?.limit ?? 30}`);
+  byId('demo-provenance').hidden = !demo;
+  text('raw-summary', demo ? 'Original-language events · sanitized JSON' : 'Original-language events · raw JSON');
+  text('raw-note', demo ? 'Curated genuine events. Workspace paths are relative; private metadata is omitted. English translations are presentation only.' : 'Original events from the selected run. English translations are presentation only.');
+  text('comparison-note',frame.active ? 'Condensed replay progress · evaluations appear only after their recorded turn.' : 'Recorded outcomes · up to 5 instructions per attempt, 10 per condition.');
+  renderTable(frame);
+  if (!entry) { setBody('idle'); return; }
   const {name,turn} = entry;
-  renderEvents(entry, selected === 'live');
+  if (frame.active) byId('history').value = entry.key;
+  const working = frame.active && frame.phase === 'working';
+  const live = !frame.active && selection === 'live' && !demo;
+  let mode = 'idle';
+  if (frame.active) mode = frame.phase === 'working' ? 'working' : frame.phase === 'feedback' ? (turn.feedback?.signal < 0 ? 'failure' : turn.feedback?.signal > 0 ? 'success' : 'idle') : 'idle';
+  else if (connected && live) mode = current.busy && current.status === 'running' ? 'working' : liveFeedback;
+  setBody(mode, entry);
+  text('active',`${name} · turn ${turn.step}`);
   const choice = turn.choice || {};
-  const image = byId('sensory');
-  if (turn.input) {
-    image.src = '/images/' + encodeURIComponent(turn.input.file);
-    image.hidden = false; byId('image-empty').hidden = true;
-    text('input-hash',turn.input.rgb_sha256); text('png-hash',turn.input.png_sha256);
-  } else { image.hidden = true; byId('image-empty').hidden = false; text('input-hash','—'); text('png-hash','—'); }
-  text('input-kind',name.startsWith('random') ? 'Painel de estado registrado. A condição aleatória não usa a rede neural.' : 'Este PNG contém exatamente os pixels recebidos pela rede nesta escolha.');
+  const original = byId('original-language').checked;
+  const prompt = translatePrompt(turn.prompt || 'Computing the next choice…');
+  text('prompt',original ? turn.prompt || prompt.text : prompt.text);
+  text('prompt-language',prompt.translated ? original ? 'Original recorded instruction · Portuguese' : 'English translation · original preserved' : 'Original recorded instruction');
   document.querySelectorAll('[data-action]').forEach(node => node.classList.toggle('selected',node.dataset.action === choice.action));
-  text('prompt',turn.prompt || 'Calculando escolha…');
-  text('reason',reasons[choice.reason] || choice.reason || 'Aguardando trace.');
+  text('reason',reasons[choice.reason] || choice.reason || 'Waiting for trace.');
   text('left',choice.left_hz === undefined ? '—' : `${choice.left_hz.toFixed(2)} Hz`);
   text('right',choice.right_hz === undefined ? '—' : `${choice.right_hz.toFixed(2)} Hz`);
   text('gate',choice.gate_spikes ?? '—');
-  const feedback = turn.feedback;
-  text('feedback',feedback ? ({'-1':'Negativo','0':'Neutro','1':'Positivo'}[feedback.signal] + (feedback.delivered_to_neural ? '' : ' · registrado')) : 'Não entregue');
-  const evaluation = evaluationForTurn(current.attempts[name], turn);
+  const feedback = working ? null : turn.feedback;
+  text('feedback',feedback ? ({'-1':'Negative','0':'Neutral','1':'Positive'}[feedback.signal] + (feedback.delivered_to_neural ? '' : ' · recorded')) : working ? 'Pending replay' : 'Not delivered');
+  const evaluation = evaluationForTurn(current.attempts[name], turn, !working);
   text('score',evaluation ? `${evaluation.passed} / ${evaluation.total}` : '—');
+  text('evaluation-state', working ? 'Before this turn' : 'Recorded result');
   const tests = byId('tests'); tests.replaceChildren();
   for (const item of evaluation?.tests || []) {
-    const li = document.createElement('li'); const label = document.createElement('span'); const result = document.createElement('span');
-    label.textContent = item.id; result.textContent = item.passed ? 'passou' : 'falhou'; result.className = item.passed ? 'pass' : 'fail'; li.append(label,result); tests.append(li);
+    const li = document.createElement('li'), result = document.createElement('span'), label = document.createElement('span');
+    result.textContent = item.passed ? '✓' : '×'; result.className = item.passed ? 'pass' : 'fail';
+    label.textContent = item.id.replaceAll('_',' '); li.setAttribute('aria-label',`${item.id}: ${item.passed ? 'passed' : 'failed'}`); li.append(result,label); tests.append(li);
   }
-  text('violation',evaluation?.violation || turn.infrastructure_error || turn.codex?.error || '');
-  text('trace',JSON.stringify({attempt:name,step:turn.step,choice,feedback,weights_before:turn.weights_before,weights_after_choice:turn.weights_after_choice,weights_after_feedback:turn.weights_after_feedback},null,2));
-}
-function readableEvent(event, workspace) {
-  const item = event.item || {};
-  if (item.type === 'agent_message' || item.type === 'reasoning') return item.text || '';
-  if (item.type === 'command_execution') {
-    const output = item.aggregated_output || '';
-    const result = item.exit_code == null ? '' : `\n[saída ${item.exit_code}]`;
-    return `$ ${relativeToWorkspace(item.command || '', workspace)}\n${relativeToWorkspace(output, workspace)}${result}`;
-  }
-  if (item.type === 'file_change') return (item.changes || []).map(change => `[arquivo ${change.kind || 'alterado'}] ${relativeToWorkspace(change.path || '', workspace)}`).join('\n');
-  if (event.type === 'thread.started') return '[sessão iniciada]';
-  if (event.type === 'turn.started') return '[instrução em execução]';
-  if (event.type === 'turn.completed') return '[instrução concluída]';
-  if (event.type === 'turn.failed' || event.type === 'error') return `[falha] ${event.message || event.error?.message || 'Veja o evento bruto.'}`;
-  if (event.type === 'diagnostic') return `[${event.stream || 'diagnóstico'}] ${event.message || ''}`;
-  return `[${event.type || 'evento'}] ${item.type || ''}`;
-}
-function renderEvents(entry, live) {
-  const {name,turn} = entry;
-  const events = turn.events || [];
+  text('violation',working ? '' : evaluation?.violation || turn.infrastructure_error || turn.codex?.error || '');
+  const imageKind = byId('image-kind').value;
+  const input = imageKind === 'feedback_input' && working ? null : turn[imageKind];
+  const image = byId('sensory');
+  image.hidden = !input; byId('image-empty').hidden = Boolean(input);
+  if (input) { const src = '/images/' + encodeURIComponent(input.file); if (image.getAttribute('src') !== src) image.src = src; }
+  text('input-hash', input?.rgb_sha256 || '—'); text('png-hash', input?.png_sha256 || '—');
+  text('image-empty',working && imageKind === 'feedback_input' ? 'Feedback appears after this replayed turn.' : 'No input image available.');
+  text('input-kind',name.startsWith('random') ? 'Recorded state panel. The random condition does not use the neural circuit.' : 'The exact PNG pixels received by the circuit for this recorded input.');
+  text('trace',JSON.stringify({attempt:name,step:turn.step,choice,feedback,weights_before:turn.weights_before,weights_after_choice:turn.weights_after_choice,...(!working && {weights_after_feedback:turn.weights_after_feedback})},null,2));
+  const events = frame.active ? frame.events : coalesceItemEvents(turn.events || []);
   const workspace = recordedWorkspace(current.attempts[name], name);
-  const readable = coalesceItemEvents(events);
-  text('terminal-scope',`${name} · instrução ${turn.step} · ${live ? 'acompanhando' : 'histórico'} · últimos 200 eventos`);
-  text('terminal-state',live && current.busy ? 'Codex em execução' : 'Registro da instrução');
-  const terminal = byId('events');
-  const atEnd = terminal.scrollHeight - terminal.scrollTop - terminal.clientHeight < 40;
-  terminal.textContent = readable.length ? readable.map(event => readableEvent(event, workspace)).filter(Boolean).join('\n\n') : 'Nenhum evento registrado para esta instrução.';
-  text('raw-events',events.length ? events.map(event => JSON.stringify(event,null,2)).join('\n\n') : 'Nenhum evento.');
-  if (atEnd) terminal.scrollTop = terminal.scrollHeight;
+  text('terminal-scope',`${name} · turn ${turn.step} · ${frame.active ? 'condensed replay' : live ? 'latest record' : 'recorded history'}`);
+  text('terminal-state',!connected && live ? 'Disconnected' : frame.active ? frame.playing ? 'Replaying' : 'Paused' : live && current.busy && current.status === 'running' ? 'Codex working' : 'Recorded');
+  text('translation-note',original ? 'Original-language events' : 'English translations labeled in transcript');
+  const terminal = byId('events'), atEnd = terminal.scrollHeight - terminal.scrollTop - terminal.clientHeight < 40;
+  const readable = events.map(event => readableEvent(event,workspace,original ? [] : translations)).filter(Boolean).join('\n\n') || 'No events recorded for this turn.';
+  const changed = terminal.textContent !== readable;
+  text('events',readable);
+  text('raw-events',events.map(event => JSON.stringify(event,null,2)).join('\n\n') || 'No events.');
+  if (changed && (atEnd || frame.active)) terminal.scrollTop = terminal.scrollHeight;
 }
-function render(state) {
-  current = state;
-  text('run-status',labels[state.status] || state.status);
-  text('evidence',state.evidence === 'genuine' ? 'Execução real · piloto experimental' : 'SINTÉTICO · fixture de teste');
-  text('model',`Modelo ${state.settings?.model || '—'}`);
-  text('budget',`Envios reservados ${state.budget?.used ?? 0} / 30`);
-  text('active',`Tentativa ${state.active_attempt || '—'}`);
-  text('terminal-state',state.busy ? 'Codex em execução' : 'Codex pausado');
-  const select = byId('history'); const old = select.value;
-  const options = [new Option('Última escolha · acompanhar','live'),...turns(state).map(item => new Option(`${item.name} · instrução ${item.turn.step}`,item.key))];
-  select.replaceChildren(...options); select.value = options.some(o => o.value === old) ? old : 'live';
-  const tbody = byId('attempts'); tbody.replaceChildren();
-  for (const name of order) {
-    const attempt = state.attempts[name]; const row = document.createElement('tr');
-    const latest = attempt?.turns.filter(t => t.evaluation).at(-1)?.evaluation || attempt?.baseline;
-    const values = [name,labels[name.split('-')[0]],labels[attempt?.status] || 'Aguardando',`${attempt?.turns.filter(t => t.send_id).length || 0} / 5`,latest ? `${latest.passed} / ${latest.total}` : '—'];
-    for (const value of values) { const cell = document.createElement('td'); cell.textContent = value; row.append(cell); }
-    tbody.append(row);
-  }
-  renderSelection();
-}
-byId('history').addEventListener('change',renderSelection);
+
 async function refresh() {
   try {
-    const response = await fetch('/snapshot.json',{cache:'no-store'});
-    if (!response.ok) throw new Error('Aguardando artefatos do piloto');
-    render(await response.json()); text('connection','Observando · atualização a cada 1 s');
-  } catch (error) { text('connection',error.message || 'Conexão interrompida'); }
+    const response = await fetch('/snapshot.json',{cache:'no-store',signal:AbortSignal.timeout(4000)});
+    if (!response.ok) throw new Error('No pilot snapshot available');
+    const raw = await response.text(), state = JSON.parse(raw);
+    if (!state.attempts || typeof state.attempts !== 'object') throw new Error('Invalid pilot snapshot');
+    connected = true;
+    if (raw !== snapshotText) {
+      const wasBusy = previousBusy;
+      current = state; snapshotText = raw; previousBusy = Boolean(state.busy);
+      if (wasBusy && !state.busy) {
+        const signal = turns(state).at(-1)?.turn.feedback?.signal;
+        liveFeedback = signal < 0 ? 'failure' : signal > 0 ? 'success' : 'idle';
+        setTimeout(() => { liveFeedback = 'idle'; render(); },2500);
+      }
+      const oldSelection = byId('history').value;
+      replay = createReplay(turns(state));
+      const options = [new Option('Latest turn · follow','live'),...turns(state).map(entry => new Option(`${entry.name} · turn ${entry.turn.step}`,entry.key))];
+      byId('history').replaceChildren(...options);
+      byId('history').value = options.some(option => option.value === oldSelection) ? oldSelection : 'live';
+      replay.select(byId('history').value);
+      byId('replay-play').disabled = !turns(state).length;
+      byId('replay-reset').disabled = !turns(state).length;
+    }
+    text('connection',state.presentation?.mode === 'demo' ? 'Read-only · bundled demo' : 'Connected · refreshes every 1 s');
+    render();
+  } catch (error) {
+    connected = false; liveFeedback = 'idle';
+    text('connection',current ? 'Disconnected · showing saved record' : error.message || 'Connection unavailable');
+    render();
+  }
   setTimeout(refresh,1000);
 }
+let last = performance.now();
+setInterval(() => { const now = performance.now(), delta = now - last; last = now; if (replay.frame().playing) { replay.advance(delta); render(); } },100);
+fetch('/translations.json').then(response => response.ok ? response.json() : []).then(data => { translations = data; render(); }).catch(() => {});
+window.addEventListener('pagehide', () => body.dispose(), {once:true});
 refresh();

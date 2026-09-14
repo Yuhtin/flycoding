@@ -1,4 +1,5 @@
 """Read-only HTTP routes exercise controlled local artifacts."""
+import hashlib
 import http.client
 import json
 from pathlib import Path
@@ -79,59 +80,79 @@ def test_cli_missing_data_is_nonzero_and_spends_nothing(tmp_path):
     assert not (tmp_path / "run/state.json").exists()
 
 
-def test_dashboard_uses_prior_evaluation_and_coalesces_readable_item_events():
+def test_dashboard_projection_and_replay():
     if not shutil.which("node"):
-        pytest.skip("Node.js is required for the dashboard logic regression test")
-    app = Path(__file__).parents[1] / "src/flycodex/web/app.js"
-    script = r'''
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const vm = require('node:vm');
-const emptyNode = {addEventListener() {}, textContent: '', value: 'live'};
-const context = {
-  document: {getElementById() { return emptyNode; }, querySelectorAll() { return []; }},
-  fetch() { return new Promise(() => {}); },
-  setTimeout() {}, Option: function() {}
-};
-vm.createContext(context);
-vm.runInContext(fs.readFileSync(process.argv[1], 'utf8'), context);
+        pytest.skip("Node.js is required for presentation tests")
+    result = subprocess.run(["node", "--test", "tests/web_presentation.mjs"], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stdout + result.stderr
 
-const firstEvaluation = {passed: 3, total: 5, tests: []};
-const attempt = {
-  baseline: {passed: 1, total: 5, tests: []},
-  turns: [
-    {step: 1, evaluation: firstEvaluation},
-    {step: 2, infrastructure_error: 'evaluator unavailable'},
-  ]
-};
-assert.deepEqual(context.evaluationForTurn(attempt, attempt.turns[1]), firstEvaluation);
 
-const workspace = '/private/run/attempts/adaptive-1/workspace';
-const events = [
-  {type: 'item.started', item: {id: 'cmd', type: 'command_execution', command: `python ${workspace}/test_discount.py`, aggregated_output: 'running', exit_code: null}},
-  {type: 'item.completed', item: {id: 'cmd', type: 'command_execution', command: `python ${workspace}/test_discount.py`, aggregated_output: 'ok', exit_code: 0}},
-  {type: 'item.started', item: {id: 'file', type: 'file_change', changes: [{kind: 'update', path: `${workspace}/discount.py`}]}},
-  {type: 'item.completed', item: {id: 'file', type: 'file_change', changes: [{kind: 'update', path: `${workspace}/discount.py`}]}},
-  {type: 'turn.completed'}
-];
-const unchanged = JSON.stringify(events);
-assert.equal(context.recordedWorkspace({turns: [{events}]}, 'adaptive-1'), workspace);
-const projected = context.coalesceItemEvents(events);
-assert.equal(projected.length, 3);
-assert.equal(JSON.stringify(projected.map(event => event.item?.id || event.type)), '["cmd","file","turn.completed"]');
-const readable = projected.map(event => context.readableEvent(event, workspace)).join('\n\n');
-assert.match(readable, /python test_discount\.py/);
-assert.match(readable, /\[saída 0\]/);
-assert.match(readable, /\[arquivo update\] discount\.py/);
-assert.doesNotMatch(readable, /\/private\/run/);
-assert.doesNotMatch(readable, /saída null/);
-assert.equal(JSON.stringify(events), unchanged);
+def test_demo_is_bundled_read_only_and_routes_are_exact(tmp_path):
+    server = create_server(tmp_path / "absent", port=0, demo=True)
+    thread = threading.Thread(target=server.serve_forever)
+    thread.start()
+    try:
+        address = server.server_address
+        before = request(address, "/snapshot.json")[2]
+        snapshot = json.loads(before)
+        assert snapshot["evidence"] == "genuine"
+        assert snapshot["presentation"]["mode"] == "demo"
+        assert snapshot["budget"]["used"] == 9
+        assert len(snapshot["attempts"]) == 6
+        assert all(a["status"] == "success" for a in snapshot["attempts"].values())
+        assert b"session_id" not in before and b"/Users/" not in before
+        for path in ("/body-view.js", "/body/flybody.glb", "/body/motion.json", "/body/provenance.json", "/presentation.mjs", "/translations.json", "/demo-provenance.json"):
+            assert request(address, path)[0] == 200
+        for a in snapshot["attempts"].values():
+            for turn in a["turns"]:
+                for key in ("input", "feedback_input"):
+                    status, _, body = request(address, "/images/" + turn[key]["file"])
+                    assert status == 200
+                    assert hashlib.sha256(body).hexdigest() == turn[key]["png_sha256"]
+        for path in ("/body/../demo/snapshot.json", "/demo/snapshot.json", "/images/%2e%2e/snapshot.json", "/body/unknown.json"):
+            assert request(address, path)[0] == 404
+        assert request(address, "/run", "POST")[0] == 405
+        assert request(address, "/snapshot.json")[2] == before
+        assert not (tmp_path / "absent").exists()
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
 
-const running = context.readableEvent(events[0], workspace);
-assert.match(running, /running/);
-assert.doesNotMatch(running, /saída null/);
-''';
-    result = subprocess.run(
-        ["node", "-e", script, str(app)], capture_output=True, text=True, timeout=5
-    )
-    assert result.returncode == 0, result.stderr
+
+def test_cli_demo_flag_selects_bundled_server(monkeypatch, tmp_path, capsys):
+    from flycodex.cli import main
+    import flycodex.web
+    calls = []
+    class Server:
+        server_port = 8772
+        def serve_forever(self): pass
+        def server_close(self): pass
+    def server(run_dir, **kwargs):
+        calls.append((run_dir, kwargs))
+        return Server()
+    monkeypatch.setattr(flycodex.web, "create_server", server)
+    assert main(["serve", "--demo", "--run-dir", str(tmp_path)]) == 0
+    assert calls[0][1]["demo"] is True
+    assert "read-only" in capsys.readouterr().out
+
+
+def test_bundled_provenance_and_translations_preserve_original_identity():
+    public = Path(__file__).parents[1] / "src/flycodex/web/demo"
+    raw = (public / "snapshot.json").read_bytes()
+    snapshot = json.loads(raw)
+    provenance = json.loads((public / "provenance.json").read_text())
+    assert hashlib.sha256(raw).hexdigest() == provenance["snapshot_sha256"]
+    assert snapshot["settings"]["source_revision"] == "a16e1713f340a15a4e87f2d5651536f03aa9fe3a"
+    assert snapshot["presentation"]["source_snapshot_sha256"] == provenance["source_snapshot_sha256"]
+    assert len(provenance["images"]) == 18
+    assert not any(key in raw for key in (b"session_id", b"thread_id", b"/Users/", b"checkpoint", b"send_id"))
+    messages = [event["item"]["text"] for a in snapshot["attempts"].values() for turn in a["turns"]
+                for event in turn["events"] if event.get("item", {}).get("type") == "agent_message"]
+    curated = json.loads((public / "translations.json").read_text())
+    assert len(messages) == 18
+    assert len(curated) == 16
+    assert {entry["original"] for entry in curated} == set(messages)
+    for entry in curated:
+        assert hashlib.sha256(entry["original"].encode()).hexdigest() == entry["source_sha256"]
+        assert entry["original"] != entry["english"]

@@ -1,0 +1,29 @@
+{
+  "source_revision": "a16e1713f340a15a4e87f2d5651536f03aa9fe3a",
+  "source_snapshot_sha256": "3fa538cd4793786ea84368cbf97dca3e94f33bdd8d38dedd6c750ff9649cb931",
+  "snapshot_sha256": "c7261683e3bc64e47ab6ef857281024bc22b5ff94ef6e72a0bf5cf60d8485679",
+  "images": {
+    "adaptive-1-1-input.png": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+    "adaptive-1-1-feedback.png": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+    "adaptive-2-1-input.png": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+    "adaptive-2-1-feedback.png": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+    "frozen-1-1-input.png": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+    "frozen-1-1-feedback.png": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+    "frozen-2-1-input.png": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+    "frozen-2-1-feedback.png": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+    "random-1-1-input.png": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+    "random-1-1-feedback.png": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+    "random-1-2-input.png": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+    "random-1-2-feedback.png": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+    "random-1-3-input.png": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+    "random-1-3-feedback.png": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+    "random-2-1-input.png": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+    "random-2-1-feedback.png": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+    "random-2-2-input.png": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+    "random-2-2-feedback.png": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2"
+  },
+  "event_hash_encoding": "SHA-256 of json.dumps(original_event, sort_keys=True, ensure_ascii=True)",
+  "selection": "Completed agent messages, unittest commands, discount.py file changes and turn boundaries.",
+  "sanitization": "Session IDs, reservation IDs, checkpoints, private metadata and unrelated events omitted. Workspace paths made relative. Original agent text retained.",
+  "translations": "Curated English presentation only; exact original message SHA-256 matches required."
+}

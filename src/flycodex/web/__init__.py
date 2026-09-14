@@ -11,11 +11,18 @@ _ASSETS = {"/": ("index.html", "text/html; charset=utf-8"),
 _IMAGE = re.compile(r"/images/((?:adaptive|frozen|random)-[12]-[1-5]-(?:input|feedback)\.png)\Z")
 
 
-def create_server(run_dir: Path, *, host="127.0.0.1", port=8765):
+def create_server(run_dir: Path, *, host="127.0.0.1", port=8765, demo=False):
     if host not in {"127.0.0.1", "localhost"}:
         raise ValueError("Dashboard must bind to IPv4 loopback")
-    public = Path(run_dir).resolve() / "public"
     assets = Path(__file__).parent
+    public = assets / "demo" if demo else Path(run_dir).resolve() / "public"
+    routes = dict(_ASSETS)
+    for route, mime in json.loads((assets / "body/routes.json").read_text()).items():
+        routes[route] = (route.lstrip("/"), mime)
+    routes["/presentation.mjs"] = ("presentation.mjs", "text/javascript; charset=utf-8")
+    routes["/translations.json"] = ("demo/translations.json", "application/json; charset=utf-8")
+    if demo:
+        routes["/demo-provenance.json"] = ("demo/provenance.json", "application/json; charset=utf-8")
 
     class Handler(BaseHTTPRequestHandler):
         def _reply(self, status, body, content_type="text/plain; charset=utf-8"):
@@ -31,8 +38,8 @@ def create_server(run_dir: Path, *, host="127.0.0.1", port=8765):
         def do_GET(self):
             path = urlsplit(self.path).path
             try:
-                if path in _ASSETS:
-                    filename, content_type = _ASSETS[path]
+                if path in routes:
+                    filename, content_type = routes[path]
                     return self._reply(200, (assets / filename).read_bytes(), content_type)
                 if path == "/snapshot.json":
                     snapshot = public / "snapshot.json"

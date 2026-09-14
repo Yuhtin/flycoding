@@ -85,9 +85,9 @@ def _pid_exists(pid):
 
 def test_prompts_match_the_three_predeclared_actions_exactly():
     assert PROMPTS == {
-        "investigate": "Analise a falha e explique a provável causa, sem editar.",
-        "fix": "Corrija a função de desconto, preservando os testes.",
-        "test": "Execute os testes e relate o resultado.",
+        "investigate": "Analyze the failure and explain the likely cause without editing.",
+        "fix": "Fix the discount function while preserving the tests.",
+        "test": "Run the tests and report the result.",
     }
 
 

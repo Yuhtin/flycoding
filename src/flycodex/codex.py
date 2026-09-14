@@ -14,9 +14,9 @@ from typing import Callable, Any
 
 
 PROMPTS = {
-    "investigate": "Analise a falha e explique a provável causa, sem editar.",
-    "fix": "Corrija a função de desconto, preservando os testes.",
-    "test": "Execute os testes e relate o resultado.",
+    "investigate": "Analyze the failure and explain the likely cause without editing.",
+    "fix": "Fix the discount function while preserving the tests.",
+    "test": "Run the tests and report the result.",
 }
 
 INITIAL_CONTEXT = """\

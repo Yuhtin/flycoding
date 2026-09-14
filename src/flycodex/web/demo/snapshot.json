@@ -1,0 +1,1778 @@
+{
+  "version": 1,
+  "evidence": "genuine",
+  "status": "completed",
+  "busy": false,
+  "budget": {
+    "conditions": {
+      "adaptive": 2,
+      "frozen": 2,
+      "random": 5
+    },
+    "limit": 30,
+    "per_attempt_limit": 5,
+    "per_condition_limit": 10,
+    "remaining": 21,
+    "used": 9
+  },
+  "active_attempt": "random-2",
+  "settings": {
+    "model": "gpt-6-astra",
+    "source_revision": "a16e1713f340a15a4e87f2d5651536f03aa9fe3a",
+    "source_dirty": false,
+    "decision_ms": 500,
+    "feedback_ms": 200,
+    "threshold_hz": 2,
+    "data": {
+      "graph_sha256": "346b8af85a11af13b8324e18669812c1924569e7d1adcb4e6f45cc461a2c344b",
+      "sources": {
+        "annotations.feather": {
+          "bytes": 14483314,
+          "sha256": "2177e246113e4cfbf1e7772ec37c6da1955ff22e8063d0b1f833101f99a9a3b2",
+          "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-annotations-male-cns-v1.0-minconf-0.5.feather"
+        },
+        "edges.feather": {
+          "bytes": 1051241946,
+          "sha256": "e35da783d1c686b2b58b3b87cd6a403ae43bfcfba8bff28e08ef752c1a56afc1",
+          "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/connectome-weights-male-cns-v1.0-minconf-0.5.feather"
+        },
+        "neurotransmitters.feather": {
+          "bytes": 43282834,
+          "sha256": "95c9289220663abeb3409f3ad9e5a7f8a53f8093f5139d15502cd08da8879621",
+          "url": "https://storage.googleapis.com/flyem-male-cns/v1.0/connectome-data/flat-connectome/body-neurotransmitters-male-cns-v1.0.feather"
+        }
+      },
+      "upstream_revision": "78ef3e05ab0fa086032098558d893667068944a0",
+      "verified": true
+    }
+  },
+  "presentation": {
+    "mode": "demo",
+    "label": "Bundled genuine pilot",
+    "source_snapshot_sha256": "3fa538cd4793786ea84368cbf97dca3e94f33bdd8d38dedd6c750ff9649cb931"
+  },
+  "attempts": {
+    "adaptive-1": {
+      "baseline": {
+        "error": null,
+        "passed": 1,
+        "tests": [
+          {
+            "actual": 5000,
+            "id": "no_discount",
+            "passed": true
+          },
+          {
+            "actual": 9975,
+            "id": "partial_discount",
+            "passed": false
+          },
+          {
+            "actual": 6300,
+            "id": "total_discount",
+            "passed": false
+          },
+          {
+            "actual": -40,
+            "id": "zero_subtotal",
+            "passed": false
+          },
+          {
+            "actual": 966,
+            "id": "rounding_down",
+            "passed": false
+          }
+        ],
+        "total": 5,
+        "violation": null
+      },
+      "condition": "adaptive",
+      "id": "adaptive-1",
+      "memory_start": {
+        "changed_edges": 0,
+        "mean_efficacy": 1.0,
+        "minimum_efficacy": 1.0,
+        "plastic_edges": 7835,
+        "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+        "weights_frozen": false
+      },
+      "phase": "complete",
+      "status": "success",
+      "turns": [
+        {
+          "choice": {
+            "action": "fix",
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.9362235369044356,
+            "difference_hz": 4.0,
+            "gate_spikes": 14,
+            "input_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6",
+            "left_hz": 28.0,
+            "memory": {
+              "changed_edges": 0,
+              "mean_efficacy": 1.0,
+              "minimum_efficacy": 1.0,
+              "plastic_edges": 7835,
+              "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+              "weights_frozen": false
+            },
+            "reason": "right_threshold",
+            "right_hz": 32.0,
+            "simulated_ms": 500.0,
+            "spike_sha256": "19486a3b34cfd1e8a49f1acf3cd7d6fd4f9d69540275f1222462800fe2d7fd81",
+            "total_spikes": 392732,
+            "window_ms": 500
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 5,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 7500,
+                "id": "partial_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "total_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "zero_subtotal",
+                "passed": true
+              },
+              {
+                "actual": 669,
+                "id": "rounding_down",
+                "passed": true
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "feedback": {
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.6282042081584223,
+            "delivered_to_neural": true,
+            "input_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5",
+            "memory": {
+              "changed_edges": 2633,
+              "mean_efficacy": 1.002578854560852,
+              "minimum_efficacy": 0.9300442337989807,
+              "plastic_edges": 7835,
+              "sha256": "02b10b3a3a5be2ec027ec36bee990b8c931ed8dd7992a30b89da0bb2a01031c9",
+              "weights_frozen": false
+            },
+            "signal": 1,
+            "simulated_ms": 700.0,
+            "spike_sha256": "98d6d881a1daa50e27ab1989067f74f60d5e2ca7c3b1d846f3a537a5091a42a1",
+            "stimulus": "reward",
+            "stimulus_ms": 200,
+            "total_spikes": 199794,
+            "window_ms": 200
+          },
+          "feedback_input": {
+            "file": "adaptive-1-1-feedback.png",
+            "png_sha256": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+            "rgb_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5"
+          },
+          "input": {
+            "file": "adaptive-1-1-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Corrija a função de desconto, preservando os testes.",
+          "step": 1,
+          "weights_after_choice": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": false
+          },
+          "weights_after_feedback": {
+            "changed_edges": 2633,
+            "mean_efficacy": 1.002578854560852,
+            "minimum_efficacy": 0.9300442337989807,
+            "plastic_edges": 7835,
+            "sha256": "02b10b3a3a5be2ec027ec36bee990b8c931ed8dd7992a30b89da0bb2a01031c9",
+            "weights_frozen": false
+          },
+          "weights_before": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": false
+          },
+          "reserved": true,
+          "codex": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 45952,
+              "input_tokens": 51875,
+              "output_tokens": 242,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "events": [
+            {
+              "type": "turn.started",
+              "source_sha256": "4e0d31130d7e5c676aff17c9457d858b0980f7a713dbd95870f1e5539b80850b"
+            },
+            {
+              "item": {
+                "id": "item_0",
+                "text": "Vou ler a função e os testes, corrigir apenas `discount.py` e executar a suíte indicada.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "a18b87d2c97cb914ef81f30e8ad6d27b9044ab8b1ae66102c5aea4df029bd1e2"
+            },
+            {
+              "item": {
+                "changes": [
+                  {
+                    "kind": "update",
+                    "path": "discount.py"
+                  }
+                ],
+                "id": "item_3",
+                "status": "completed",
+                "type": "file_change"
+              },
+              "type": "item.completed",
+              "source_sha256": "3bc3aeac496d8e5c7aa788a2b0b1b40a979b4fa04fb55fe57259d17544a197b9"
+            },
+            {
+              "item": {
+                "aggregated_output": "test_no_discount (test_discount.DiscountTests.test_no_discount) ... ok\ntest_partial_discount (test_discount.DiscountTests.test_partial_discount) ... ok\ntest_rounding_down (test_discount.DiscountTests.test_rounding_down) ... ok\ntest_total_discount (test_discount.DiscountTests.test_total_discount) ... ok\ntest_zero_subtotal (test_discount.DiscountTests.test_zero_subtotal) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK\n",
+                "command": "/bin/zsh -lc 'rtk proxy python -B -m unittest -v'",
+                "exit_code": 0,
+                "id": "item_4",
+                "status": "completed",
+                "type": "command_execution"
+              },
+              "type": "item.completed",
+              "source_sha256": "1fde7ecc864a41b22ef07afc40e030009b516fd0922d970da4e600a920748d31"
+            },
+            {
+              "item": {
+                "id": "item_5",
+                "text": "Corrigi apenas `discount.py`: o desconto percentual agora usa aritmética inteira, arredondando o total para baixo.\n\nOs 5 testes passaram com `rtk proxy python -B -m unittest -v`. Os testes foram preservados.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "edf7e9c98fb58516cc532c222a439fc7321a84770b173e50b5444326e41061f7"
+            },
+            {
+              "type": "turn.completed",
+              "usage": {
+                "cache_write_input_tokens": 0,
+                "cached_input_tokens": 45952,
+                "input_tokens": 51875,
+                "output_tokens": 242,
+                "reasoning_output_tokens": 0
+              },
+              "source_sha256": "ad69b8b73e54d4cde8a67110be438f98ec32e2d7a590d9d173a3d0b401b8d600"
+            }
+          ]
+        }
+      ]
+    },
+    "adaptive-2": {
+      "baseline": {
+        "error": null,
+        "passed": 1,
+        "tests": [
+          {
+            "actual": 5000,
+            "id": "no_discount",
+            "passed": true
+          },
+          {
+            "actual": 9975,
+            "id": "partial_discount",
+            "passed": false
+          },
+          {
+            "actual": 6300,
+            "id": "total_discount",
+            "passed": false
+          },
+          {
+            "actual": -40,
+            "id": "zero_subtotal",
+            "passed": false
+          },
+          {
+            "actual": 966,
+            "id": "rounding_down",
+            "passed": false
+          }
+        ],
+        "total": 5,
+        "violation": null
+      },
+      "condition": "adaptive",
+      "id": "adaptive-2",
+      "memory_start": {
+        "changed_edges": 2633,
+        "mean_efficacy": 1.002578854560852,
+        "minimum_efficacy": 0.9300442337989807,
+        "plastic_edges": 7835,
+        "sha256": "02b10b3a3a5be2ec027ec36bee990b8c931ed8dd7992a30b89da0bb2a01031c9",
+        "weights_frozen": false
+      },
+      "phase": "complete",
+      "status": "success",
+      "turns": [
+        {
+          "choice": {
+            "action": "fix",
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.9340601203148253,
+            "difference_hz": 4.0,
+            "gate_spikes": 14,
+            "input_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6",
+            "left_hz": 28.0,
+            "memory": {
+              "changed_edges": 2633,
+              "mean_efficacy": 1.0039989948272705,
+              "minimum_efficacy": 0.9090175628662109,
+              "plastic_edges": 7835,
+              "sha256": "fac827d0c3a45df83393accd2b398f09678ed11ac64ffaec7260e77096b5e293",
+              "weights_frozen": false
+            },
+            "reason": "right_threshold",
+            "right_hz": 32.0,
+            "simulated_ms": 500.0,
+            "spike_sha256": "19486a3b34cfd1e8a49f1acf3cd7d6fd4f9d69540275f1222462800fe2d7fd81",
+            "total_spikes": 392732,
+            "window_ms": 500
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 5,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 7500,
+                "id": "partial_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "total_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "zero_subtotal",
+                "passed": true
+              },
+              {
+                "actual": 669,
+                "id": "rounding_down",
+                "passed": true
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "feedback": {
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.6300852060667239,
+            "delivered_to_neural": true,
+            "input_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5",
+            "memory": {
+              "changed_edges": 2811,
+              "mean_efficacy": 1.0067051649093628,
+              "minimum_efficacy": 0.8385668992996216,
+              "plastic_edges": 7835,
+              "sha256": "d5368d7f8d1d7da3ec0af2a632a7af7e9bb9b43c71b19a52b636fa819a01587e",
+              "weights_frozen": false
+            },
+            "signal": 1,
+            "simulated_ms": 700.0,
+            "spike_sha256": "d6b370795fcade02f1ecae56a4a817474079e627d3653a9f50460a645906b1de",
+            "stimulus": "reward",
+            "stimulus_ms": 200,
+            "total_spikes": 200315,
+            "window_ms": 200
+          },
+          "feedback_input": {
+            "file": "adaptive-2-1-feedback.png",
+            "png_sha256": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+            "rgb_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5"
+          },
+          "input": {
+            "file": "adaptive-2-1-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Corrija a função de desconto, preservando os testes.",
+          "step": 1,
+          "weights_after_choice": {
+            "changed_edges": 2633,
+            "mean_efficacy": 1.0039989948272705,
+            "minimum_efficacy": 0.9090175628662109,
+            "plastic_edges": 7835,
+            "sha256": "fac827d0c3a45df83393accd2b398f09678ed11ac64ffaec7260e77096b5e293",
+            "weights_frozen": false
+          },
+          "weights_after_feedback": {
+            "changed_edges": 2811,
+            "mean_efficacy": 1.0067051649093628,
+            "minimum_efficacy": 0.8385668992996216,
+            "plastic_edges": 7835,
+            "sha256": "d5368d7f8d1d7da3ec0af2a632a7af7e9bb9b43c71b19a52b636fa819a01587e",
+            "weights_frozen": false
+          },
+          "weights_before": {
+            "changed_edges": 2633,
+            "mean_efficacy": 1.002578854560852,
+            "minimum_efficacy": 0.9300442337989807,
+            "plastic_edges": 7835,
+            "sha256": "02b10b3a3a5be2ec027ec36bee990b8c931ed8dd7992a30b89da0bb2a01031c9",
+            "weights_frozen": false
+          },
+          "reserved": true,
+          "codex": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 45696,
+              "input_tokens": 51500,
+              "output_tokens": 244,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "events": [
+            {
+              "type": "turn.started",
+              "source_sha256": "4e0d31130d7e5c676aff17c9457d858b0980f7a713dbd95870f1e5539b80850b"
+            },
+            {
+              "item": {
+                "id": "item_0",
+                "text": "Vou conferir os testes, corrigir apenas `discount.py` e executar a suíte indicada.\n",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "039b961408c23c260ea49e5abd046dfcf8eeeb2ca1a903a09962cc4670a295fd"
+            },
+            {
+              "item": {
+                "changes": [
+                  {
+                    "kind": "update",
+                    "path": "discount.py"
+                  }
+                ],
+                "id": "item_2",
+                "status": "completed",
+                "type": "file_change"
+              },
+              "type": "item.completed",
+              "source_sha256": "d6f8da930f55b85e1b4ed00155139d1abe984bd7539cfd7e6b340178da3fd3c4"
+            },
+            {
+              "item": {
+                "aggregated_output": "test_no_discount (test_discount.DiscountTests.test_no_discount) ... ok\ntest_partial_discount (test_discount.DiscountTests.test_partial_discount) ... ok\ntest_rounding_down (test_discount.DiscountTests.test_rounding_down) ... ok\ntest_total_discount (test_discount.DiscountTests.test_total_discount) ... ok\ntest_zero_subtotal (test_discount.DiscountTests.test_zero_subtotal) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK\n",
+                "command": "/bin/zsh -lc 'rtk proxy python -B -m unittest -v'",
+                "exit_code": 0,
+                "id": "item_3",
+                "status": "completed",
+                "type": "command_execution"
+              },
+              "type": "item.completed",
+              "source_sha256": "ce3e1482fa2235b2ea157a57176a5bc0beca7c7a939017aaaa76845ce7b25523"
+            },
+            {
+              "item": {
+                "id": "item_4",
+                "text": "Corrigido apenas `discount.py`: aplica o desconto percentual com aritmética inteira e arredondamento para baixo, mantendo uma função pura com um único `return`.\n\nTestes preservados. Os 5 passaram com `rtk proxy python -B -m unittest -v`.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "4c11798af39d35fa5b24544364e921ef3add4b730e22f810d01c1cb25a659875"
+            },
+            {
+              "type": "turn.completed",
+              "usage": {
+                "cache_write_input_tokens": 0,
+                "cached_input_tokens": 45696,
+                "input_tokens": 51500,
+                "output_tokens": 244,
+                "reasoning_output_tokens": 0
+              },
+              "source_sha256": "3c886a8d9a63ccfba8beae7612bbbe4d9a70cfa069d8ab8d9ed32c4cbe134b38"
+            }
+          ]
+        }
+      ]
+    },
+    "frozen-1": {
+      "baseline": {
+        "error": null,
+        "passed": 1,
+        "tests": [
+          {
+            "actual": 5000,
+            "id": "no_discount",
+            "passed": true
+          },
+          {
+            "actual": 9975,
+            "id": "partial_discount",
+            "passed": false
+          },
+          {
+            "actual": 6300,
+            "id": "total_discount",
+            "passed": false
+          },
+          {
+            "actual": -40,
+            "id": "zero_subtotal",
+            "passed": false
+          },
+          {
+            "actual": 966,
+            "id": "rounding_down",
+            "passed": false
+          }
+        ],
+        "total": 5,
+        "violation": null
+      },
+      "condition": "frozen",
+      "id": "frozen-1",
+      "memory_start": {
+        "changed_edges": 0,
+        "mean_efficacy": 1.0,
+        "minimum_efficacy": 1.0,
+        "plastic_edges": 7835,
+        "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+        "weights_frozen": true
+      },
+      "phase": "complete",
+      "status": "success",
+      "turns": [
+        {
+          "choice": {
+            "action": "fix",
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.9306037551141344,
+            "difference_hz": 4.0,
+            "gate_spikes": 14,
+            "input_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6",
+            "left_hz": 28.0,
+            "memory": {
+              "changed_edges": 0,
+              "mean_efficacy": 1.0,
+              "minimum_efficacy": 1.0,
+              "plastic_edges": 7835,
+              "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+              "weights_frozen": true
+            },
+            "reason": "right_threshold",
+            "right_hz": 32.0,
+            "simulated_ms": 500.0,
+            "spike_sha256": "19486a3b34cfd1e8a49f1acf3cd7d6fd4f9d69540275f1222462800fe2d7fd81",
+            "total_spikes": 392732,
+            "window_ms": 500
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 5,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 7500,
+                "id": "partial_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "total_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "zero_subtotal",
+                "passed": true
+              },
+              {
+                "actual": 669,
+                "id": "rounding_down",
+                "passed": true
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "feedback": {
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.6149507940863259,
+            "delivered_to_neural": true,
+            "input_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5",
+            "memory": {
+              "changed_edges": 0,
+              "mean_efficacy": 1.0,
+              "minimum_efficacy": 1.0,
+              "plastic_edges": 7835,
+              "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+              "weights_frozen": true
+            },
+            "signal": 1,
+            "simulated_ms": 700.0,
+            "spike_sha256": "9e19d66c311eca778ad9c6b52d89b61fcfe3130645fe973c5299e7c7c50fd36a",
+            "stimulus": "reward",
+            "stimulus_ms": 200,
+            "total_spikes": 199631,
+            "window_ms": 200
+          },
+          "feedback_input": {
+            "file": "frozen-1-1-feedback.png",
+            "png_sha256": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+            "rgb_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5"
+          },
+          "input": {
+            "file": "frozen-1-1-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Corrija a função de desconto, preservando os testes.",
+          "step": 1,
+          "weights_after_choice": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": true
+          },
+          "weights_after_feedback": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": true
+          },
+          "weights_before": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": true
+          },
+          "reserved": true,
+          "codex": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 57984,
+              "input_tokens": 69321,
+              "output_tokens": 252,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "events": [
+            {
+              "type": "turn.started",
+              "source_sha256": "4e0d31130d7e5c676aff17c9457d858b0980f7a713dbd95870f1e5539b80850b"
+            },
+            {
+              "item": {
+                "id": "item_0",
+                "text": "Vou conferir os testes, corrigir apenas `discount.py` e executar a suíte indicada.\n",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "039b961408c23c260ea49e5abd046dfcf8eeeb2ca1a903a09962cc4670a295fd"
+            },
+            {
+              "item": {
+                "changes": [
+                  {
+                    "kind": "update",
+                    "path": "discount.py"
+                  }
+                ],
+                "id": "item_2",
+                "status": "completed",
+                "type": "file_change"
+              },
+              "type": "item.completed",
+              "source_sha256": "9779affc3e4352591a19c90f8250cbf8c47e043c341787d81d990a7c26b4066c"
+            },
+            {
+              "item": {
+                "aggregated_output": "test_no_discount (test_discount.DiscountTests.test_no_discount) ... ok\ntest_partial_discount (test_discount.DiscountTests.test_partial_discount) ... ok\ntest_rounding_down (test_discount.DiscountTests.test_rounding_down) ... ok\ntest_total_discount (test_discount.DiscountTests.test_total_discount) ... ok\ntest_zero_subtotal (test_discount.DiscountTests.test_zero_subtotal) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK\n",
+                "command": "/bin/zsh -lc 'rtk proxy python -B -m unittest -v'",
+                "exit_code": 0,
+                "id": "item_3",
+                "status": "completed",
+                "type": "command_execution"
+              },
+              "type": "item.completed",
+              "source_sha256": "ce3e1482fa2235b2ea157a57176a5bc0beca7c7a939017aaaa76845ce7b25523"
+            },
+            {
+              "item": {
+                "id": "item_4",
+                "text": "Corrigido `discount.py`: o desconto percentual agora usa aritmética inteira e arredonda o total para baixo. Os testes foram preservados.\n\nValidação: `rtk proxy python -B -m unittest -v` — 5 testes passaram.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "3541cbd9b1df43a192a6ac1b7469e2908453c11f922106b2f185211454e48d8f"
+            },
+            {
+              "type": "turn.completed",
+              "usage": {
+                "cache_write_input_tokens": 0,
+                "cached_input_tokens": 57984,
+                "input_tokens": 69321,
+                "output_tokens": 252,
+                "reasoning_output_tokens": 0
+              },
+              "source_sha256": "74d0669f6a197bb930203e15a40e04753c41e13a10701df2c9786f6079d2f7b9"
+            }
+          ]
+        }
+      ]
+    },
+    "frozen-2": {
+      "baseline": {
+        "error": null,
+        "passed": 1,
+        "tests": [
+          {
+            "actual": 5000,
+            "id": "no_discount",
+            "passed": true
+          },
+          {
+            "actual": 9975,
+            "id": "partial_discount",
+            "passed": false
+          },
+          {
+            "actual": 6300,
+            "id": "total_discount",
+            "passed": false
+          },
+          {
+            "actual": -40,
+            "id": "zero_subtotal",
+            "passed": false
+          },
+          {
+            "actual": 966,
+            "id": "rounding_down",
+            "passed": false
+          }
+        ],
+        "total": 5,
+        "violation": null
+      },
+      "condition": "frozen",
+      "id": "frozen-2",
+      "memory_start": {
+        "changed_edges": 0,
+        "mean_efficacy": 1.0,
+        "minimum_efficacy": 1.0,
+        "plastic_edges": 7835,
+        "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+        "weights_frozen": true
+      },
+      "phase": "complete",
+      "status": "success",
+      "turns": [
+        {
+          "choice": {
+            "action": "fix",
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.9330532120075077,
+            "difference_hz": 4.0,
+            "gate_spikes": 14,
+            "input_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6",
+            "left_hz": 28.0,
+            "memory": {
+              "changed_edges": 0,
+              "mean_efficacy": 1.0,
+              "minimum_efficacy": 1.0,
+              "plastic_edges": 7835,
+              "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+              "weights_frozen": true
+            },
+            "reason": "right_threshold",
+            "right_hz": 32.0,
+            "simulated_ms": 500.0,
+            "spike_sha256": "19486a3b34cfd1e8a49f1acf3cd7d6fd4f9d69540275f1222462800fe2d7fd81",
+            "total_spikes": 392732,
+            "window_ms": 500
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 5,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 7500,
+                "id": "partial_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "total_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "zero_subtotal",
+                "passed": true
+              },
+              {
+                "actual": 669,
+                "id": "rounding_down",
+                "passed": true
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "feedback": {
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 0.6178021649830043,
+            "delivered_to_neural": true,
+            "input_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5",
+            "memory": {
+              "changed_edges": 0,
+              "mean_efficacy": 1.0,
+              "minimum_efficacy": 1.0,
+              "plastic_edges": 7835,
+              "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+              "weights_frozen": true
+            },
+            "signal": 1,
+            "simulated_ms": 700.0,
+            "spike_sha256": "9e19d66c311eca778ad9c6b52d89b61fcfe3130645fe973c5299e7c7c50fd36a",
+            "stimulus": "reward",
+            "stimulus_ms": 200,
+            "total_spikes": 199631,
+            "window_ms": 200
+          },
+          "feedback_input": {
+            "file": "frozen-2-1-feedback.png",
+            "png_sha256": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+            "rgb_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5"
+          },
+          "input": {
+            "file": "frozen-2-1-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Corrija a função de desconto, preservando os testes.",
+          "step": 1,
+          "weights_after_choice": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": true
+          },
+          "weights_after_feedback": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": true
+          },
+          "weights_before": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": true
+          },
+          "reserved": true,
+          "codex": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 45696,
+              "input_tokens": 51500,
+              "output_tokens": 238,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "events": [
+            {
+              "type": "turn.started",
+              "source_sha256": "4e0d31130d7e5c676aff17c9457d858b0980f7a713dbd95870f1e5539b80850b"
+            },
+            {
+              "item": {
+                "id": "item_0",
+                "text": "Vou conferir os testes, corrigir apenas `discount.py` e executar a suíte indicada.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "6be702e6bc31ac3f07e3df4668d248b0fa93a42ae895f1a8338fe86e2e56c827"
+            },
+            {
+              "item": {
+                "changes": [
+                  {
+                    "kind": "update",
+                    "path": "discount.py"
+                  }
+                ],
+                "id": "item_2",
+                "status": "completed",
+                "type": "file_change"
+              },
+              "type": "item.completed",
+              "source_sha256": "57a7ea7aeee838c0e1aca4de813c216f50e5819b081e32d7376daa92051990f7"
+            },
+            {
+              "item": {
+                "aggregated_output": "test_no_discount (test_discount.DiscountTests.test_no_discount) ... ok\ntest_partial_discount (test_discount.DiscountTests.test_partial_discount) ... ok\ntest_rounding_down (test_discount.DiscountTests.test_rounding_down) ... ok\ntest_total_discount (test_discount.DiscountTests.test_total_discount) ... ok\ntest_zero_subtotal (test_discount.DiscountTests.test_zero_subtotal) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK\n",
+                "command": "/bin/zsh -lc 'rtk proxy python -B -m unittest -v'",
+                "exit_code": 0,
+                "id": "item_3",
+                "status": "completed",
+                "type": "command_execution"
+              },
+              "type": "item.completed",
+              "source_sha256": "ce3e1482fa2235b2ea157a57176a5bc0beca7c7a939017aaaa76845ce7b25523"
+            },
+            {
+              "item": {
+                "id": "item_4",
+                "text": "Corrigido apenas `discount.py`: o desconto agora é percentual, com aritmética inteira e arredondamento para baixo.\n\nOs testes foram preservados. Todos os 5 passaram com `rtk proxy python -B -m unittest -v`.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "f60d2cedc41c33a36542cddf79c3b384738ee071b20e428be5290fd1031bae72"
+            },
+            {
+              "type": "turn.completed",
+              "usage": {
+                "cache_write_input_tokens": 0,
+                "cached_input_tokens": 45696,
+                "input_tokens": 51500,
+                "output_tokens": 238,
+                "reasoning_output_tokens": 0
+              },
+              "source_sha256": "2bad4ac28ba3b169c2631acf04f21ef00aecf28c8f256017f2b3c944f8cc888b"
+            }
+          ]
+        }
+      ]
+    },
+    "random-1": {
+      "baseline": {
+        "error": null,
+        "passed": 1,
+        "tests": [
+          {
+            "actual": 5000,
+            "id": "no_discount",
+            "passed": true
+          },
+          {
+            "actual": 9975,
+            "id": "partial_discount",
+            "passed": false
+          },
+          {
+            "actual": 6300,
+            "id": "total_discount",
+            "passed": false
+          },
+          {
+            "actual": -40,
+            "id": "zero_subtotal",
+            "passed": false
+          },
+          {
+            "actual": 966,
+            "id": "rounding_down",
+            "passed": false
+          }
+        ],
+        "total": 5,
+        "violation": null
+      },
+      "condition": "random",
+      "id": "random-1",
+      "phase": "complete",
+      "seed": 1729,
+      "status": "success",
+      "turns": [
+        {
+          "choice": {
+            "action": "test",
+            "reason": "seeded_uniform_random",
+            "seed": 1729
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 1,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 9975,
+                "id": "partial_discount",
+                "passed": false
+              },
+              {
+                "actual": 6300,
+                "id": "total_discount",
+                "passed": false
+              },
+              {
+                "actual": -40,
+                "id": "zero_subtotal",
+                "passed": false
+              },
+              {
+                "actual": 966,
+                "id": "rounding_down",
+                "passed": false
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "feedback": {
+            "delivered_to_neural": false,
+            "reason": "random_control",
+            "signal": 0
+          },
+          "feedback_input": {
+            "file": "random-1-1-feedback.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "input": {
+            "file": "random-1-1-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Execute os testes e relate o resultado.",
+          "step": 1,
+          "reserved": true,
+          "codex": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 45440,
+              "input_tokens": 51372,
+              "output_tokens": 230,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "events": [
+            {
+              "type": "turn.started",
+              "source_sha256": "4e0d31130d7e5c676aff17c9457d858b0980f7a713dbd95870f1e5539b80850b"
+            },
+            {
+              "item": {
+                "id": "item_0",
+                "text": "Vou executar a suíte de testes conforme as instruções do workspace e relatar o resultado.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "3563afe73d3c8b2a164300eb42c3fc4e11a14a7426b6c7d98814f5d5e7e90555"
+            },
+            {
+              "item": {
+                "aggregated_output": "test_no_discount (test_discount.DiscountTests.test_no_discount) ... ok\ntest_partial_discount (test_discount.DiscountTests.test_partial_discount) ... FAIL\ntest_rounding_down (test_discount.DiscountTests.test_rounding_down) ... FAIL\ntest_total_discount (test_discount.DiscountTests.test_total_discount) ... FAIL\ntest_zero_subtotal (test_discount.DiscountTests.test_zero_subtotal) ... FAIL\n\n======================================================================\nFAIL: test_partial_discount (test_discount.DiscountTests.test_partial_discount)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"test_discount.py\", line 11, in test_partial_discount\n    self.assertEqual(discounted_total(10000, 25), 7500)\nAssertionError: 9975 != 7500\n\n======================================================================\nFAIL: test_rounding_down (test_discount.DiscountTests.test_rounding_down)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"test_discount.py\", line 20, in test_rounding_down\n    self.assertEqual(discounted_total(999, 33), 669)\nAssertionError: 966 != 669\n\n======================================================================\nFAIL: test_total_discount (test_discount.DiscountTests.test_total_discount)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"test_discount.py\", line 14, in test_total_discount\n    self.assertEqual(discounted_total(6400, 100), 0)\nAssertionError: 6300 != 0\n\n======================================================================\nFAIL: test_zero_subtotal (test_discount.DiscountTests.test_zero_subtotal)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"test_discount.py\", line 17, in test_zero_subtotal\n    self.assertEqual(discounted_total(0, 40), 0)\nAssertionError: -40 != 0\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nFAILED (failures=4)\n",
+                "command": "/bin/zsh -lc 'rtk proxy python -B -m unittest -v'",
+                "exit_code": 1,
+                "id": "item_2",
+                "status": "failed",
+                "type": "command_execution"
+              },
+              "type": "item.completed",
+              "source_sha256": "aad403877f77eeaa6f9932814a72f4daa7ee5f39c2a598d4c5b4b3582f553104"
+            },
+            {
+              "item": {
+                "id": "item_3",
+                "text": "Executei `rtk proxy python -B -m unittest -v`.\n\nResultado: **5 testes executados, 1 passou e 4 falharam**.\n\n| Teste | Obtido | Esperado |\n|---|---:|---:|\n| `test_partial_discount` | 9975 | 7500 |\n| `test_rounding_down` | 966 | 669 |\n| `test_total_discount` | 6300 | 0 |\n| `test_zero_subtotal` | -40 | 0 |\n\n`test_no_discount` passou. Nenhum arquivo foi alterado.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "8e99a813756da65e6b15a402e002686c65c8e1e2a59f6a9fac711e121e189e71"
+            },
+            {
+              "type": "turn.completed",
+              "usage": {
+                "cache_write_input_tokens": 0,
+                "cached_input_tokens": 45440,
+                "input_tokens": 51372,
+                "output_tokens": 230,
+                "reasoning_output_tokens": 0
+              },
+              "source_sha256": "caf71faacc3663e72d6d22f028b8c8ce279dd205c1cd3b39173678edf5c0dda0"
+            }
+          ]
+        },
+        {
+          "choice": {
+            "action": "investigate",
+            "reason": "seeded_uniform_random",
+            "seed": 1729
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 1,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 9975,
+                "id": "partial_discount",
+                "passed": false
+              },
+              {
+                "actual": 6300,
+                "id": "total_discount",
+                "passed": false
+              },
+              {
+                "actual": -40,
+                "id": "zero_subtotal",
+                "passed": false
+              },
+              {
+                "actual": 966,
+                "id": "rounding_down",
+                "passed": false
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "feedback": {
+            "delivered_to_neural": false,
+            "reason": "random_control",
+            "signal": 0
+          },
+          "feedback_input": {
+            "file": "random-1-2-feedback.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "input": {
+            "file": "random-1-2-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Analise a falha e explique a provável causa, sem editar.",
+          "step": 2,
+          "reserved": true,
+          "codex": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 80384,
+              "input_tokens": 87248,
+              "output_tokens": 431,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "events": [
+            {
+              "type": "turn.started",
+              "source_sha256": "4e0d31130d7e5c676aff17c9457d858b0980f7a713dbd95870f1e5539b80850b"
+            },
+            {
+              "item": {
+                "id": "item_0",
+                "text": "Vou ler a função e os testes para identificar a causa das falhas, sem editar arquivos.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "893c946e165bd8eb2c69b3d25d0bf2af46e719e84b7f5e47887886d58d7b8868"
+            },
+            {
+              "item": {
+                "id": "item_2",
+                "text": "A causa está em `return subtotal_cents - discount_percent`: a função subtrai o percentual como se fosse um valor em centavos.\n\nPor exemplo, para `10000` com desconto de `25%`, ela subtrai apenas `25`, retornando `9975`, em vez de `7500`. Isso também explica o resultado negativo com subtotal zero.\n\nOs testes esperam calcular o percentual restante e arredondar o total para baixo usando divisão inteira:\n\n```python\nsubtotal_cents * (100 - discount_percent) // 100\n```\n\nO teste sem desconto passa porque subtrair zero preserva o subtotal. Nenhum arquivo foi alterado.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "4540fc72677479e0a3c82cbccdd1f75c18c18e3731ca1480f0b4cf48b743c692"
+            },
+            {
+              "type": "turn.completed",
+              "usage": {
+                "cache_write_input_tokens": 0,
+                "cached_input_tokens": 80384,
+                "input_tokens": 87248,
+                "output_tokens": 431,
+                "reasoning_output_tokens": 0
+              },
+              "source_sha256": "d4e3eaea41ab9a2de2dd8bf6c3a3876feacf34193068562bbe6fbb47afc2f95c"
+            }
+          ]
+        },
+        {
+          "choice": {
+            "action": "fix",
+            "reason": "seeded_uniform_random",
+            "seed": 1729
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 5,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 7500,
+                "id": "partial_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "total_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "zero_subtotal",
+                "passed": true
+              },
+              {
+                "actual": 669,
+                "id": "rounding_down",
+                "passed": true
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "feedback": {
+            "delivered_to_neural": false,
+            "reason": "random_control",
+            "signal": 1
+          },
+          "feedback_input": {
+            "file": "random-1-3-feedback.png",
+            "png_sha256": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+            "rgb_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5"
+          },
+          "input": {
+            "file": "random-1-3-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Corrija a função de desconto, preservando os testes.",
+          "step": 3,
+          "reserved": true,
+          "codex": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 116352,
+              "input_tokens": 124070,
+              "output_tokens": 625,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "events": [
+            {
+              "type": "turn.started",
+              "source_sha256": "4e0d31130d7e5c676aff17c9457d858b0980f7a713dbd95870f1e5539b80850b"
+            },
+            {
+              "item": {
+                "id": "item_0",
+                "text": "Vou corrigir o cálculo percentual com aritmética inteira e executar a suíte, preservando os testes.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "bf879d352bed18a4b69c958ea869b030ff3a7528966995f0f0799c49e81a4968"
+            },
+            {
+              "item": {
+                "changes": [
+                  {
+                    "kind": "update",
+                    "path": "discount.py"
+                  }
+                ],
+                "id": "item_1",
+                "status": "completed",
+                "type": "file_change"
+              },
+              "type": "item.completed",
+              "source_sha256": "4071e4d068ecd84158e7be9ceb0a67c70432e5c2a8b2f4982b6ded946b3767ed"
+            },
+            {
+              "item": {
+                "aggregated_output": "test_no_discount (test_discount.DiscountTests.test_no_discount) ... ok\ntest_partial_discount (test_discount.DiscountTests.test_partial_discount) ... ok\ntest_rounding_down (test_discount.DiscountTests.test_rounding_down) ... ok\ntest_total_discount (test_discount.DiscountTests.test_total_discount) ... ok\ntest_zero_subtotal (test_discount.DiscountTests.test_zero_subtotal) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK\n",
+                "command": "/bin/zsh -lc 'rtk proxy python -B -m unittest -v'",
+                "exit_code": 0,
+                "id": "item_2",
+                "status": "completed",
+                "type": "command_execution"
+              },
+              "type": "item.completed",
+              "source_sha256": "3a5dd9178059690d948d32029558ae3c97f1ed26c73e89c546c15b85d89f43d4"
+            },
+            {
+              "item": {
+                "id": "item_3",
+                "text": "Corrigi `discount.py` para aplicar o desconto percentual com divisão inteira, arredondando para baixo. Os testes foram preservados.\n\nValidação: `rtk proxy python -B -m unittest -v` — **5 testes passaram**.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "01e90c983c57355c24b7aed1cea0bd57a60cfdbc894614f69d43305f50b412f9"
+            },
+            {
+              "type": "turn.completed",
+              "usage": {
+                "cache_write_input_tokens": 0,
+                "cached_input_tokens": 116352,
+                "input_tokens": 124070,
+                "output_tokens": 625,
+                "reasoning_output_tokens": 0
+              },
+              "source_sha256": "f53c225f7a7d9f7a9f9a876bc129998e1050c23c738a1593858a38c82092964c"
+            }
+          ]
+        }
+      ]
+    },
+    "random-2": {
+      "baseline": {
+        "error": null,
+        "passed": 1,
+        "tests": [
+          {
+            "actual": 5000,
+            "id": "no_discount",
+            "passed": true
+          },
+          {
+            "actual": 9975,
+            "id": "partial_discount",
+            "passed": false
+          },
+          {
+            "actual": 6300,
+            "id": "total_discount",
+            "passed": false
+          },
+          {
+            "actual": -40,
+            "id": "zero_subtotal",
+            "passed": false
+          },
+          {
+            "actual": 966,
+            "id": "rounding_down",
+            "passed": false
+          }
+        ],
+        "total": 5,
+        "violation": null
+      },
+      "condition": "random",
+      "id": "random-2",
+      "phase": "complete",
+      "seed": 1730,
+      "status": "success",
+      "turns": [
+        {
+          "choice": {
+            "action": "investigate",
+            "reason": "seeded_uniform_random",
+            "seed": 1730
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 1,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 9975,
+                "id": "partial_discount",
+                "passed": false
+              },
+              {
+                "actual": 6300,
+                "id": "total_discount",
+                "passed": false
+              },
+              {
+                "actual": -40,
+                "id": "zero_subtotal",
+                "passed": false
+              },
+              {
+                "actual": 966,
+                "id": "rounding_down",
+                "passed": false
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "feedback": {
+            "delivered_to_neural": false,
+            "reason": "random_control",
+            "signal": 0
+          },
+          "feedback_input": {
+            "file": "random-2-1-feedback.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "input": {
+            "file": "random-2-1-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Analise a falha e explique a provável causa, sem editar.",
+          "step": 1,
+          "reserved": true,
+          "codex": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 45824,
+              "input_tokens": 51934,
+              "output_tokens": 260,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "events": [
+            {
+              "type": "turn.started",
+              "source_sha256": "4e0d31130d7e5c676aff17c9457d858b0980f7a713dbd95870f1e5539b80850b"
+            },
+            {
+              "item": {
+                "id": "item_0",
+                "text": "Vou ler a função e os testes e executar a suíte indicada para analisar a falha, sem editar arquivos.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "f8c63f254eedb70e0c1b6065ec7648981d6fffbe2ba2c073e91bea30e838de9e"
+            },
+            {
+              "item": {
+                "aggregated_output": "test_no_discount (test_discount.DiscountTests.test_no_discount) ... ok\ntest_partial_discount (test_discount.DiscountTests.test_partial_discount) ... FAIL\ntest_rounding_down (test_discount.DiscountTests.test_rounding_down) ... FAIL\ntest_total_discount (test_discount.DiscountTests.test_total_discount) ... FAIL\ntest_zero_subtotal (test_discount.DiscountTests.test_zero_subtotal) ... FAIL\n\n======================================================================\nFAIL: test_partial_discount (test_discount.DiscountTests.test_partial_discount)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"test_discount.py\", line 11, in test_partial_discount\n    self.assertEqual(discounted_total(10000, 25), 7500)\nAssertionError: 9975 != 7500\n\n======================================================================\nFAIL: test_rounding_down (test_discount.DiscountTests.test_rounding_down)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"test_discount.py\", line 20, in test_rounding_down\n    self.assertEqual(discounted_total(999, 33), 669)\nAssertionError: 966 != 669\n\n======================================================================\nFAIL: test_total_discount (test_discount.DiscountTests.test_total_discount)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"test_discount.py\", line 14, in test_total_discount\n    self.assertEqual(discounted_total(6400, 100), 0)\nAssertionError: 6300 != 0\n\n======================================================================\nFAIL: test_zero_subtotal (test_discount.DiscountTests.test_zero_subtotal)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"test_discount.py\", line 17, in test_zero_subtotal\n    self.assertEqual(discounted_total(0, 40), 0)\nAssertionError: -40 != 0\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nFAILED (failures=4)\n",
+                "command": "/bin/zsh -lc 'rtk proxy python -B -m unittest -v'",
+                "exit_code": 1,
+                "id": "item_3",
+                "status": "failed",
+                "type": "command_execution"
+              },
+              "type": "item.completed",
+              "source_sha256": "d5c579647f0d5fadfa731c88e03262cb0ec3f0e59f300ef1455816118d2363d9"
+            },
+            {
+              "item": {
+                "id": "item_4",
+                "text": "A causa está em `discount.py`: a função subtrai `discount_percent` diretamente do subtotal, tratando uma porcentagem como centavos. Assim, `10000` com desconto de `25%` retorna `9975`, quando deveria retornar `7500`.\n\nOs testes exigem aplicar a porcentagem e arredondar o total para baixo usando aritmética inteira: `subtotal_cents * (100 - discount_percent) // 100`.\n\nExecutei `rtk proxy python -B -m unittest -v`: quatro dos cinco testes falharam; apenas o caso sem desconto passou. Nenhum arquivo foi editado.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "14fb595cff3969694577d7a82ca387ac239f7dc3a4471f09236168e7bce449ef"
+            },
+            {
+              "type": "turn.completed",
+              "usage": {
+                "cache_write_input_tokens": 0,
+                "cached_input_tokens": 45824,
+                "input_tokens": 51934,
+                "output_tokens": 260,
+                "reasoning_output_tokens": 0
+              },
+              "source_sha256": "4685fb8c329883216ac8b447cfab6b3df6d87d51b575d453731f1586b1b0671f"
+            }
+          ]
+        },
+        {
+          "choice": {
+            "action": "fix",
+            "reason": "seeded_uniform_random",
+            "seed": 1730
+          },
+          "evaluation": {
+            "error": null,
+            "passed": 5,
+            "tests": [
+              {
+                "actual": 5000,
+                "id": "no_discount",
+                "passed": true
+              },
+              {
+                "actual": 7500,
+                "id": "partial_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "total_discount",
+                "passed": true
+              },
+              {
+                "actual": 0,
+                "id": "zero_subtotal",
+                "passed": true
+              },
+              {
+                "actual": 669,
+                "id": "rounding_down",
+                "passed": true
+              }
+            ],
+            "total": 5,
+            "violation": null
+          },
+          "feedback": {
+            "delivered_to_neural": false,
+            "reason": "random_control",
+            "signal": 1
+          },
+          "feedback_input": {
+            "file": "random-2-2-feedback.png",
+            "png_sha256": "b6943226b05ca1de12f86e9fbc68bd794bc429e3c00a36ebd717d166607b13c2",
+            "rgb_sha256": "44d2beee514f0641e62207286d4b70cd8ba247c8acb7bbea8a458014ff207fd5"
+          },
+          "input": {
+            "file": "random-2-2-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Corrija a função de desconto, preservando os testes.",
+          "step": 2,
+          "reserved": true,
+          "codex": {
+            "error": null,
+            "status": "completed",
+            "usage": {
+              "cache_write_input_tokens": 0,
+              "cached_input_tokens": 81408,
+              "input_tokens": 88345,
+              "output_tokens": 453,
+              "reasoning_output_tokens": 0
+            }
+          },
+          "events": [
+            {
+              "type": "turn.started",
+              "source_sha256": "4e0d31130d7e5c676aff17c9457d858b0980f7a713dbd95870f1e5539b80850b"
+            },
+            {
+              "item": {
+                "id": "item_0",
+                "text": "Vou corrigir o cálculo percentual com aritmética inteira e executar a suíte, preservando os testes.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "bf879d352bed18a4b69c958ea869b030ff3a7528966995f0f0799c49e81a4968"
+            },
+            {
+              "item": {
+                "changes": [
+                  {
+                    "kind": "update",
+                    "path": "discount.py"
+                  }
+                ],
+                "id": "item_1",
+                "status": "completed",
+                "type": "file_change"
+              },
+              "type": "item.completed",
+              "source_sha256": "44049583ee28d613de2e3acfbf22f48bd881552634bf14f58197dad00d8a0ff3"
+            },
+            {
+              "item": {
+                "aggregated_output": "test_no_discount (test_discount.DiscountTests.test_no_discount) ... ok\ntest_partial_discount (test_discount.DiscountTests.test_partial_discount) ... ok\ntest_rounding_down (test_discount.DiscountTests.test_rounding_down) ... ok\ntest_total_discount (test_discount.DiscountTests.test_total_discount) ... ok\ntest_zero_subtotal (test_discount.DiscountTests.test_zero_subtotal) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK\n",
+                "command": "/bin/zsh -lc 'rtk proxy python -B -m unittest -v'",
+                "exit_code": 0,
+                "id": "item_2",
+                "status": "completed",
+                "type": "command_execution"
+              },
+              "type": "item.completed",
+              "source_sha256": "3a5dd9178059690d948d32029558ae3c97f1ed26c73e89c546c15b85d89f43d4"
+            },
+            {
+              "item": {
+                "id": "item_3",
+                "text": "Corrigi `discount.py` para aplicar o desconto percentual com aritmética inteira e arredondar o total para baixo. Os testes foram preservados.\n\nOs cinco testes passaram com `rtk proxy python -B -m unittest -v`.",
+                "type": "agent_message"
+              },
+              "type": "item.completed",
+              "source_sha256": "5889c47c7d49198bde0462adff57c955bcddb4a705beffa2f978b529869e9396"
+            },
+            {
+              "type": "turn.completed",
+              "usage": {
+                "cache_write_input_tokens": 0,
+                "cached_input_tokens": 81408,
+                "input_tokens": 88345,
+                "output_tokens": 453,
+                "reasoning_output_tokens": 0
+              },
+              "source_sha256": "ef57bf3c961c2df8f159f8a2cd3dab00bed9c75d40d98f2e4e98161e841699ee"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

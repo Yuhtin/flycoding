@@ -8,15 +8,15 @@ from .storage import load_json
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="flycodex", description="Piloto local de controle neural do Codex")
+    parser = argparse.ArgumentParser(prog="flycodex", description="Local neural control pilot for Codex")
     commands = parser.add_subparsers(dest="command", required=True)
     for name, help_text in (
-        ("prepare", "Baixar e verificar o dataset fixado"),
-        ("probe", "Verificar mecanismos neurais, sem Codex"),
-        ("run", "Executar ou retomar o piloto de até 30 instruções"),
-        ("status", "Ler o estado público do piloto"),
-        ("serve", "Abrir o observatório HTTP local, somente leitura"),
-        ("report", "Exportar relatório local sem eventos brutos"),
+        ("prepare", "Download and verify the pinned dataset"),
+        ("probe", "Verify neural mechanisms without Codex"),
+        ("run", "Run or resume the pilot of up to 30 instructions"),
+        ("status", "Read the public pilot state"),
+        ("serve", "Open the local read-only HTTP observatory"),
+        ("report", "Export a local report without raw events"),
     ):
         command = commands.add_parser(name, help=help_text)
         if name in {"prepare", "probe", "run"}:
@@ -24,12 +24,13 @@ def main(argv=None):
         if name in {"run", "status", "serve", "report"}:
             command.add_argument("--run-dir", type=Path, default=Path("runs/pilot"))
         if name == "run":
-            command.add_argument("--model", default="gpt-6-astra", help="Modelo fixado antes do primeiro envio (padrão: gpt-6-astra)")
-            command.add_argument("--stop-after-attempts", type=int, choices=range(1, 7), help="Parar em um limite seguro de tentativas nesta execução")
+            command.add_argument("--model", default="gpt-6-astra", help="Model fixed before the first submission (default: gpt-6-astra)")
+            command.add_argument("--stop-after-attempts", type=int, choices=range(1, 7), help="Stop at a safe attempt boundary in this run")
         if name in {"probe", "report"}:
             command.add_argument("--output-dir", type=Path, default=Path("runs/probe" if name == "probe" else "docs/results"))
         if name == "serve":
             command.add_argument("--port", type=int, default=8765)
+            command.add_argument("--demo", action="store_true", help="View the bundled genuine pilot; no run directory or Codex required")
     args = parser.parse_args(argv)
     try:
         if args.command == "prepare":
@@ -50,8 +51,8 @@ def main(argv=None):
             result = write_report(args.run_dir, args.output_dir)
         else:
             from .web import create_server
-            server = create_server(args.run_dir, port=args.port)
-            print(f"Observatório: http://127.0.0.1:{server.server_port} (somente leitura)", flush=True)
+            server = create_server(args.run_dir, port=args.port, demo=args.demo)
+            print(f"Observatory: http://127.0.0.1:{server.server_port} (read-only)", flush=True)
             try:
                 server.serve_forever()
             finally:
@@ -63,7 +64,7 @@ def main(argv=None):
             print(json.dumps(result, indent=2))
         return 1 if result.get("status") == "recovery_error" else 0
     except KeyboardInterrupt:
-        print("Interrompido. A reserva permanece consumida; retome pelo mesmo diretório.", file=sys.stderr)
+        print("Interrupted. Any reservation remains consumed; resume from the same directory.", file=sys.stderr)
         return 130
     except (OSError, RuntimeError, ValueError) as exc:
         print(f"flycodex: {exc}", file=sys.stderr)
