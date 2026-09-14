@@ -28,7 +28,7 @@ export function createWorkstationView(container, options = {}) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(31, 1, 0.1, 100);
   camera.up.set(0, 0, 1);
-  camera.position.set(10.8, -15.2, 8.1);
+  camera.position.set(5.0, -12.0, 6.0);
   const cameraTarget = new THREE.Vector3(0.2, 0.35, 2.35);
 
   const colors = {
@@ -60,13 +60,18 @@ export function createWorkstationView(container, options = {}) {
     box('desk-front-edge', [12, 0.12, 0.52], [0, -3.16, -0.02], colors.deskEdge, {roughness: 0.84});
     for (const x of [-5.1, 5.1]) box('desk-leg', [0.42, 0.42, 3.4], [x, 0, -1.9], colors.black, {roughness: 0.92});
     const mat = material(colors.window, {roughness: 0.48, metalness: 0.08, emissive: 0x07101c, emissiveIntensity: 0.6});
-    const windowPanel = new THREE.Mesh(new THREE.BoxGeometry(7.8, 0.12, 4.0), mat);
-    windowPanel.position.set(-1.1, 3.0, 3.1);
+    const windowPanel = new THREE.Mesh(new THREE.BoxGeometry(18, 0.12, 8.5), mat);
+    windowPanel.position.set(0, 3.9, 4.65);
     scene.add(windowPanel);
-    for (const x of [-4.8, -1.1, 2.6]) box('window-mullion', [0.06, 0.16, 4.0], [x, 2.89, 3.1], colors.cyan, {emissive: colors.cyan, emissiveIntensity: 1.8});
-    box('window-sill', [8.0, 0.22, 0.12], [-1.1, 2.87, 1.12], colors.magenta, {emissive: colors.magenta, emissiveIntensity: 1.1});
-    for (const [x, z, h] of [[-4.0, 3.5, 1.2], [-2.8, 4.2, 1.8], [0.2, 3.8, 1.45], [1.7, 4.35, 2.0]]) {
-      box('city-light', [0.16, 0.05, h], [x, 2.82, z], colors.magenta, {emissive: colors.magenta, emissiveIntensity: 2.0, transparent: true, opacity: 0.8});
+    for (const x of [-6.0, -1.2, 3.8]) box('window-mullion', [0.06, 0.16, 8.5], [x, 3.78, 4.65], colors.cyan, {emissive: colors.cyan, emissiveIntensity: 1.8});
+    box('window-sill', [18.0, 0.22, 0.12], [0, 3.76, 1.1], colors.magenta, {emissive: colors.magenta, emissiveIntensity: 1.1});
+    for (const [x, width, height, lights] of [[-7.0, 2.0, 4.6, 3], [-4.4, 2.5, 3.4, 4], [-1.4, 1.8, 5.8, 3], [1.1, 2.2, 3.7, 4], [4.0, 2.8, 5.2, 5], [7.2, 1.9, 3.2, 3]]) {
+      box('city-building', [width, 0.35, height], [x, 3.55, 1.1 + height / 2], colors.black, {roughness: 0.94, emissive: 0x03070e, emissiveIntensity: 0.7});
+      for (let index = 0; index < lights; index += 1) {
+        const lightZ = 1.5 + (index % 3) * 0.72;
+        const lightX = x - width * 0.28 + (Math.floor(index / 3) % 2) * width * 0.52;
+        box('city-light', [0.12, 0.05, 0.18], [lightX, 3.34, lightZ], index % 2 ? colors.cyan : colors.magenta, {emissive: index % 2 ? colors.cyan : colors.magenta, emissiveIntensity: 2.0});
+      }
     }
   }
 
@@ -97,7 +102,7 @@ export function createWorkstationView(container, options = {}) {
 
   function addKeyboard() {
     const keyboard = new THREE.Group();
-    keyboard.position.set(1.35, -1.28, 0.3);
+    keyboard.position.set(0.15, -1.34, 0.3);
     keyboard.rotation.z = -0.035;
     keyboard.add(new THREE.Mesh(new THREE.BoxGeometry(3.9, 1.55, 0.16), material(colors.keyboard, {roughness: 0.55, metalness: 0.25})));
     const keyMaterial = material(colors.key, {roughness: 0.66, metalness: 0.12});
@@ -205,12 +210,12 @@ export function createWorkstationView(container, options = {}) {
 
   try {
     renderer = new THREE.WebGLRenderer({antialias: true, alpha: true, powerPreference: 'low-power'});
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 0.75));
     renderer.setClearColor(0x000000, 0);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.9;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.domElement.style.cssText = 'position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none;outline:none';
+    renderer.domElement.style.cssText = 'position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none;outline:none;image-rendering:pixelated';
     renderer.domElement.setAttribute('role', 'img');
     renderer.domElement.setAttribute('aria-label', 'Immersive recorded fly workstation with physical keyboard, monitor, and flybody.');
     renderer.domElement.dataset.paused = String(paused);
@@ -236,6 +241,8 @@ export function createWorkstationView(container, options = {}) {
       renderer.setSize(width, height, false);
       cssRenderer.setSize(width, height);
       camera.aspect = width / height;
+      const narrowScale = Math.max(1, 0.9 / camera.aspect);
+      camera.position.set(5.0, -12.0, 6.0).sub(cameraTarget).multiplyScalar(narrowScale).add(cameraTarget);
       camera.updateProjectionMatrix();
       requestRender();
     });
@@ -260,8 +267,9 @@ export function createWorkstationView(container, options = {}) {
     const ground = motion.ground;
     if (!ground || !Number.isFinite(ground.source_z) || !Number.isFinite(ground.clearance)) throw new Error('Ground contact metadata is missing');
     model = gltf.scene;
-    model.scale.setScalar(12);
-    model.position.set(-3.0, -0.65, 0.0);
+    model.scale.setScalar(15);
+    model.position.set(-2.35, -1.15, 0.0);
+    model.rotation.z = -Math.PI / 2;
     scene.add(model);
     nodes = motion.bodies.map((body) => {
       const node = model.getObjectByName(body.name);
