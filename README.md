@@ -35,6 +35,9 @@ rtk proxy uv run flycoding serve --demo --port 8765
 Open **http://127.0.0.1:8765** and press **Play**. Pause and resume with the same
 button, or replay after completion. The fly's instruction and the actual model
 output appear in order. Commands and tool errors stay under **Terminal details**.
+Play also enables keyboard and mouse sounds. Use **Sound on/off** to mute them.
+The front legs alternate over the keys, with each tap following the same cue
+clock as the sound effects; pausing freezes the movement and silences the desk.
 
 The player is labeled **Recorded run** and preserves the recorded timing. It
 sends no prompts. **About this recording** links to the local lab, live
@@ -72,7 +75,7 @@ The workstation HUD shows the retained neuron count, active neurons per bin,
 simulated spikes per second, and a measured 96-cell raster. It holds the last
 measurement with **Paused** or **Waiting** when the neural timeline stops.
 
-The 3D specimen uses the actual flybody geometry. Its resting motion is a
+The 3D specimen uses the actual flybody geometry. Its body motion and sounds are a
 **procedural presentation**, separate from neural computation. The connectome
 does not control the displayed legs, and the body is not running a trained gait.
 

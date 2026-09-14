@@ -1,0 +1,88 @@
+{
+  "browser": {
+    "newModelCalls": 0,
+    "noSoundBeforePlay": true,
+    "desktopScreen": {
+      "x": 516.5405883789062,
+      "y": 65.35395812988281,
+      "width": 474.38043212890625,
+      "height": 403.9178924560547
+    },
+    "startsWhilePlaying": 3,
+    "frontClawTravel": 0.23251543099646904,
+    "pauseStopsSound": true,
+    "pauseFreezesLegs": true,
+    "audioContextStates": [
+      "running"
+    ],
+    "muteStopsSound": true,
+    "unmuteResumesSound": true,
+    "mobileOverflow": 0,
+    "mobileScreen": {
+      "x": 18.74504852294922,
+      "y": 197.63754272460938,
+      "width": 352.50989532470703,
+      "height": 229.48614501953125
+    },
+    "restoredDesktopScreen": {
+      "x": 516.5405883789062,
+      "y": 65.35395812988281,
+      "width": 474.38043212890625,
+      "height": 403.9178924560547
+    },
+    "disposed": true,
+    "errors": []
+  },
+  "audio": {
+    "peak": 0.11221091449260712,
+    "rms": 0.001958924081871609,
+    "cueCount": 47,
+    "types": [
+      "key",
+      "mouse"
+    ],
+    "duration": 44.696
+  },
+  "source": {
+    "wheel_matching_source_files": 74,
+    "protected_files_unchanged": 6,
+    "new_model_calls": 0
+  },
+  "tests": {
+    "passed": 136,
+    "skipped": 2
+  },
+  "video": {
+    "play_transition_seconds": 2.1666666666666665,
+    "alignment_resolution_seconds": 0.03333333333333333,
+    "audio_source": "OfflineAudioContext render of workstation cue plan",
+    "audio_cues": 47,
+    "visible_run_duration_seconds": 43.96666666666667,
+    "recorded_run_duration_seconds": 43.696,
+    "cumulative_frame_timestamps": true,
+    "non_get_requests": 0,
+    "audio_start_seconds": 2.437333333333335,
+    "media": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "48000",
+          "channels": 1
+        }
+      ],
+      "format": {
+        "duration": "47.766016",
+        "size": "2708753"
+      }
+    }
+  }
+}
