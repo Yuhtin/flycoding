@@ -45,7 +45,7 @@ def request(address, path, method="GET"):
 
 def test_http_only_enumerated_artifacts_and_no_mutation(dashboard):
     address, root = dashboard
-    for path in ("/", "/observatory", "/app.js", "/style.css", "/player.css", "/player.mjs", "/player-state.mjs", "/workstation-view.js", "/watch/run.json", "/watch/activity.json", "/snapshot.json", "/images/adaptive-1-1-input.png"):
+    for path in ("/", "/observatory", "/app.js", "/style.css", "/player.css", "/player.mjs", "/player-state.mjs", "/workstation-view.js", "/workstation-state.mjs", "/watch/run.json", "/watch/activity.json", "/snapshot.json", "/images/adaptive-1-1-input.png"):
         status, headers, body = request(address, path)
         assert status == 200
         assert headers["X-Content-Type-Options"] == "nosniff"
