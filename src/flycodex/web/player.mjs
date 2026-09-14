@@ -1,41 +1,39 @@
-import {createBodyView} from '/body-view.js';
-import {createBrainView} from '/brain-view.js';
+import {createWorkstationView} from '/workstation-view.js';
 import {buttonLabel, createPlayerState, frameFor, reducePlayerState, validatePayload, viewReadiness} from './player-state.mjs';
+import {formatMetric, hudForBin, hudLabel, rasterIndices, RASTER_CELLS} from './workstation-state.mjs';
 
 const byId = id => document.getElementById(id);
 const bodyStage = byId('body-stage');
-const brainStage = byId('brain-stage');
+const screen = byId('computer-screen');
+const raster = byId('brain-stage');
 const playButton = byId('play-toggle');
-const playerStatus = byId('player-status');
 const conversation = byId('conversation');
 const prefersReducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 let state = createPlayerState();
-let bodyReady = false;
-let brainReady = false;
-let brainOrderHash = null;
+let viewReady = false;
 let frameHandle = null;
 let previousTimestamp = 0;
 let renderedEvents = 0;
-let activeBinKey = null;
+let lastBinKey = null;
+let lastMeasuredHud = null;
+let rasterIndexSubset = [];
 let userAtConversationEnd = true;
-let body;
-let brain;
+let workstation;
 
 function setText(id, value) {
   const node = byId(id);
   if (node && node.textContent !== String(value)) node.textContent = String(value);
 }
 
-function syncPlayAvailability() {
-  const available = Boolean(state.run && state.activity && bodyReady && brainReady);
-  playButton.disabled = state.status === 'loading' || state.status === 'error' || !available;
-  playButton.textContent = buttonLabel(state);
-  if (available && state.status === 'ready') setStatus('Ready · one recorded run');
-}
-
 function setStatus(message) {
   setText('player-status', message);
+}
+
+function syncPlayAvailability() {
+  const available = Boolean(state.run && state.activity && viewReady);
+  playButton.disabled = state.status === 'loading' || state.status === 'error' || !available;
+  playButton.textContent = buttonLabel(state);
 }
 
 function showViewError(message) {
@@ -47,13 +45,62 @@ function showViewError(message) {
 }
 
 function phaseLabel(phase) {
-  return ({loading: 'Loading', choice: 'Measuring the choice', execution: 'OpenCode is responding', feedback: 'Measuring feedback', complete: 'Complete'}[phase] || 'Ready');
+  return ({loading: 'Loading', choice: 'Measuring neural choice', execution: 'OpenCode is responding', feedback: 'Measuring feedback', complete: 'Complete'}[phase] || 'Ready');
 }
 
-function updateBody(phase) {
-  const mode = phase === 'choice' || phase === 'execution' ? 'working' : phase === 'feedback' ? 'success' : 'idle';
-  body?.setState({mode, action: state.run?.decision?.action || ''});
-  body?.setPaused(!state.playing || prefersReducedMotion.matches);
+function clearRaster() {
+  for (const cell of raster.children) {
+    cell.removeAttribute('data-value');
+    cell.classList.remove('raster-active');
+    cell.style.removeProperty('--signal');
+  }
+}
+
+function createRaster() {
+  raster.replaceChildren();
+  for (let index = 0; index < RASTER_CELLS; index += 1) {
+    const cell = document.createElement('span');
+    cell.className = 'raster-cell';
+    cell.setAttribute('aria-hidden', 'true');
+    raster.append(cell);
+  }
+}
+
+function renderRaster(values) {
+  const maximum = Math.max(1, ...values);
+  for (const [index, cell] of [...raster.children].entries()) {
+    const value = values[index] || 0;
+    if (!value) {
+      cell.removeAttribute('data-value');
+      cell.classList.remove('raster-active');
+      cell.style.removeProperty('--signal');
+      continue;
+    }
+    cell.dataset.value = String(value);
+    cell.classList.add('raster-active');
+    cell.style.setProperty('--signal', String(value / maximum));
+  }
+}
+
+function updateHud(frame) {
+  const timelineActive = state.playing || state.status === 'paused';
+  if (timelineActive && frame.activeBin) {
+    const key = `${frame.activeBin.phase}:${frame.activeBin.at_ms}`;
+    if (key !== lastBinKey) {
+      lastBinKey = key;
+      lastMeasuredHud = hudForBin(frame.activeBin, rasterIndexSubset);
+      renderRaster(lastMeasuredHud.raster);
+    }
+  }
+  const label = hudLabel({status: state.status, playing: state.playing, phase: frame.phase, hasBin: Boolean(frame.activeBin)});
+  setText('hud-state', label);
+  if (lastMeasuredHud) {
+    setText('hud-active', formatMetric(lastMeasuredHud.activeNeuronCount));
+    setText('hud-rate', formatMetric(lastMeasuredHud.spikesPerSecond));
+  } else {
+    setText('hud-active', '—');
+    setText('hud-rate', '—');
+  }
 }
 
 function clearConversation() {
@@ -122,38 +169,30 @@ function renderConversation(events) {
   if (shouldFollow) conversation.scrollTop = conversation.scrollHeight;
 }
 
-function updateReadout(frame) {
+function updateScreen(frame) {
   const timelineActive = state.playing || state.status === 'paused';
-  const timelineLabel = timelineActive ? phaseLabel(frame.phase) : state.status === 'complete' ? 'Complete' : state.status === 'error' ? 'Unavailable' : 'Ready';
-  setText('timeline-label', timelineLabel);
-  updateBody(frame.phase);
-  const nextBinKey = timelineActive && frame.activeBin ? `${frame.activeBin.phase}:${frame.activeBin.at_ms}` : null;
-  if (nextBinKey !== activeBinKey) {
-    if (frame.activeBin) brain?.setActivity(frame.activeBin);
-    else brain?.clearActivity();
-    activeBinKey = nextBinKey;
-  }
-  const decisionVisible = Boolean(frame.decision);
-  setText('decision-word', decisionVisible ? frame.decision.action[0].toUpperCase() + frame.decision.action.slice(1) : 'Press Play');
-  setText('decision-text', decisionVisible ? frame.decision.text : 'The measured circuit has not chosen yet.');
-  byId('decision-text').hidden = !decisionVisible;
+  const label = timelineActive ? phaseLabel(frame.phase) : state.status === 'complete' ? 'Complete' : state.status === 'error' ? 'Unavailable' : 'Ready · press Play';
+  setText('timeline-label', label);
+  setText('decision-text', frame.decision?.text || 'The measured circuit has not chosen yet.');
   renderConversation(frame.events);
   const resultLine = byId('result-line');
   resultLine.hidden = !frame.result;
-  if (frame.result) {
-    resultLine.textContent = `${frame.result.passed}/${frame.result.total} external tests passed`;
-  }
+  if (frame.result) resultLine.textContent = `${frame.result.passed}/${frame.result.total} external tests passed`;
   if (state.status === 'loading') setStatus('Loading the recorded run…');
   else if (state.status === 'error') setStatus(state.error);
   else if (state.status === 'paused') setStatus(`Paused · ${phaseLabel(frame.phase).toLowerCase()}`);
   else if (state.status === 'complete') setStatus('Complete · play again');
   else if (state.playing) setStatus(phaseLabel(frame.phase));
-  else if (!bodyReady || !brainReady) setStatus('Preparing the recorded views…');
+  else if (!viewReady) setStatus('Preparing the workstation…');
   else setStatus('Ready · one recorded run');
+  workstation?.setState({mode: frame.phase === 'choice' || frame.phase === 'execution' ? 'working' : frame.phase === 'feedback' ? 'success' : 'idle', action: state.run?.decision?.action || ''});
+  workstation?.setPaused(!state.playing || prefersReducedMotion.matches);
+  updateHud(frame);
 }
 
 function render() {
-  updateReadout(frameFor(state));
+  const frame = frameFor(state);
+  updateScreen(frame);
   syncPlayAvailability();
 }
 
@@ -181,9 +220,15 @@ function startClock() {
 }
 
 function onPlay() {
-  if (!state.run || !state.activity) return;
+  if (!state.run || !state.activity || !viewReady) return;
+  const replaying = state.status === 'complete';
   if (state.playing) state = reducePlayerState(state, {type: 'PAUSE'});
-  else state = state.status === 'complete' ? reducePlayerState(state, {type: 'REPLAY'}) : reducePlayerState(state, {type: 'PLAY'});
+  else state = replaying ? reducePlayerState(state, {type: 'REPLAY'}) : reducePlayerState(state, {type: 'PLAY'});
+  if (replaying) {
+    lastMeasuredHud = null;
+    lastBinKey = null;
+    clearRaster();
+  }
   render();
   if (state.playing) startClock(); else stopClock();
 }
@@ -191,17 +236,20 @@ function onPlay() {
 async function loadPayload() {
   stopClock();
   state = reducePlayerState(state, {type: 'RETRY'});
+  lastMeasuredHud = null;
+  lastBinKey = null;
+  rasterIndexSubset = [];
+  clearRaster();
   clearConversation();
-  updateReadout(frameFor(state));
-  syncPlayAvailability();
+  render();
   try {
     const [runResponse, activityResponse] = await Promise.all([fetch('/watch/run.json', {cache: 'no-store'}), fetch('/watch/activity.json', {cache: 'no-store'})]);
     if (!runResponse.ok || !activityResponse.ok) throw new Error('Recorded run data is unavailable.');
     const [run, activity] = await Promise.all([runResponse.json(), activityResponse.json()]);
-    const valid = validatePayload(run, activity, brainOrderHash);
+    const valid = validatePayload(run, activity);
     if (!valid.ok) throw new Error(valid.reason);
     state = reducePlayerState(state, {type: 'PAYLOAD_READY', run, activity});
-    setText('run-model', 'Muse Spark');
+    rasterIndexSubset = rasterIndices(activity, RASTER_CELLS);
     setText('recording-model', run.model);
     setText('provenance-copy', `Measured neural activity and the OpenCode response come from one preserved run. Source ${run.source_revision}. Play does not start a coding backend.`);
     render();
@@ -213,6 +261,7 @@ async function loadPayload() {
   }
 }
 
+createRaster();
 playButton.addEventListener('click', onPlay);
 byId('retry-button').addEventListener('click', () => {
   if (byId('retry-button').textContent === 'Reload page') { location.reload(); return; }
@@ -222,36 +271,35 @@ byId('retry-button').addEventListener('click', () => {
 conversation.addEventListener('scroll', () => {
   userAtConversationEnd = conversation.scrollHeight - conversation.scrollTop - conversation.clientHeight < 24;
 });
-prefersReducedMotion.addEventListener('change', () => updateBody(frameFor(state).phase));
+prefersReducedMotion.addEventListener('change', () => workstation?.setPaused(!state.playing || prefersReducedMotion.matches));
 
-body = createBodyView(bodyStage, {onStatus(message) {
-  const readiness = viewReadiness(message);
-  if (readiness === 'ready') bodyReady = true;
-  if (readiness === 'error') { bodyReady = false; showViewError('Flybody view unavailable. Reload to retry.'); return; }
-  if (message) bodyStage.setAttribute('aria-label', `Recorded flybody presentation. ${message}`);
-  syncPlayAvailability();
-}});
-brain = createBrainView(brainStage, {onStatus(message) {
-  const readiness = viewReadiness(message);
-  if (readiness === 'ready') brainReady = true;
-  if (readiness === 'error') { brainReady = false; showViewError('CNS view unavailable. Reload to retry.'); return; }
-  syncPlayAvailability();
-}, onReady(info) {
-  brainReady = true;
-  brainOrderHash = info.manifest.neuron_order_sha256 || info.manifest.order_sha256 || null;
-  if (state.run && state.activity && !validatePayload(state.run, state.activity, brainOrderHash).ok) {
-    state = reducePlayerState(state, {type: 'ERROR', message: 'Recorded neural activity does not match the loaded anatomy.'});
-    setText('error-message', state.error);
-    byId('error-panel').hidden = false;
-  }
-  syncPlayAvailability();
-}});
-body.setPaused(true);
+workstation = createWorkstationView(bodyStage, {
+  screenElement: screen,
+  onStatus(message) {
+    const readiness = viewReadiness(message);
+    if (readiness === 'ready') {
+      viewReady = true;
+      screen.classList.add('is-mounted');
+      render();
+      return;
+    }
+    if (readiness === 'error') {
+      viewReady = false;
+      showViewError('Workstation view unavailable. Reload to retry.');
+      return;
+    }
+    syncPlayAvailability();
+  },
+  onReady() {
+    viewReady = true;
+    screen.classList.add('is-mounted');
+    render();
+  },
+});
 setStatus('Loading the recorded run…');
 loadPayload();
 
 window.addEventListener('pagehide', () => {
   stopClock();
-  body?.dispose();
-  brain?.dispose();
+  workstation?.dispose();
 });
