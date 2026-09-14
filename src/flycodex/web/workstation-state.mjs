@@ -44,6 +44,15 @@ export function temporalRaster(activity, indices, elapsedMs) {
     .map(bin => ({at_ms: bin.at_ms, values: rasterForBin(bin, indices)}));
 }
 
+export function latestRevealedBin(activity, elapsedMs) {
+  let latest = null;
+  for (const bin of activity?.bins || []) {
+    if (!Number.isFinite(bin.at_ms) || bin.at_ms > elapsedMs) break;
+    latest = bin;
+  }
+  return latest;
+}
+
 export function hudForBin(bin, indices) {
   if (!bin) return {activeNeuronCount: null, spikesPerSecond: null, raster: null};
   return {

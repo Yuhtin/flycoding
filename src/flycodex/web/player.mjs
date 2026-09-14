@@ -1,6 +1,6 @@
 import {createWorkstationView} from '/workstation-view.js';
 import {buttonLabel, createPlayerState, frameFor, reducePlayerState, validatePayload, viewReadiness} from './player-state.mjs';
-import {formatMetric, hudForBin, hudLabel, rasterIndices, RASTER_CELLS, temporalRaster} from './workstation-state.mjs';
+import {formatMetric, hudForBin, hudLabel, latestRevealedBin, rasterIndices, RASTER_CELLS, temporalRaster} from './workstation-state.mjs';
 
 const byId = id => document.getElementById(id);
 const bodyStage = byId('body-stage');
@@ -75,14 +75,12 @@ function renderRaster(columns) {
 }
 
 function updateHud(frame) {
-  const timelineActive = state.playing || state.status === 'paused';
-  const revealed = timelineActive ? state.activity?.bins.filter(bin => bin.at_ms <= frame.elapsedMs) || [] : [];
-  const revealKey = revealed.at(-1)?.at_ms ?? null;
+  const timelineActive = state.playing || state.status === 'paused' || state.status === 'complete';
+  const latestBin = timelineActive ? latestRevealedBin(state.activity, frame.elapsedMs) : null;
+  const revealKey = latestBin?.at_ms ?? null;
   if (timelineActive && revealKey !== lastRevealKey) {
     lastRevealKey = revealKey;
-    if (frame.activeBin) {
-      lastMeasuredHud = hudForBin(frame.activeBin, rasterIndexSubset);
-    }
+    lastMeasuredHud = hudForBin(latestBin, rasterIndexSubset);
     renderRaster(temporalRaster(state.activity, rasterIndexSubset, frame.elapsedMs));
   }
   const label = hudLabel({status: state.status, playing: state.playing, phase: frame.phase, hasBin: Boolean(frame.activeBin)});

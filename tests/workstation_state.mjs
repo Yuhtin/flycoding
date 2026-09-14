@@ -6,6 +6,7 @@ import {
   formatMetric,
   hudForBin,
   hudLabel,
+  latestRevealedBin,
   rasterIndices,
   spikesPerSecond,
   temporalRaster,
@@ -40,6 +41,8 @@ test('raster subset is deterministic and never exceeds measured cells', () => {
     {at_ms: 0, values: [3, 0, 2]},
     {at_ms: 700, values: [5, 1, 0]},
   ]);
+  assert.equal(latestRevealedBin(activity, 699), activity.bins[0]);
+  assert.equal(latestRevealedBin(activity, 700), activity.bins[1]);
 });
 
 test('HUD labels distinguish ready, paused, execution waiting, and measured activity', () => {
