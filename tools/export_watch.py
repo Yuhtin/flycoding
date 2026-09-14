@@ -170,13 +170,16 @@ def export_watch(source_dir: Path, output_dir: Path) -> dict[str, Any]:
     workspace = str(attempt.get("workspace", ""))
     rows = [json.loads(line) for line in journal_path.read_text().splitlines() if line]
     by_event = {row.get("event"): row for row in rows}
-    required = ("reserve_start", "turn_settled", "feedback_start", "turn_committed")
+    required = ("reserve_start", "turn_settled", "feedback_start", "checkpoint_start", "turn_committed")
     if any(name not in by_event for name in required):
         raise ValueError("journal lacks required turn timeline boundaries")
     choice_end = _timestamp_ms(by_event["reserve_start"]["timestamp"]) - origin_ms
     execution_end = _timestamp_ms(by_event["turn_settled"]["timestamp"]) - origin_ms
     result_at = _timestamp_ms(by_event["feedback_start"]["timestamp"]) - origin_ms
-    feedback_end = _timestamp_ms(by_event["turn_committed"]["timestamp"]) - origin_ms
+    # Neural feedback ends at the checkpoint boundary.  The later commit event
+    # includes reservation bookkeeping; retain it only for the final hold.
+    feedback_end = _timestamp_ms(by_event["checkpoint_start"]["timestamp"]) - origin_ms
+    committed_end = _timestamp_ms(by_event["turn_committed"]["timestamp"]) - origin_ms
     evaluation = turn.get("evaluation") or {}
     baseline = attempt.get("baseline") or {}
     run = {
@@ -185,7 +188,7 @@ def export_watch(source_dir: Path, output_dir: Path) -> dict[str, Any]:
         "backend": "opencode",
         "model": settings["model"],
         "source_revision": settings.get("source_revision", ""),
-        "duration_ms": int(feedback_end + FINAL_HOLD_MS),
+        "duration_ms": int(committed_end + FINAL_HOLD_MS),
         "phases": {"choice_end_ms": int(choice_end), "execution_end_ms": int(execution_end), "feedback_end_ms": int(feedback_end)},
         "decision": {"at_ms": int(choice_end), "action": turn["choice"]["action"], "text": turn["prompt"]},
         "events": _project_events(source, origin_ms, workspace),
@@ -202,8 +205,8 @@ def export_watch(source_dir: Path, output_dir: Path) -> dict[str, Any]:
         },
     }
     activity = {"version": 1, "neuron_order_sha256": order_hash, "bins": bins}
-    encoded_run = (json.dumps(run, indent=2, ensure_ascii=False) + "\n").encode()
-    encoded_activity = (json.dumps(activity, indent=2, ensure_ascii=False) + "\n").encode()
+    encoded_run = (json.dumps(run, ensure_ascii=False, separators=(",", ":")) + "\n").encode()
+    encoded_activity = (json.dumps(activity, ensure_ascii=False, separators=(",", ":")) + "\n").encode()
     serialized = encoded_run.decode() + encoded_activity.decode()
     for secret in ("session_id", "sessionID", "send_id", "thread_id", "/Users/", "/private/"):
         if secret in serialized:

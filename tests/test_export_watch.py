@@ -55,7 +55,7 @@ def _synthetic_source(tmp_path):
     (source / "public").mkdir(exist_ok=True)
     (source / "public/snapshot.json").write_text(json.dumps(snapshot))
     rows = []
-    for name, offset in (("reserve_start", 500), ("turn_settled", 1000), ("feedback_start", 1100), ("turn_committed", 1300)):
+    for name, offset in (("reserve_start", 500), ("turn_settled", 1000), ("feedback_start", 1100), ("checkpoint_start", 1200), ("turn_committed", 1300)):
         rows.append({"event": name, "timestamp": f"2026-01-01T00:00:00.{offset:03d}+00:00"})
     rows.append({"event": "execution_event", "timestamp": "2026-01-01T00:00:00.900+00:00", "payload": turn_event})
     (source / "journal.jsonl").write_text("\n".join(json.dumps(row) for row in rows) + "\n")
