@@ -28,6 +28,10 @@ _PLAYER = {
     "/watch/run.json": ("watch/run.json", "application/json; charset=utf-8"),
     "/watch/activity.json": ("watch/activity.json", "application/json; charset=utf-8"),
 }
+_WORKSTATION = {
+    "/workstation-view.js": ("workstation-view.js", "text/javascript; charset=utf-8"),
+    "/workstation-state.mjs": ("workstation-state.mjs", "text/javascript; charset=utf-8"),
+}
 _IMAGE = re.compile(r"/images/((?:adaptive|frozen|random)-[12]-[1-5]-(?:input|feedback)\.png)\Z")
 _BRAIN = {
     "/brain/manifest.json": ("brain/manifest.json", "application/json; charset=utf-8"),
@@ -60,6 +64,7 @@ def create_server(run_dir: Path, *, host="127.0.0.1", port=8765, demo=False,
         service = LabService(Path(data_dir or "data"), policy_factory=policy_factory or NeuralPolicy)
     routes = dict(_ASSETS)
     routes.update(_PLAYER)
+    routes.update(_WORKSTATION)
     for route, mime in json.loads((assets / "body/routes.json").read_text()).items():
         routes[route] = (route.lstrip("/"), mime)
     routes.update({"/presentation.mjs": ("presentation.mjs", "text/javascript; charset=utf-8"),
