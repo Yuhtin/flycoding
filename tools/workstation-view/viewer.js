@@ -26,6 +26,7 @@ export function createWorkstationView(container, options = {}) {
   let monitorParts = null;
   let keyboardGroup = null;
   let desktopModelPosition = null;
+  let desktopCameraTarget = null;
   let narrowViewport = false;
   let typingLegs = null;
   const abort = new AbortController();
@@ -141,6 +142,15 @@ export function createWorkstationView(container, options = {}) {
     }
     if (keyboardGroup) keyboardGroup.position.set(narrowViewport ? 0 : 0.15, narrowViewport ? -1.3 : -1.34, 0.3);
     if (model && desktopModelPosition) model.position.set(narrowViewport ? 0.15 : desktopModelPosition.x, narrowViewport ? -2.5 : desktopModelPosition.y, desktopModelPosition.z);
+  }
+
+  function applyCameraFraming() {
+    if (narrowViewport) cameraTarget.set(0, 0, 3);
+    else if (desktopCameraTarget) cameraTarget.copy(desktopCameraTarget);
+    const basePosition = narrowViewport ? new THREE.Vector3(0, -23.0, 8.0) : new THREE.Vector3(7.0, -11.0, 6.8);
+    const distanceScale = narrowViewport ? 1 : 1.22 * Math.max(1, 0.9 / camera.aspect);
+    camera.position.copy(basePosition).sub(cameraTarget).multiplyScalar(distanceScale).add(cameraTarget);
+    camera.updateProjectionMatrix();
   }
 
   function freeScene(object) {
@@ -284,11 +294,8 @@ export function createWorkstationView(container, options = {}) {
       cssRenderer.setSize(width, height);
       camera.aspect = width / height;
       narrowViewport = camera.aspect < 0.8;
-      const basePosition = narrowViewport ? new THREE.Vector3(0, -23.0, 8.0) : new THREE.Vector3(5.0, -12.0, 6.0);
-      const distanceScale = narrowViewport ? 1 : Math.max(1, 0.9 / camera.aspect);
-      camera.position.copy(basePosition).sub(cameraTarget).multiplyScalar(distanceScale).add(cameraTarget);
       applyViewportLayout();
-      camera.updateProjectionMatrix();
+      applyCameraFraming();
       requestRender();
     });
     resizeObserver.observe(container);
@@ -333,11 +340,8 @@ export function createWorkstationView(container, options = {}) {
     desktopModelPosition = model.position.clone();
     applyViewportLayout();
     const center = bounds.getCenter(new THREE.Vector3());
-    if (narrowViewport) cameraTarget.set(0, 0, 3);
-    else cameraTarget.set(0.25, 0.35, Math.max(2.45, center.z + 1.0));
-    const basePosition = narrowViewport ? new THREE.Vector3(0, -23.0, 8.0) : new THREE.Vector3(7.0, -11.0, 6.8);
-    const distanceScale = narrowViewport ? 1 : 1.22 * Math.max(1, 0.9 / camera.aspect);
-    camera.position.copy(basePosition).sub(cameraTarget).multiplyScalar(distanceScale).add(cameraTarget);
+    desktopCameraTarget = new THREE.Vector3(0.25, 0.35, Math.max(2.45, center.z + 1.0));
+    applyCameraFraming();
     renderer.domElement.dataset.ready = 'true';
     status(paused ? 'Flybody ready · motion paused' : 'Flybody ready · procedural motion');
     options.onReady?.({model, scene, camera});
