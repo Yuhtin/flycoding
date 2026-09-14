@@ -140,7 +140,9 @@ export function createWorkstationView(container, options = {}) {
 
   function setPaused(value) {
     if (disposed) return;
-    paused = Boolean(value);
+    const requested = Boolean(value);
+    if (requested === paused) return;
+    paused = requested;
     previousTime = 0;
     if (renderer) renderer.domElement.dataset.paused = String(paused);
     requestRender();
