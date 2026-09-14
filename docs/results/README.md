@@ -1,10 +1,22 @@
 # Measured results
 
-These files record the genuine pilot and neural mechanism checks performed on
-September 13, 2026, on a 16 GiB ARM64 Mac. The English flybody presentation was
-added afterward; it does not change those measurements.
+The original Codex pilot and mechanism checks were performed on September 13,
+2026, on a 16 GiB ARM64 Mac. Later observatory work is recorded separately and
+does not replace those measurements.
 
-## Flybody presentation
+## Live brain instrumentation
+
+[live-brain-verification.md](live-brain-verification.md) and
+[live-brain-check.json](live-brain-check.json) record the September 14 anatomy
+and full-graph telemetry checks. All 139,662 positioned neurons were compared
+with their source coordinates and retained indices. Measured 10 ms bins matched
+the ordinary aggregate outputs, including choice and feedback windows.
+
+These instrumentation checks made no coding calls. The real neural graph was
+also exercised through a clearly synthetic coding executor; those fixture test
+results are not a coding model performance result.
+
+## Earlier flybody presentation
 
 [presentation-verification.md](presentation-verification.md) records the later
 English dashboard, actual body model, demo replay, and package validation.
