@@ -1,6 +1,6 @@
 import {createWorkstationView} from '/workstation-view.js';
 import {buttonLabel, createPlayerState, frameFor, reducePlayerState, validatePayload, viewReadiness} from './player-state.mjs';
-import {formatMetric, hudForBin, hudLabel, rasterForHistory, rasterIndices, RASTER_CELLS} from './workstation-state.mjs';
+import {formatMetric, hudForBin, hudLabel, rasterIndices, RASTER_CELLS, temporalRaster} from './workstation-state.mjs';
 
 const byId = id => document.getElementById(id);
 const bodyStage = byId('body-stage');
@@ -49,36 +49,28 @@ function phaseLabel(phase) {
 }
 
 function clearRaster() {
-  for (const cell of raster.children) {
-    cell.removeAttribute('data-value');
-    cell.classList.remove('raster-active');
-    cell.style.removeProperty('--signal');
-  }
+  raster.getContext('2d')?.clearRect(0, 0, raster.width, raster.height);
 }
 
 function createRaster() {
-  raster.replaceChildren();
-  for (let index = 0; index < RASTER_CELLS; index += 1) {
-    const cell = document.createElement('span');
-    cell.className = 'raster-cell';
-    cell.setAttribute('aria-hidden', 'true');
-    raster.append(cell);
-  }
+  raster.width = 280;
+  raster.height = 72;
 }
 
-function renderRaster(values) {
-  const maximum = Math.max(1, ...values);
-  for (const [index, cell] of [...raster.children].entries()) {
-    const value = values[index] || 0;
-    if (!value) {
-      cell.removeAttribute('data-value');
-      cell.classList.remove('raster-active');
-      cell.style.removeProperty('--signal');
-      continue;
+function renderRaster(columns) {
+  const context = raster.getContext('2d');
+  if (!context) return;
+  context.clearRect(0, 0, raster.width, raster.height);
+  if (!columns.length) return;
+  const columnWidth = raster.width / Math.max(70, columns.length);
+  const rowHeight = raster.height / RASTER_CELLS;
+  const maximum = Math.max(1, ...columns.flatMap(column => column.values));
+  for (const [columnIndex, column] of columns.entries()) {
+    for (const [rowIndex, value] of column.values.entries()) {
+      if (!value) continue;
+      context.fillStyle = `rgba(114, 228, 229, ${(.18 + .82 * value / maximum).toFixed(3)})`;
+      context.fillRect(columnIndex * columnWidth, rowIndex * rowHeight, Math.max(1, columnWidth), Math.max(1, rowHeight));
     }
-    cell.dataset.value = String(value);
-    cell.classList.add('raster-active');
-    cell.style.setProperty('--signal', String(value / maximum));
   }
 }
 
@@ -91,7 +83,7 @@ function updateHud(frame) {
     if (frame.activeBin) {
       lastMeasuredHud = hudForBin(frame.activeBin, rasterIndexSubset);
     }
-    renderRaster(rasterForHistory(state.activity, rasterIndexSubset, frame.elapsedMs));
+    renderRaster(temporalRaster(state.activity, rasterIndexSubset, frame.elapsedMs));
   }
   const label = hudLabel({status: state.status, playing: state.playing, phase: frame.phase, hasBin: Boolean(frame.activeBin)});
   setText('hud-state', label);

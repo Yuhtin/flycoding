@@ -68,12 +68,7 @@ button { font: inherit; }
 .hud-metrics div { min-width: 0; }
 .hud-metrics strong { display: block; color: #edf2e8; font-size: 17px; font-weight: 650; }
 .hud-metrics span { color: #94a49e; font-size: 10px; }
-.neural-raster { display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px; }
-.raster-cell { width: 100%; aspect-ratio: 1; border: 1px solid rgba(114, 228, 229, .17); border-radius: 1px; background: rgba(114, 228, 229, .08); }
-.raster-cell[data-value="1"] { background: rgba(114, 228, 229, .39); }
-.raster-cell[data-value="2"] { background: rgba(114, 228, 229, .62); }
-.raster-cell[data-value="3"] { background: rgba(114, 228, 229, .82); box-shadow: 0 0 5px rgba(114, 228, 229, .28); }
-.raster-cell.raster-active { background: rgba(114, 228, 229, calc(.22 + var(--signal) * .7)); box-shadow: 0 0 5px rgba(114, 228, 229, calc(var(--signal) * .5)); }
+.neural-raster { display: block; width: 280px; height: 72px; max-width: 100%; image-rendering: pixelated; background: rgba(114, 228, 229, .04); }
 .raster-caption { margin-top: 9px; }
 .details { position: fixed; z-index: 20; right: 28px; bottom: 26px; width: min(350px, calc(100% - 56px)); color: #a7b3af; font-size: 12px; line-height: 1.5; }
 .details summary { width: fit-content; margin-left: auto; cursor: pointer; color: #c2ceca; }
@@ -110,7 +105,6 @@ button { font: inherit; }
   .neural-hud { right: 14px; bottom: 14px; left: 14px; width: auto; padding: 9px 11px; }
   .hud-metrics { margin: 7px 0 8px; }
   .hud-metrics strong { font-size: 14px; }
-  .neural-raster { gap: 2px; }
   .details { position: relative; right: auto; bottom: auto; width: auto; margin: 0 14px 22px; }
   .details summary { margin-left: 0; }
   .error-panel { top: 105px; right: 14px; left: 14px; align-items: flex-start; flex-direction: column; gap: 10px; }
