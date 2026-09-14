@@ -1,11 +1,18 @@
 import hashlib
+from datetime import datetime, timedelta
+import importlib.util
 import json
 import os
 from pathlib import Path
 
 import pytest
 
-from tools.export_watch import export_watch
+
+_EXPORTER_PATH = Path(__file__).parents[1] / "tools" / "export_watch.py"
+_EXPORTER_SPEC = importlib.util.spec_from_file_location("export_watch", _EXPORTER_PATH)
+_EXPORTER = importlib.util.module_from_spec(_EXPORTER_SPEC)
+_EXPORTER_SPEC.loader.exec_module(_EXPORTER)
+export_watch = _EXPORTER.export_watch
 
 
 SOURCE_RUN = Path(os.environ["FLYCODEX_WATCH_SOURCE_RUN"]).expanduser() if os.environ.get("FLYCODEX_WATCH_SOURCE_RUN") else None
@@ -50,19 +57,21 @@ def _synthetic_source(tmp_path):
     public.mkdir(parents=True)
     order_hash = "a" * 64
     timestamp = "2026-01-01T00:00:00+00:00"
+    base_time = datetime.fromisoformat(timestamp)
     turn_event = {"backend": "opencode", "kind": "text", "raw_type": "text", "raw": {"part": {"text": "Muse message"}}}
     snapshot = {"evidence": "genuine", "settings": {"backend": "opencode", "model": "opencode/muse-spark-1.3-contributor-free", "source_revision": "fixture-revision"}, "attempts": {"adaptive-1": {"baseline": {"passed": 1}, "workspace": "<workspace>", "turns": [{"choice": {"action": "fix"}, "prompt": "Fix the discount function while preserving the tests.", "evaluation": {"passed": 5, "total": 5}, "events": [turn_event]}]}}}
     (source / "public").mkdir(exist_ok=True)
     (source / "public/snapshot.json").write_text(json.dumps(snapshot))
     rows = []
     for name, offset in (("reserve_start", 500), ("turn_settled", 1000), ("feedback_start", 1100), ("checkpoint_start", 1200), ("turn_committed", 1300)):
-        rows.append({"event": name, "timestamp": f"2026-01-01T00:00:00.{offset:03d}+00:00"})
-    rows.append({"event": "execution_event", "timestamp": "2026-01-01T00:00:00.900+00:00", "payload": turn_event})
+        rows.append({"event": name, "timestamp": (base_time + timedelta(milliseconds=offset)).isoformat()})
+    rows.append({"event": "execution_event", "timestamp": (base_time + timedelta(milliseconds=900)).isoformat(), "payload": turn_event})
     (source / "journal.jsonl").write_text("\n".join(json.dumps(row) for row in rows) + "\n")
     for name, phase, count, start in (("choice", "choice", 50, 0), ("feedback", "feedback", 20, 500)):
         events = [{"seq": 1, "type": "start", "window_ms": 500 if phase == "choice" else 200}]
         for index in range(count):
-            events.append({"seq": index + 2, "type": "bin", "recorded_at_ms": 1000000 + start + index * 10, "start_ms": start + index * 10, "end_ms": start + (index + 1) * 10, "indices": [0], "counts": [1], "total_spikes": 1})
+            recorded_at = int((base_time + timedelta(milliseconds=start + index * 10)).timestamp() * 1000)
+            events.append({"seq": index + 2, "type": "bin", "recorded_at_ms": recorded_at, "start_ms": start + index * 10, "end_ms": start + (index + 1) * 10, "indices": [0], "counts": [1], "total_spikes": 1})
         events.append({"seq": count + 2, "type": "end"})
         document = {"neuron_order_sha256": order_hash, "phase": phase, "window": {"events": events}}
         (public / f"adaptive-1-1-{name}.json").write_text(json.dumps(document))
@@ -73,8 +82,9 @@ def test_export_watch_is_byte_reproducible_from_explicit_source(tmp_path):
     source = _synthetic_source(tmp_path)
     first = tmp_path / "first"
     second = tmp_path / "second"
-    export_watch(source, first)
+    run = export_watch(source, first)
     export_watch(source, second)
+    assert run["phases"]["choice_end_ms"] < run["phases"]["execution_end_ms"] < run["phases"]["feedback_end_ms"] < run["duration_ms"]
     for name in ("run.json", "activity.json"):
         assert (first / name).read_bytes() == (second / name).read_bytes()
     assert hashlib.sha256((first / "activity.json").read_bytes()).hexdigest()
