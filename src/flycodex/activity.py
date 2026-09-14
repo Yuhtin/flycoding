@@ -14,9 +14,10 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 from typing import Mapping
 
-from .neural.activity import ACTIVITY_SCHEMA_VERSION, copy_bin
+from .neural.activity import ACTIVITY_SCHEMA_VERSION, BIN_MS, copy_bin
 
 
 PUBLIC_ACTIVITY_SCHEMA_VERSION = 1
@@ -57,7 +58,9 @@ def _valid_bin(event):
         return False
     if not _is_number(event["start_ms"]) or not _is_number(event["end_ms"]):
         return False
-    if event["end_ms"] <= event["start_ms"]:
+    if event["end_ms"] <= event["start_ms"] or not math.isclose(
+        event["end_ms"] - event["start_ms"], BIN_MS, rel_tol=0.0, abs_tol=1e-6
+    ):
         return False
     indices, counts = event["indices"], event["counts"]
     if not isinstance(indices, list) or not isinstance(counts, list) or len(indices) != len(counts):
@@ -96,7 +99,9 @@ def _valid_activity(document):
         return False
     if not isinstance(document.get("window_id"), str) or not document["window_id"]:
         return False
-    if not isinstance(document.get("neuron_order_sha256"), str) or not document["neuron_order_sha256"]:
+    if not isinstance(document.get("neuron_order_sha256"), str) or not re.fullmatch(
+        r"[0-9a-f]{64}", document["neuron_order_sha256"]
+    ):
         return False
     window = document.get("window")
     if not isinstance(window, dict):
@@ -106,14 +111,18 @@ def _valid_activity(document):
         return False
     if {key: window.get(key) for key in identity[:5]} != {key: document.get(key) for key in identity[:5]}:
         return False
-    if window.get("status") != status or not _is_int(window.get("window_ms")) or window["window_ms"] <= 0:
+    if window.get("status") != status or not _is_int(window.get("window_ms")) or window["window_ms"] not in {200, 500}:
         return False
     events = window.get("events")
     if not isinstance(events, list):
         return False
     if status != "error" and not events:
         return False
+    if events and events[0].get("type") != "start":
+        return False
     previous = 0
+    expected_bin_start = None
+    saw_bin = False
     for position, event in enumerate(events):
         if not isinstance(event, dict) or not _is_int(event.get("seq")) or event["seq"] <= previous:
             return False
@@ -125,14 +134,24 @@ def _valid_activity(document):
         elif event_type == "bin":
             if not _valid_bin(event):
                 return False
+            if expected_bin_start is None:
+                expected_bin_start = event["start_ms"]
+            if not math.isclose(event["start_ms"], expected_bin_start, rel_tol=0.0, abs_tol=1e-6):
+                return False
+            if event["end_ms"] > expected_bin_start + window["window_ms"] + 1e-6:
+                return False
+            expected_bin_start = float(event["end_ms"])
+            saw_bin = True
         elif event_type == "end":
             if position != len(events) - 1:
+                return False
+            if status == "running":
                 return False
             if any(key in event and not isinstance(event[key], dict) for key in ("choice", "feedback")):
                 return False
         else:
             return False
-    if status == "complete" and (not events or events[-1].get("type") != "end"):
+    if status == "complete" and (not saw_bin or not events or events[-1].get("type") != "end"):
         return False
     return True
 

@@ -90,9 +90,14 @@ def create_server(run_dir: Path, *, host="127.0.0.1", port=8765, demo=False,
             host_header = self.headers.get("Host", "")
             if host_header.count(":") == 1:
                 host_name, raw_port = host_header.rsplit(":", 1)
-                if not raw_port.isdecimal():
+                if not raw_port.isdecimal() or len(raw_port) > 5:
                     return None
-                port = int(raw_port)
+                try:
+                    port = int(raw_port)
+                except (ValueError, OverflowError):
+                    return None
+                if not 1 <= port <= 65535:
+                    return None
             else:
                 host_name = host_header
                 port = 80

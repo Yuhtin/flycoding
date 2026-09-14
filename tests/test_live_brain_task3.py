@@ -85,6 +85,8 @@ def test_lab_routes_require_small_exact_same_origin_json_payload(lab_server):
                    {**json_headers(address), "Origin": f"http://localhost:{address[1]}"})[0] == 403
     assert request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":0}',
                    {**json_headers(address), "Origin": "http://127.0.0.1"})[0] == 403
+    assert request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":0}',
+                   {**json_headers(address), "Host": "127.0.0.1:" + "9" * 5000})[0] == 403
     assert request(address, "/lab/observe", "POST", b"x" * 1025, json_headers(address))[0] == 400
 
     status, _, body = request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":0}', json_headers(address))
@@ -172,7 +174,7 @@ def test_activity_recorder_identity_rotation_and_reader_bounds(tmp_path):
     public = tmp_path / "public"
     public.mkdir()
     recorder = ActivityRecorder(public, run="run-1", attempt="adaptive-1", turn=2,
-                                phase="choice", neuron_order_sha256="order-hash")
+                                phase="choice", neuron_order_sha256="a" * 64)
     recorder.start(window="choice-2", window_ms=500)
     recorder.bin({"type": "bin", "start_ms": 0.0, "end_ms": 10.0,
                   "indices": [4], "counts": [7], "total_spikes": 7})
@@ -190,7 +192,7 @@ def test_activity_recorder_identity_rotation_and_reader_bounds(tmp_path):
 def test_activity_recorder_preserves_more_than_256_sparse_neurons(tmp_path):
     public = tmp_path / "public"
     recorder = ActivityRecorder(public, run="run", attempt="a", turn=1, phase="choice",
-                                neuron_order_sha256="hash")
+                                neuron_order_sha256="a" * 64)
     recorder.start(window="w", window_ms=500)
     indices = list(range(300))
     counts = [index + 1 for index in indices]
@@ -208,7 +210,7 @@ def test_activity_recorder_marks_oversized_window_unavailable(tmp_path, monkeypa
 
     monkeypatch.setattr(activity, "MAX_ACTIVITY_BYTES", 512)
     recorder = ActivityRecorder(tmp_path / "public", run="run", attempt="a", turn=1,
-                                phase="choice", neuron_order_sha256="hash")
+                                phase="choice", neuron_order_sha256="a" * 64)
     recorder.start(window="w", window_ms=500)
     recorder.bin({"type": "bin", "start_ms": 0.0, "end_ms": 10.0,
                   "indices": list(range(300)), "counts": [1] * 300, "total_spikes": 300})
@@ -236,7 +238,7 @@ def test_activity_reader_rejects_symlink_and_incomplete_write(tmp_path):
     {"schema_version": 1, "available": True, "status": "complete", "events": [{"seq": 1}]},
     {"schema_version": 1, "activity_schema_version": 1, "available": True,
      "status": "complete", "run": "r", "attempt": "a", "turn": 1,
-     "phase": "choice", "window_id": "w", "neuron_order_sha256": "hash",
+     "phase": "choice", "window_id": "w", "neuron_order_sha256": "a" * 64,
      "window": {"events": [{"seq": 1, "type": "bin", "indices": [1], "counts": [1]}]}},
 ])
 def test_activity_reader_rejects_malformed_shape_with_or_without_cursor(tmp_path, document):
@@ -246,6 +248,36 @@ def test_activity_reader_rejects_malformed_shape_with_or_without_cursor(tmp_path
     reader = ActivityReader(public)
     assert reader.read()["available"] is False
     assert reader.read(after=1)["available"] is False
+
+
+def test_activity_reader_rejects_impossible_state_machine_and_hash(tmp_path):
+    start = {"seq": 1, "type": "start", "window_ms": 200}
+    measured = {"seq": 2, "type": "bin", "start_ms": 500.0, "end_ms": 510.0,
+                "indices": [1], "counts": [2], "total_spikes": 2}
+    end = {"seq": 3, "type": "end", "choice": {"action": "fix"}}
+
+    def document(events, *, status="complete", available=True, order="a" * 64, window_ms=200):
+        return {
+            "schema_version": 1, "available": available, "status": status,
+            "run": "r", "attempt": "a", "turn": 1, "phase": "choice", "window_id": "w",
+            "neuron_order_sha256": order, "activity_schema_version": 1,
+            "window": {"window_id": "w", "run": "r", "attempt": "a", "turn": 1,
+                        "phase": "choice", "window_ms": window_ms, "status": status, "events": events},
+        }
+
+    invalid = [
+        document([start, measured, end], status="running", available=True),
+        document([measured], status="running", available=True),
+        document([start, {**measured, "end_ms": 501.0}, end]),
+        document([start, measured, end], order="order-hash"),
+    ]
+    public = tmp_path / "public"
+    public.mkdir()
+    for value in invalid:
+        (public / "activity.json").write_text(json.dumps(value))
+        reader = ActivityReader(public)
+        assert reader.read()["available"] is False
+        assert reader.read(after=1)["available"] is False
 
 
 def test_synthetic_pilot_policy_is_not_forced_to_accept_activity(tmp_path):
