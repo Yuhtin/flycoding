@@ -118,9 +118,11 @@ function renderConversation(events) {
 }
 
 function updateReadout(frame) {
-  setText('timeline-label', phaseLabel(frame.phase));
+  const timelineActive = state.playing || state.status === 'paused';
+  const timelineLabel = timelineActive ? phaseLabel(frame.phase) : state.status === 'complete' ? 'Complete' : state.status === 'error' ? 'Unavailable' : 'Ready';
+  setText('timeline-label', timelineLabel);
   updateBody(frame.phase);
-  const nextBinKey = frame.activeBin ? `${frame.activeBin.phase}:${frame.activeBin.at_ms}` : null;
+  const nextBinKey = timelineActive && frame.activeBin ? `${frame.activeBin.phase}:${frame.activeBin.at_ms}` : null;
   if (nextBinKey !== activeBinKey) {
     if (frame.activeBin) brain?.setActivity(frame.activeBin);
     else brain?.clearActivity();
