@@ -185,8 +185,9 @@ class LabService:
                 self._append(job_id, "cancelled")
         except Exception as error:  # worker errors are part of the public state contract
             with self._lock:
-                self._state.update({"status": "error", "choice": None, "error": str(error)})
-                self._append(job_id, "error", error=str(error))
+                error_text = _json_value(str(error))
+                self._state.update({"status": "error", "choice": None, "error": error_text})
+                self._append(job_id, "error", error=error_text)
 
     def cancel(self) -> bool:
         with self._lock:

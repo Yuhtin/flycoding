@@ -176,6 +176,11 @@ class _HugeChoicePolicy(_ImmediatePolicy):
         return {"action": "test", "diagnostic": "x" * 10000}
 
 
+class _HugeErrorPolicy(_ImmediatePolicy):
+    def choose(self, rgb):
+        raise RuntimeError("loader failed: " + "x" * 10000)
+
+
 def test_lab_events_are_bounded_and_include_identity_metadata(tmp_path):
     service = LabService(tmp_path, policy_factory=_ImmediatePolicy)
     try:
@@ -198,6 +203,22 @@ def test_lab_choice_serialization_is_bounded(tmp_path):
         service.observe({"kind": "dark", "passed": 0})
         state = _wait_for(service, "completed")
         assert len(state["choice"]["diagnostic"]) <= 4096
+    finally:
+        service.close()
+
+
+def test_lab_error_serialization_is_bounded(tmp_path):
+    service = LabService(tmp_path, policy_factory=_HugeErrorPolicy)
+    try:
+        service.observe({"kind": "dark", "passed": 0})
+        state = _wait_for(service, "error")
+        page = service.events(after=0)
+        error_events = [event for event in page["events"] if event["type"] == "error"]
+        assert state["error"].startswith("loader failed: ")
+        assert len(state["error"]) <= 4096
+        assert len(error_events) == 1
+        assert error_events[0]["error"] == state["error"]
+        assert len(error_events[0]["error"]) <= 4096
     finally:
         service.close()
 
