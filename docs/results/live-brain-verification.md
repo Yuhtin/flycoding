@@ -62,3 +62,18 @@ diagnostic. Tool permissions are application-level controls, not an OS sandbox.
 
 Coding acceptance and final interface checks are recorded separately after
 the corresponding implementation is reviewed.
+
+## Grounded body presentation
+
+The resting pose was checked against the pinned MuJoCo model and the unchanged
+85-component GLB. All six claw supports meet a common plane within the recorded
+source/export tolerances. The simplified rendered meshes differ by at most
+0.000123 scene units in support height; the platform top uses the same model
+scale and a small rendering clearance. Camera framing no longer determines
+the floor.
+
+All lower-body joints and folded wings remain fixed across the procedural
+clips. Idle is static; work and feedback use restrained head, antenna and
+abdomen movement. The exporter checked 87 source hashes and 192 poses. This is
+forward-kinematic pose verification, not a physics rollout or trained gait.
+See [grounded body measurements and hashes](grounded-body-check.json).
