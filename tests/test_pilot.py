@@ -302,6 +302,24 @@ def test_history_preserves_each_turns_own_codex_response(tmp_path, controlled_co
         assert turn["events"][0]["thread_id"] == "synthetic-" + name
         assert turn["events"][-1]["type"] == "turn.completed"
         assert turn["events"][1]["item"]["text"].startswith("<script>")
+    journal = (tmp_path / "run" / "journal.jsonl").read_text()
+    assert "codex_busy" in journal
+    assert "codex_event" in journal
+    assert "execution_busy" not in journal
+    assert "execution_event" not in journal
+
+
+def test_report_preserves_execution_from_historical_codex_snapshot(tmp_path):
+    fixture = json.loads(
+        (Path(__file__).parent / "fixtures" / "old_codex_snapshot.json").read_text()
+    )
+    atomic_save_json(tmp_path / "run" / "public" / "snapshot.json", fixture)
+
+    report = write_report(tmp_path / "run", tmp_path / "report")
+
+    execution = report["attempts"]["adaptive-1"]["turns"][0]["execution"]
+    assert execution["status"] == "completed"
+    assert execution["usage"] == {"input_tokens": 2, "output_tokens": 1}
 
 
 def test_opencode_total_cap_stops_before_a_fourth_submission(tmp_path):

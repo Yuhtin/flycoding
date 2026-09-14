@@ -359,7 +359,8 @@ class Pilot:
                 turn["send_id"] = send_id
                 self._phase(store, attempt, "send_start")
                 self.state["busy"] = True
-                self._persist(store, "execution_busy", attempt=name, backend=self.backend)
+                event_prefix = "codex" if self.backend == "codex" else "execution"
+                self._persist(store, f"{event_prefix}_busy", attempt=name, backend=self.backend)
                 def on_event(event):
                     turn["events"].append(event)
                     turn["events"] = turn["events"][-200:]
@@ -367,7 +368,7 @@ class Pilot:
                     self.state["events"] = self.state["events"][-200:]
                     self._persist(
                         store,
-                        "execution_event",
+                        f"{event_prefix}_event",
                         attempt=name,
                         send_id=send_id,
                         backend=self.backend,
@@ -464,7 +465,7 @@ def write_report(run_dir: Path, output_dir: Path) -> dict:
             report["attempts"][name]["turns"].append({key: turn[key] for key in (
                 "step", "send_id", "input", "feedback_input", "choice", "prompt", "evaluation", "feedback", "infrastructure_error",
                 "weights_before", "weights_after_choice", "weights_after_feedback") if key in turn})
-            execution = turn.get("execution")
+            execution = turn.get("execution", turn.get("codex"))
             if execution is not None:
                 report["attempts"][name]["turns"][-1]["execution"] = {
                     key: execution.get(key) for key in ("status", "error", "usage")
