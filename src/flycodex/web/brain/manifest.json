@@ -1,0 +1,83 @@
+{
+  "version": "flycodex-brain-anatomy-v1",
+  "total_neurons": 166700,
+  "positioned_neurons": 139662,
+  "missing_neurons": 27038,
+  "neuron_order_sha256": "6b6b40c3bddf84b1281ef0b18db06927c2bf61c5f4cb32a4219ec9b7839dc2e5",
+  "order_sha256": "6b6b40c3bddf84b1281ef0b18db06927c2bf61c5f4cb32a4219ec9b7839dc2e5",
+  "source_hashes": {
+    "graph.npz": "346b8af85a11af13b8324e18669812c1924569e7d1adcb4e6f45cc461a2c344b",
+    "annotations.feather": "2177e246113e4cfbf1e7772ec37c6da1955ff22e8063d0b1f833101f99a9a3b2",
+    "normalized/neurons.feather": "2103b5203d2ba5502c06fb70a4e0b23edcbcf79ed0c344722101941fc289ba2d"
+  },
+  "coordinate_disclaimer": "Coordinates are the source somaLocation values in the pinned MaleCNS annotation frame; they are not registered to the flybody mesh or a physiological atlas.",
+  "readout_indices": [
+    {
+      "index": 48,
+      "id": "10059",
+      "type": "DNp20",
+      "side": "R"
+    },
+    {
+      "index": 146,
+      "id": "10162",
+      "type": "DNp20",
+      "side": "L"
+    },
+    {
+      "index": 489,
+      "id": "10527",
+      "type": "DNpe017",
+      "side": "L"
+    },
+    {
+      "index": 142493,
+      "id": "555871",
+      "type": "DNpe017",
+      "side": "R"
+    }
+  ],
+  "files": {
+    "positions.bin": {
+      "bytes": 1675944,
+      "sha256": "4c565db8f2c748554192ea00dc4808bc086ea83ae88b17b7f0048ec156079eb1"
+    },
+    "indices.bin": {
+      "bytes": 558648,
+      "sha256": "5c4922247f979c1c774f33ba86750c766104aaa95d71a806cf033ca165b6cf6d"
+    },
+    "neurons.json": {
+      "bytes": 11547332,
+      "sha256": "5f9a14498880fe46233a1c20660d69cfd000ffda50eea97067ebaca6512d9d0e"
+    }
+  },
+  "classes": [
+    "ENS",
+    "ascending_neuron",
+    "cb_efferent",
+    "cb_endocrine",
+    "cb_intrinsic",
+    "cb_motor",
+    "cb_sensory",
+    "cb_sensory_tbc",
+    "descending_neuron",
+    "descending_neuron_tbc",
+    "efferent_ascending",
+    "efferent_descending",
+    "ol_intrinsic",
+    "ol_sensory",
+    "sensory_ascending",
+    "sensory_ascending_tbc",
+    "sensory_descending",
+    "visual_centrifugal",
+    "visual_projection",
+    "visual_projection_tbc",
+    "vnc_efferent",
+    "vnc_endocrine",
+    "vnc_intrinsic",
+    "vnc_motor",
+    "vnc_sensory",
+    "vnc_sensory_tbc",
+    "vnc_tbc"
+  ]
+}

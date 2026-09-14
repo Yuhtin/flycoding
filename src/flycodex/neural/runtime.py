@@ -14,6 +14,7 @@ import numpy as np
 import pyarrow.feather as feather
 
 from .rule import advance
+from .activity import make_bin, neuron_order_sha256
 
 
 def _digest(array: np.ndarray) -> str:
@@ -51,6 +52,7 @@ class FullGraphRuntime:
             for name in ("ptr", "post", "weight", "ids", "retina", "uv", "hexes", "lamina", "sugar"):
                 setattr(self, name, np.array(graph[name], copy=True))
         self.n = len(self.ids)
+        self.neuron_order_sha256 = neuron_order_sha256(self.ids)
         self.weight = self.weight.astype(np.float32, copy=False)
         if self.ptr.shape != (self.n + 1,) or self.ptr[-1] != len(self.post):
             raise ValueError("Invalid CSR graph")
@@ -139,7 +141,13 @@ class FullGraphRuntime:
     def _pointers(self, arrays):
         return [C.c_void_p(array.ctypes.data) for array in arrays]
 
-    def window(self, rgb: np.ndarray, duration_ms: int, stimulation: np.ndarray | None = None) -> tuple[np.ndarray, float]:
+    def window(
+        self,
+        rgb: np.ndarray,
+        duration_ms: int,
+        stimulation: np.ndarray | None = None,
+        on_bin=None,
+    ) -> tuple[np.ndarray, float]:
         frame = np.asarray(rgb)
         if frame.ndim != 3 or frame.shape[2] != 3 or frame.dtype != np.uint8:
             raise ValueError("RGB uint8 frame required")
@@ -150,6 +158,7 @@ class FullGraphRuntime:
         r8_values = np.where(r8_pixel <= 0.04045, r8_pixel / 12.92, ((r8_pixel + 0.055) / 1.055) ** 2.4)
         total = np.zeros(self.n, dtype=np.int32); elapsed = 0.0
         for _ in range(round(duration_ms / 10)):
+            start_ms = float(self.clock[0] * self.dt)
             self.luminance += (1 - np.exp(-1)) * (light - self.luminance); self.r8_light += (1 - np.exp(-1)) * (r8_values - self.r8_light); self.drive.fill(0); self.drive[self.lamina] = 12; self.drive[self.retina] = 30 * self.luminance / (0.02 + self.luminance); self.drive[self.r8] += 30 * self.r8_light / (0.02 + self.r8_light)
             if stimulation is not None: self.drive[stimulation] += 20
             self.counts.fill(0); start = time.perf_counter()
@@ -157,6 +166,8 @@ class FullGraphRuntime:
             elapsed += time.perf_counter() - start; seconds = 0.01; advance(self.rate_kc, self.rate_dan, self.memory_u, self.memory_w, self.counts[self.plastic_pre] / seconds, self.counts[np.flatnonzero(self.dan_index >= 0)] / seconds, self.gain, seconds, 0.001, learning=self.learning, frozen=not self.learning)
             if self.learning: self.weight[self.plastic_edges] = self.baseline_plastic * (1 + self.memory_w)
             total += self.counts
+            if on_bin is not None:
+                on_bin(make_bin(start_ms, float(self.clock[0] * self.dt), self.counts))
         return total, elapsed
 
     def memory(self) -> dict:

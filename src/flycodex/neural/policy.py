@@ -250,9 +250,12 @@ class NeuralPolicy:
     graph exists.  No network access occurs during import or policy creation.
     """
 
-    def __init__(self, data_dir: Path, learning: bool):
+    def __init__(self, data_dir: Path, learning: bool, on_activity=None):
         self.data_dir = Path(data_dir).expanduser().resolve()
         self.learning = bool(learning)
+        if on_activity is not None and not callable(on_activity):
+            raise TypeError("on_activity must be callable")
+        self.on_activity = on_activity
         self._graph = self.data_dir / "graph.npz"
         if not self._graph.exists():
             raise FileNotFoundError(f"Prepared graph required: {self._graph}")
@@ -267,7 +270,10 @@ class NeuralPolicy:
 
     def _raw_window(self, rgb: np.ndarray, duration_ms: int, stimulation=None) -> dict:
         brain = self._brain()
-        counts, compute_seconds = brain.window(rgb, duration_ms, stimulation)
+        if self.on_activity is None:
+            counts, compute_seconds = brain.window(rgb, duration_ms, stimulation)
+        else:
+            counts, compute_seconds = brain.window(rgb, duration_ms, stimulation, on_bin=self.on_activity)
         return {
             "counts": counts,
             "brain": brain,
