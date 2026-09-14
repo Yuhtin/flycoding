@@ -6,6 +6,9 @@ added afterward; it does not change those measurements.
 
 ## Flybody presentation
 
+[presentation-verification.md](presentation-verification.md) records the later
+English dashboard, actual body model, demo replay, and package validation.
+
 [flybody-check.json](flybody-check.json) records the pinned anatomical assets,
 87 verified source files, 192 MuJoCo pose samples, and browser checks for the
 later body visualization. This is a procedural presentation layer, not a

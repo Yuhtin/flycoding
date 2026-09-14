@@ -33,5 +33,31 @@
     "images": 18,
     "original_run_required": false,
     "heavy_exporter_imports": false
+  },
+  "artifact_sha256": {
+    "docs/demo/flycodex-demo.mp4": "5932bfe468ffc6ab695d15cc7df7827e757d39446324dfad32b132ffb390b1b6",
+    "docs/results/dashboard.png": "4f30ec3d53b643a748340a1bb5ad7e47ac427edd9e5939d9438d4ca89bfe7850"
+  },
+  "verified_code_revision": "0ffc6f80cfac70450b13d2273eccf00464a57213",
+  "post_fix_tests": {
+    "normal_passed": 83,
+    "optional_exporter_module_skipped_in_normal_environment": 1,
+    "optional_exporter_passed": 4,
+    "browser_regressions_passed": 2,
+    "presentation_node_passed": 3
+  },
+  "final_viewer_sha256": "9d8906ddffb91be03467e36f03a168f041dfeb629dd0875dc3e59c4db7f98202",
+  "media_note": "Captured before the final live-feedback, paused-rendering, and exporter-check fixes; post-fix replay smoke preserves the displayed behavior.",
+  "scoped_review": {
+    "original_findings_addressed": 3,
+    "exporter_passed": 4,
+    "live_feedback_browser_passed": 1,
+    "reduced_motion_resize_assertion_failures": 2,
+    "late_resize_draws": [
+      2,
+      1
+    ],
+    "remaining_limitation": "Optional resize settlement assertion may reuse the prior quiet interval; accepted as a non-blocking known flaky test.",
+    "fresh_review_resume_disposal_reached": false
   }
 }
