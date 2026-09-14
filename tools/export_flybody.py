@@ -56,7 +56,6 @@ def acquire(cache, write_lock):
         sources = [xml_info, *pool.map(fetch, paths)]
     if write_lock:
         lock_path.write_text(json.dumps(sources, indent=2) + "\n")
-    (OUT / "LICENSE.flybody").write_bytes((cache / "LICENSE").read_bytes())
     return xml_path, sources
 
 
@@ -225,8 +224,13 @@ def main():
     parser.add_argument("--write-source-lock", action="store_true")
     parser.add_argument("--check", action="store_true", help="Verify packaged poses against MuJoCo without rewriting artifacts")
     args = parser.parse_args()
-    OUT.mkdir(parents=True, exist_ok=True)
+    if args.check and args.write_source_lock:
+        parser.error("--check cannot rewrite the source lock")
+    if not args.check:
+        OUT.mkdir(parents=True, exist_ok=True)
     xml, sources = acquire(args.cache, args.write_source_lock)
+    if args.check and (OUT / "LICENSE.flybody").read_bytes() != (args.cache / "LICENSE").read_bytes():
+        raise ValueError("Packaged LICENSE.flybody differs from the pinned source license")
     model = mujoco.MjModel.from_xml_path(str(xml))
     if args.check:
         motion = json.loads((OUT / "motion.json").read_text())
@@ -246,6 +250,7 @@ def main():
             assert digest((OUT / name).read_bytes()) == expected, name
         print(f"Verified {len(sources)} pinned source hashes and {count} MuJoCo articulated poses")
         return
+    (OUT / "LICENSE.flybody").write_bytes((args.cache / "LICENSE").read_bytes())
     motion = write_motion(model)
     geometry = write_glb(model, motion)
     provenance = {"repository": "https://github.com/TuragaLab/flybody", "revision": REVISION,

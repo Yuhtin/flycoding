@@ -8,7 +8,12 @@ const reasons = {gate_inactive:'No gating spikes: investigate.',right_threshold:
 let current = null, replay = createReplay([]), translations = [], connected = false, snapshotText = '';
 const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
 let motionPaused = motionPreference.matches, motionChosen = false;
-let bodySignature = '', previousBusy = false, liveFeedback = 'idle';
+let bodySignature = '', liveFeedback = 'idle', feedbackTimer;
+const recordedFeedback = new Set();
+function clearLiveFeedback() {
+  clearTimeout(feedbackTimer);
+  liveFeedback = 'idle';
+}
 const body = createBodyView(byId('body-stage'), {framingScale:1.15, onStatus(message) { text('body-status', message); }});
 function updateMotion() {
   const frame = replay.frame();
@@ -19,9 +24,9 @@ function updateMotion() {
 updateMotion();
 motionPreference.addEventListener('change', event => { if (!motionChosen) { motionPaused = event.matches; updateMotion(); } });
 byId('motion-toggle').addEventListener('click', () => { motionChosen = true; motionPaused = !motionPaused; updateMotion(); });
-byId('history').addEventListener('change', () => { replay.select(byId('history').value); liveFeedback = 'idle'; render(); });
-byId('replay-play').addEventListener('click', () => { replay.frame().playing ? replay.pause() : replay.play(); render(); });
-byId('replay-reset').addEventListener('click', () => { replay.reset(); render(); });
+byId('history').addEventListener('change', () => { replay.select(byId('history').value); clearLiveFeedback(); render(); });
+byId('replay-play').addEventListener('click', () => { clearLiveFeedback(); replay.frame().playing ? replay.pause() : replay.play(); render(); });
+byId('replay-reset').addEventListener('click', () => { clearLiveFeedback(); replay.reset(); render(); });
 byId('original-language').addEventListener('change', render);
 byId('image-kind').addEventListener('change', render);
 
@@ -132,15 +137,26 @@ async function refresh() {
     if (!response.ok) throw new Error('No pilot snapshot available');
     const raw = await response.text(), state = JSON.parse(raw);
     if (!state.attempts || typeof state.attempts !== 'object') throw new Error('Invalid pilot snapshot');
+    const followingLive = connected && !replay.frame().active && byId('history').value === 'live' && state.presentation?.mode !== 'demo';
     connected = true;
-    if (raw !== snapshotText) {
-      const wasBusy = previousBusy;
-      current = state; snapshotText = raw; previousBusy = Boolean(state.busy);
-      if (wasBusy && !state.busy) {
-        const signal = turns(state).at(-1)?.turn.feedback?.signal;
+    // Observe availability independently of busy: evaluation is persisted after turn_settled.
+    // Initial/reconnected snapshots and signals seen during history/replay are consumed silently.
+    const entries = turns(state), latest = entries.at(-1);
+    if (raw !== snapshotText && (state.busy || latest?.key !== turns(current || {}).at(-1)?.key)) clearLiveFeedback();
+    for (const entry of entries) {
+      if (entry.turn.feedback?.signal == null) continue;
+      const key = `${entry.key}:${entry.turn.send_id || ''}`;
+      const fresh = !recordedFeedback.has(key);
+      recordedFeedback.add(key);
+      if (fresh && followingLive && entry === latest) {
+        clearLiveFeedback();
+        const signal = entry.turn.feedback.signal;
         liveFeedback = signal < 0 ? 'failure' : signal > 0 ? 'success' : 'idle';
-        setTimeout(() => { liveFeedback = 'idle'; render(); },2500);
+        feedbackTimer = setTimeout(() => { clearLiveFeedback(); render(); },2500);
       }
+    }
+    if (raw !== snapshotText) {
+      current = state; snapshotText = raw;
       const oldSelection = byId('history').value;
       replay = createReplay(turns(state));
       const options = [new Option('Latest turn · follow','live'),...turns(state).map(entry => new Option(`${entry.name} · turn ${entry.turn.step}`,entry.key))];
@@ -153,7 +169,7 @@ async function refresh() {
     text('connection',state.presentation?.mode === 'demo' ? 'Read-only · bundled demo' : 'Connected · refreshes every 1 s');
     render();
   } catch (error) {
-    connected = false; liveFeedback = 'idle';
+    connected = false; clearLiveFeedback();
     text('connection',current ? 'Disconnected · showing saved record' : error.message || 'Connection unavailable');
     render();
   }

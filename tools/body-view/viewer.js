@@ -9,7 +9,7 @@ export function createBodyView(container, options = {}) {
   let paused = reducedMotion.matches;
   let disposed = false;
   let state = { mode: 'idle', action: '', leftHz: 0, rightHz: 0 };
-  let motion, nodes, model, frameId, resizeObserver, controls, renderer;
+  let motion, nodes, model, frameId = null, resizeObserver, controls, renderer;
   let clipTime = 0, feedbackTime = 0, previousTime = 0;
   const abort = new AbortController();
   const scene = new THREE.Scene();
@@ -43,7 +43,10 @@ export function createBodyView(container, options = {}) {
 
   function setPaused(value) {
     if (disposed) return;
+    if (paused === Boolean(value)) return;
     paused = Boolean(value);
+    previousTime = 0;
+    requestRender();
     if (renderer) renderer.domElement.dataset.paused = String(paused);
   }
 
@@ -60,6 +63,7 @@ export function createBodyView(container, options = {}) {
     abort.abort();
     cancelAnimationFrame(frameId);
     resizeObserver?.disconnect();
+    controls?.removeEventListener('change', requestRender);
     controls?.dispose();
     reducedMotion.removeEventListener('change', onReducedMotion);
     freeScene(scene);
@@ -102,6 +106,7 @@ export function createBodyView(container, options = {}) {
     renderer.domElement.addEventListener('webglcontextlost', onContextLost);
     container.append(renderer.domElement);
     controls = new OrbitControls(camera, renderer.domElement);
+    controls.addEventListener('change', requestRender);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.enablePan = false;
@@ -129,6 +134,7 @@ export function createBodyView(container, options = {}) {
       }
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
+      requestRender();
     });
     resizeObserver.observe(container);
     status(paused ? 'Loading flybody · reduced motion' : 'Loading flybody');
@@ -188,11 +194,16 @@ export function createBodyView(container, options = {}) {
     scene.add(ring);
     renderer.domElement.dataset.ready = 'true';
     status(paused ? 'Flybody ready · motion paused' : 'Flybody ready · procedural motion');
+    requestRender();
+  }
+
+  function requestRender() {
+    if (!disposed && renderer && frameId === null) frameId = requestAnimationFrame(animate);
   }
 
   function animate(timestamp) {
+    frameId = null;
     if (disposed) return;
-    frameId = requestAnimationFrame(animate);
     const elapsed = previousTime ? Math.min((timestamp - previousTime) / 1000, 0.06) : 0;
     previousTime = timestamp;
     if (motion && !paused) {
@@ -219,11 +230,13 @@ export function createBodyView(container, options = {}) {
     }
     controls.update();
     renderer.render(scene, camera);
+    if (motion && !paused) requestRender();
+    else previousTime = 0;
   }
 
   load().catch((error) => {
     if (error.name !== 'AbortError') fail('The flybody model could not load. Reload to retry. Session data and replay remain available.');
   });
-  frameId = requestAnimationFrame(animate);
+  requestRender();
   return { setState, setPaused, dispose };
 }
