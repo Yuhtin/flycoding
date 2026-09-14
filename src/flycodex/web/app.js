@@ -269,6 +269,7 @@ async function refreshCoding() {
     brain.clearActivity(); clearLiveReadout(); updatePhaseStrip('sensory'); setBodyMode('idle'); return;
   }
   connected = true; current = result.value;
+  setText('connection', 'Connected · refreshes every 1 s');
   const entries = turns(current);
   const latest = entries.at(-1);
   if (!latest) { setText('run-status', 'Waiting for first coding turn'); clearLiveReadout(); updatePhaseStrip('sensory'); return; }
