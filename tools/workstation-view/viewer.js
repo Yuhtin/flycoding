@@ -81,7 +81,7 @@ export function createWorkstationView(container, options = {}) {
   }
 
   function addMonitor() {
-    const monitorX = 1.55;
+    const monitorX = 0.15;
     const monitorY = 1.0;
     const monitorZ = 2.95;
     const screenWidth = 5.35;
@@ -140,7 +140,7 @@ export function createWorkstationView(container, options = {}) {
       if (screenObject) screenObject.position.set(x, monitorY - frameDepth / 2 - 0.025, monitorZ + raised);
     }
     if (keyboardGroup) keyboardGroup.position.set(narrowViewport ? 0 : 0.15, narrowViewport ? -1.3 : -1.34, 0.3);
-    if (model && desktopModelPosition) model.position.set(narrowViewport ? -0.7 : desktopModelPosition.x, narrowViewport ? -2.5 : desktopModelPosition.y, desktopModelPosition.z);
+    if (model && desktopModelPosition) model.position.set(narrowViewport ? 0.15 : desktopModelPosition.x, narrowViewport ? -2.5 : desktopModelPosition.y, desktopModelPosition.z);
   }
 
   function freeScene(object) {
@@ -208,10 +208,13 @@ export function createWorkstationView(container, options = {}) {
       const tap = side === activeSide ? 1 : 0.12;
       // Keep the authored pose dominant: the measured full-tap displacement is
       // about 0.21 world units at the front claws.
-      const angles = [0.018 * tap, -0.108 * tap, 0.158 * tap, -0.117 * tap, 0.063 * tap, -0.027 * tap];
+      // Rotate each front-leg joint around the model's local X axis.  The GLB
+      // is aligned along +Y at the workstation, so this lifts the claw over
+      // the key tops instead of sliding it across the keyboard.
+      const angles = [0.012 * tap, -0.072 * tap, 0.105 * tap, -0.078 * tap, 0.042 * tap, -0.018 * tap];
       chain.forEach((node, index) => {
         if (!node) return;
-        const rotation = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), angles[index]);
+        const rotation = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), angles[index]);
         node.quaternion.multiply(rotation);
       });
     }
@@ -313,8 +316,8 @@ export function createWorkstationView(container, options = {}) {
     if (!ground || !Number.isFinite(ground.source_z) || !Number.isFinite(ground.clearance)) throw new Error('Ground contact metadata is missing');
     model = gltf.scene;
     model.scale.setScalar(15);
-    model.position.set(-1.8, -1.15, 0.0);
-    model.rotation.z = 0.25;
+    model.position.set(0.15, -2.7, 0.0);
+    model.rotation.z = Math.PI / 2;
     scene.add(model);
     nodes = motion.bodies.map((body) => {
       const node = model.getObjectByName(body.name);
