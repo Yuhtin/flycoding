@@ -340,6 +340,19 @@ def test_opencode_total_cap_stops_before_a_fourth_submission(tmp_path):
     assert result["budget"]["used"] == 3
     assert result["budget"]["total_limit"] == 3
     assert result["settings"]["backend"] == "opencode"
+    first_turn = result["attempts"]["adaptive-1"]["turns"][0]
+    assert "execution" in first_turn
+    assert "codex" not in first_turn
+    journal = (tmp_path / "run" / "journal.jsonl").read_text()
+    assert "execution_busy" in journal
+    assert "execution_event" in journal
+    assert "codex_busy" not in journal
+    assert "codex_event" not in journal
+    report = write_report(tmp_path / "run", tmp_path / "report")
+    markdown = (tmp_path / "report" / "pilot.md").read_text()
+    assert "Backend: " + chr(96) + "opencode" + chr(96) in markdown
+    assert "Reserved sends: 3/3" in markdown
+    assert report["attempts"]["adaptive-1"]["turns"][0]["execution"]["status"] == "completed"
 
 
 def test_opencode_resume_rejects_changed_model_or_cap(tmp_path):
@@ -365,4 +378,10 @@ def test_opencode_resume_rejects_changed_model_or_cap(tmp_path):
             tmp_path / "run",
             tmp_path / "unused-data",
             **{**kwargs, "model": "other"},
+        ).run()
+    with pytest.raises(ValueError, match="settings/provenance"):
+        Pilot(
+            tmp_path / "run",
+            tmp_path / "unused-data",
+            **{**kwargs, "max_calls": 4},
         ).run()

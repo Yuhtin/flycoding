@@ -359,16 +359,27 @@ class Pilot:
                 turn["send_id"] = send_id
                 self._phase(store, attempt, "send_start")
                 self.state["busy"] = True
-                self._persist(store, "codex_busy", attempt=name)
+                self._persist(store, "execution_busy", attempt=name, backend=self.backend)
                 def on_event(event):
                     turn["events"].append(event)
                     turn["events"] = turn["events"][-200:]
                     self.state["events"].append(event)
                     self.state["events"] = self.state["events"][-200:]
-                    self._persist(store, "codex_event", attempt=name, send_id=send_id, payload=event)
+                    self._persist(
+                        store,
+                        "execution_event",
+                        attempt=name,
+                        send_id=send_id,
+                        backend=self.backend,
+                        payload=event,
+                    )
                 outcome = runner.run(turn["prompt"], attempt["session_id"], on_event)
                 self.state["busy"] = False
-                turn["codex"] = outcome
+                turn["execution"] = outcome
+                if self.backend == "codex":
+                    # Preserve the historical public field for existing Codex
+                    # records; OpenCode outcomes remain under execution.
+                    turn["codex"] = outcome
                 turn["backend"] = self.backend
                 attempt["session_id"] = outcome["session_id"]
                 self._phase(store, attempt, "turn_settled")
@@ -453,16 +464,22 @@ def write_report(run_dir: Path, output_dir: Path) -> dict:
             report["attempts"][name]["turns"].append({key: turn[key] for key in (
                 "step", "send_id", "input", "feedback_input", "choice", "prompt", "evaluation", "feedback", "infrastructure_error",
                 "weights_before", "weights_after_choice", "weights_after_feedback") if key in turn})
-            if "codex" in turn:
-                report["attempts"][name]["turns"][-1]["execution"] = {key: turn["codex"].get(key) for key in ("status", "error", "usage")}
+            execution = turn.get("execution")
+            if execution is not None:
+                report["attempts"][name]["turns"][-1]["execution"] = {
+                    key: execution.get(key) for key in ("status", "error", "usage")
+                }
     # Remove machine-local root paths from diagnostic strings; raw events are never exported.
     serialized = json.dumps(report).replace(str(Path(run_dir).resolve()), "<run>").replace(str(Path.home()), "<home>")
     report = json.loads(serialized)
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     atomic_save_json(output / "pilot.json", report)
+    total_limit = report["budget"].get(
+        "total_limit", report["budget"].get("limit", 30)
+    )
     lines = ["# Flycodex pilot", "", f"Evidence: **{report['evidence']}**. Status: **{report['status']}**.",
-             f"Model: `{report['model']}`. Reserved sends: {report['budget']['used']}/30."]
+             f"Backend: `{report['backend']}`. Model: `{report['model']}`. Reserved sends: {report['budget']['used']}/{total_limit}."]
     if report.get("error"):
         lines.extend(["", f"Recovery error: {report['error']}"])
     lines.extend(["", "| Attempt | Result | Instructions | Final passing tests |", "| --- | --- | ---: | ---: |"])

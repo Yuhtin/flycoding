@@ -86,6 +86,10 @@ def test_fresh_turn_pins_model_sessionless_args_and_isolated_config(tmp_path, mo
     assert json.loads(invocation["config"])["model"] == DEFAULT_MODEL
     assert json.loads(invocation["config"])["small_model"] == DEFAULT_MODEL
     assert json.loads(invocation["config"])["share"] == "disabled"
+    assert json.loads(invocation["config"])["permission"]["bash"] == {
+        "*": "deny",
+        "rtk proxy python -B -m unittest -v": "allow",
+    }
     assert Path(invocation["config_dir"]).parent.parent == tmp_path
     assert Path(invocation["xdg"]).parent.parent == tmp_path
     assert result["status"] == "completed"

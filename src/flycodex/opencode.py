@@ -72,7 +72,6 @@ class OpenCodeRunner(CodexRunner):
             "bash": {
                 "*": "deny",
                 "rtk proxy python -B -m unittest -v": "allow",
-                "python -B -m unittest -v": "allow",
             },
             "external_directory": "deny",
             "task": "deny",
