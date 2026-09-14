@@ -4,6 +4,16 @@ These files record the genuine pilot and neural mechanism checks performed on
 September 13, 2026, on a 16 GiB ARM64 Mac. The English flybody presentation was
 added afterward; it does not change those measurements.
 
+## Flybody presentation
+
+[flybody-check.json](flybody-check.json) records the pinned anatomical assets,
+87 verified source files, 192 MuJoCo pose samples, and browser checks for the
+later body visualization. This is a procedural presentation layer, not a
+locomotion experiment. [demo-check.json](demo-check.json) independently audits
+the bundled events, original images, translations, and unchanged pilot files.
+The [demo video](../demo/flycodex-demo.mp4) is a 54-second condensed replay
+with a final hold; it makes no new Codex calls.
+
 ## Codex pilot
 
 All six attempts succeeded, using nine reservations, all completed. Each

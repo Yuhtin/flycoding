@@ -1,0 +1,13 @@
+{
+  "kind": "bundled-genuine-demo-audit",
+  "date": "2026-09-14",
+  "source_revision": "a16e1713f340a15a4e87f2d5651536f03aa9fe3a",
+  "original_files_unchanged": 23,
+  "successful_attempts": 6,
+  "reserved_calls": 9,
+  "png_rgb_pairs_verified": 18,
+  "source_events_verified": 50,
+  "source_hashed_translations": 16,
+  "raw_records_preserved": true,
+  "new_codex_calls": 0
+}

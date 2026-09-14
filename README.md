@@ -22,10 +22,13 @@ rtk proxy uv sync --frozen
 rtk proxy uv run flycodex serve --demo --port 8765
 ```
 
-Open **http://127.0.0.1:8765** and press **Replay**. Drag the fly to orbit the
+Open **http://127.0.0.1:8765** and press **Play replay**. Drag the fly to orbit the
 camera, scroll to zoom, and use the motion control to pause its animation.
 The replay uses a compressed presentation timeline and is labeled accordingly.
 It sends no prompts and cannot change the recorded experiment.
+
+[Download the 56-second demo video](docs/demo/flycodex-demo.mp4) ·
+[English post draft](docs/demo/tweet.txt)
 
 Commands here use [RTK](https://github.com/rtk-ai/rtk). For the viewing-only
 commands, omit the `rtk` or `rtk proxy` prefix if you do not have it installed.

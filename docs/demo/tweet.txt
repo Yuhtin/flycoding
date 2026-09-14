@@ -1,0 +1,7 @@
+A fly is prompting my coding agent. 🪰
+
+166,700 simulated neurons. Three prompts. Nine Codex calls.
+
+Now with a moving flybody and a replay you can watch locally.
+
+Code + actual pilot results: https://github.com/Yuhtin/flycodex

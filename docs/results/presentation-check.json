@@ -1,0 +1,37 @@
+{
+  "recorded_from": "bundled genuine pilot; presentation only",
+  "replay_seconds": 54,
+  "new_codex_calls": 0,
+  "javascript_errors": [],
+  "video": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1440,
+        "height": 1000,
+        "pix_fmt": "yuv420p",
+        "r_frame_rate": "30/1"
+      }
+    ],
+    "format": {
+      "duration": "55.966667",
+      "size": "6812536"
+    }
+  },
+  "visually_inspected_seconds": [
+    3,
+    20,
+    55
+  ],
+  "final_score": "5 / 5",
+  "wheel_smoke": {
+    "wheel": true,
+    "isolated_from_checkout": true,
+    "routes_verified": 35,
+    "images": 18,
+    "original_run_required": false,
+    "heavy_exporter_imports": false
+  }
+}

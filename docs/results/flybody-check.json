@@ -1,0 +1,38 @@
+{
+  "date": "2026-09-14",
+  "kind": "flybody-presentation-check",
+  "source_repository": "https://github.com/TuragaLab/flybody",
+  "source_revision": "d015e9bfe441bd90ae431bac24c55cb74bdbce26",
+  "geometry": {
+    "source_triangles": 272550,
+    "exported_triangles": 95564,
+    "visual_meshes": 85,
+    "triangle_budget": 120000
+  },
+  "artifacts": {
+    "flybody.glb": {
+      "bytes": 2423588,
+      "sha256": "e670ceb7264233cba527134f5a49dbdd49a1edc9b2462e3f2ab725c042468cb8"
+    },
+    "motion.json": {
+      "bytes": 956222,
+      "sha256": "962864e78ed0ed79b4b981e163d2dbaed52bb5003230dcbed2d85c18e9dfd1c5"
+    }
+  },
+  "verified_source_files": 87,
+  "verified_mujoco_pose_samples": 192,
+  "offline_asset_tests_passed": 3,
+  "browser_checks": [
+    "model load",
+    "distinct articulated poses",
+    "pause",
+    "orbit",
+    "disposal",
+    "reduced motion",
+    "explicit animation",
+    "missing asset fallback",
+    "disabled WebGL fallback"
+  ],
+  "browser_exceptions": 0,
+  "limitations": "Procedural joint poses and browser interpolation illustrate session state. No physics rollout, learned locomotion, or new neural-control experiment was performed."
+}
