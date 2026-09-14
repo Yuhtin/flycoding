@@ -29,9 +29,10 @@ The final model contains **95,564 triangles**, down from 272,550, with all
 **This is procedural MuJoCo forward kinematics, not learned locomotion.**
 It does not run a physics rollout, training checkpoint, neural policy, or Codex.
 The source XML allocates one keyframe slot but contains no authored `<keyframe>`
-poses. Starting with compiled `qpos0`, the exporter authors bounded hinge-angle
-waveforms and a partly folded wing pose. Each limited joint is clamped to the
-compiled source range before `mj_forward` computes articulated transforms.
+poses. The exporter starts from an explicit authored 109-value grounded rest
+`qpos`, including a symmetric folded wing pose and six claw support contacts.
+Each limited joint is clamped to the compiled source range before `mj_forward`
+computes articulated transforms.
 
 `motion.json` has four looping clips (`idle`, `working`, `success`, `failure`),
 48 samples each. It includes source joint limits and every sample's `qpos` for
@@ -43,11 +44,20 @@ claim. Linear position interpolation and quaternion spherical interpolation
 join samples; exponential blending softens mode transitions. Interpolated
 transforms are a rendering approximation between validated MuJoCo samples.
 
-Working visibly articulates head, antennae, wings, abdomen and leg joints.
-Success nods; failure briefly shakes the head; both settle to idle after their
+The lower body and folded wings stay fixed in every clip. Working, success and
+failure use small procedural head, antenna and abdomen adjustments; success
+nods and failure briefly shakes the head, then both settle to idle after their
 clip duration. This movement illustrates session state and is not evidence of
 learned motor behavior. `action`, `leftHz` and `rightHz` are accepted as session
 metadata; the browser does not interpret the rates as a new body-control policy.
+
+`motion.json.ground` records the measured source-unit support plane from the
+minimum vertices of the six claw meshes after forward kinematics. The source
+support Z is `-0.131000002041`, with a `0.0001` source-unit rendering epsilon;
+the browser converts both through the model's scale of 14. The floor is derived
+from this rest contact metadata, while camera framing continues to use the full
+motion envelope. The body is a grounded presentation pose and is not controlled
+by measured neural activity.
 
 ## Rebuilding and checking
 

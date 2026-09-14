@@ -152,6 +152,11 @@ export function createBodyView(container, options = {}) {
     const gltf = await new GLTFLoader().parseAsync(buffer, '/body/');
     if (disposed) { freeScene(gltf.scene); return; }
     motion = poses;
+    const ground = motion.ground;
+    if (!ground || !Number.isFinite(ground.source_z) || !Number.isFinite(ground.clearance)
+      || !Array.isArray(ground.support_bodies) || ground.support_bodies.length !== 6) {
+      throw new Error('Ground contact metadata is missing');
+    }
     model = gltf.scene;
     model.scale.setScalar(14);
     scene.add(model);
@@ -183,14 +188,17 @@ export function createBodyView(container, options = {}) {
     const distance = radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.08 * Math.max(1, 0.82 / camera.aspect) / framingScale;
     camera.position.copy(center).add(new THREE.Vector3(0.85, -1.35, 0.85).normalize().multiplyScalar(distance));
     controls.update();
-    const platform = new THREE.Mesh(new THREE.CircleGeometry(radius * 1.3, 80),
+    const floorZ = model.scale.z * (ground.source_z - ground.clearance);
+    const platformThickness = 0.018;
+    const platform = new THREE.Mesh(new THREE.CylinderGeometry(radius * 1.3, radius * 1.3, platformThickness, 80),
       new THREE.MeshStandardMaterial({ color: 0x182023, roughness: 0.94, transparent: true, opacity: 0.42, side: THREE.DoubleSide }));
-    platform.position.set(center.x, center.y, bounds.min.z - 0.10);
+    platform.rotation.x = Math.PI / 2;
+    // Cylinder top is the measured support plane; its thickness extends below it.
+    platform.position.set(center.x, center.y, floorZ - platformThickness / 2);
     scene.add(platform);
     const ring = new THREE.Mesh(new THREE.RingGeometry(radius * 1.10, radius * 1.105, 128),
       new THREE.MeshBasicMaterial({ color: 0x526a65, transparent: true, opacity: 0.25, side: THREE.DoubleSide }));
-    ring.position.copy(platform.position);
-    ring.position.z += 0.001;
+    ring.position.set(center.x, center.y, floorZ + 0.001);
     scene.add(ring);
     renderer.domElement.dataset.ready = 'true';
     status(paused ? 'Flybody ready · motion paused' : 'Flybody ready · procedural motion');

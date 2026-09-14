@@ -27,10 +27,55 @@ OUT = ROOT / "src/flycodex/web/body"
 REVISION = "d015e9bfe441bd90ae431bac24c55cb74bdbce26"
 BASE = f"https://raw.githubusercontent.com/TuragaLab/flybody/{REVISION}/"
 ASSETS = "flybody/fruitfly/assets/"
+GROUND_CLEARANCE = 0.0001
+SUPPORT_BODIES = ("claw_T1_left", "claw_T1_right", "claw_T2_left", "claw_T2_right",
+                  "claw_T3_left", "claw_T3_right")
+
+# Explicit authored rest qpos values.  The map is intentionally joint-name based
+# so the source model remains the authority for qpos addresses and limits.
+REST_JOINT_VALUES = {
+    "antenna_abduct_left": 0.087513, "antenna_twist_left": 0.087513, "antenna_left": 0.087513,
+    "antenna_abduct_right": -0.087513, "antenna_twist_right": -0.087513, "antenna_right": -0.087513,
+    "wing_yaw_left": 1.4, "wing_roll_left": 0.8, "wing_pitch_left": 0.7,
+    "wing_yaw_right": 1.4, "wing_roll_right": 0.8, "wing_pitch_right": 0.7,
+    "coxa_abduct_T1_left": 0.0172165, "coxa_twist_T1_left": 0.0172165, "coxa_T1_left": 0.0172165,
+    "femur_twist_T1_left": 0.0258248, "femur_T1_left": 0.0258248, "tibia_T1_left": 0.0409184,
+    "tarsus_T1_left": 0.0091847, "tarsus2_T1_left": 0.0121583, "tarsus3_T1_left": 0.0121583,
+    "tarsus4_T1_left": 0.0121583, "tarsus5_T1_left": 0.0121583,
+    "coxa_abduct_T1_right": -0.0172165, "coxa_twist_T1_right": -0.0172165, "coxa_T1_right": -0.0172165,
+    "femur_twist_T1_right": -0.0258248, "femur_T1_right": -0.0258248, "tibia_T1_right": 0.0175238,
+    "tarsus_T1_right": -0.1028945, "tarsus2_T1_right": 0.0129124, "tarsus3_T1_right": 0.0129124,
+    "tarsus4_T1_right": 0.0129124, "tarsus5_T1_right": 0.0129124,
+    "coxa_abduct_T2_left": 0.005742, "coxa_twist_T2_left": 0.005742, "coxa_T2_left": 0.005742,
+    "femur_twist_T2_left": 0.008613, "femur_T2_left": 0.008613, "tibia_T2_left": -0.0368225,
+    "tarsus_T2_left": 0.098665, "tarsus2_T2_left": -0.0175955, "tarsus3_T2_left": -0.0175955,
+    "tarsus4_T2_left": -0.0175955, "tarsus5_T2_left": -0.0175955,
+    "coxa_abduct_T2_right": 0.0231254, "coxa_twist_T2_right": 0.0231254, "coxa_T2_right": 0.0231254,
+    "femur_twist_T2_right": 0.0346881, "femur_T2_right": 0.0346881, "tibia_T2_right": 0.0269312,
+    "tarsus_T2_right": 0.0076255, "tarsus2_T2_right": 0.0043065, "tarsus3_T2_right": 0.0043065,
+    "tarsus4_T2_right": 0.0043065, "tarsus5_T2_right": 0.0043065,
+    "coxa_abduct_T3_left": -0.0230142, "coxa_twist_T3_left": -0.0230142, "coxa_T3_left": -0.0230142,
+    "femur_twist_T3_left": -0.0345213, "femur_T3_left": -0.0345213, "tibia_T3_left": -0.003739,
+    "tarsus_T3_left": -0.0129939, "tarsus2_T3_left": 0.0056077, "tarsus3_T3_left": 0.0056077,
+    "tarsus4_T3_left": 0.0056077, "tarsus5_T3_left": 0.0056077,
+    "coxa_abduct_T3_right": -0.006133, "coxa_twist_T3_right": -0.006133, "coxa_T3_right": -0.006133,
+    "femur_twist_T3_right": -0.0091995, "femur_T3_right": -0.0091995, "tibia_T3_right": -0.0447161,
+    "tarsus_T3_right": 0.0887588, "tarsus2_T3_right": -0.0172606, "tarsus3_T3_right": -0.0172606,
+    "tarsus4_T3_right": -0.0172606, "tarsus5_T3_right": -0.0172606,
+}
 
 
 def digest(data):
     return {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+
+
+def rest_qpos(model):
+    qpos = model.qpos0.copy()
+    for name, value in REST_JOINT_VALUES.items():
+        joint = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, name)
+        if joint >= 0:
+            qpos[model.jnt_qposadr[joint]] = value
+    return qpos
 
 
 def acquire(cache, write_lock):
@@ -75,8 +120,8 @@ def body_pose(model, data, body):
 
 def procedural_qpos(model, mode, phase):
     """Bounded authored joint motion; no dynamics rollout or learned policy."""
-    qpos = model.qpos0.copy()
-    activity = {"idle": 0.15, "working": 1.0, "success": 0.7, "failure": 0.4}[mode]
+    qpos = rest_qpos(model)
+    activity = {"idle": 0.0, "working": 1.0, "success": 0.7, "failure": 0.4}[mode]
     for joint in range(model.njnt):
         if model.jnt_type[joint] != mujoco.mjtJoint.mjJNT_HINGE:
             continue
@@ -84,35 +129,69 @@ def procedural_qpos(model, mode, phase):
         side = 1 if "left" in name else -1
         phase_offset = (0 if "T1" in name else 2.1 if "T2" in name else 4.2) + side * 0.8
         value = qpos[model.jnt_qposadr[joint]]
-        if name.startswith("wing_"):
-            if "yaw" in name:
-                value = 1.25 - activity * 0.30 * (1 + np.sin(phase + side * 0.7))
-            elif "roll" in name:
-                value = 0.65 + activity * 0.20 * np.sin(phase + side * 0.7)
-            elif "pitch" in name:
-                value = -0.95 + activity * 0.18 * np.cos(phase + side * 0.7)
-        elif name.startswith("head"):
-            value += activity * (0.12 if name == "head" else 0.07) * np.sin(phase)
+        if name.startswith("head"):
+            value += activity * (0.018 if name == "head" else 0.01) * np.sin(phase)
         elif name.startswith("antenna"):
-            value += (0.08 + activity * 0.16) * np.sin(phase * 2 + side)
+            value += activity * 0.03 * np.sin(phase * 2 + side)
         elif name.startswith("abdomen"):
-            value += (0.01 + activity * 0.015) * np.sin(phase)
-        elif name.startswith("coxa"):
-            value += activity * 0.16 * np.sin(phase * 2 + phase_offset)
-        elif name.startswith("femur"):
-            value += activity * 0.24 * np.sin(phase * 2 + phase_offset)
-        elif name.startswith("tibia"):
-            value += activity * 0.30 * np.sin(phase * 2 + phase_offset + 1.2)
-        elif name.startswith("tarsus"):
-            value += activity * 0.12 * np.sin(phase * 2 + phase_offset + 1.6)
+            value += activity * 0.004 * np.sin(phase)
         if mode == "success" and name == "head":
-            value += 0.12 * np.sin(phase)
+            value += 0.008 * np.sin(phase)
         if mode == "failure" and name == "head_twist":
-            value += 0.15 * np.sin(phase * 2)
+            value += 0.018 * np.sin(phase * 2)
         if model.jnt_limited[joint]:
             value = np.clip(value, *model.jnt_range[joint])
         qpos[model.jnt_qposadr[joint]] = value
     return qpos
+
+
+def visual_bottoms(model, data, body_names):
+    """Return minimum Z for each named body's exported mesh geometry."""
+    bottoms = {}
+    for name in body_names:
+        body = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, name)
+        if body < 0:
+            continue
+        values = []
+        for geom in range(model.ngeom):
+            if (model.geom_bodyid[geom] != body
+                    or model.geom_type[geom] != mujoco.mjtGeom.mjGEOM_MESH
+                    or model.geom_group[geom] != 1):
+                continue
+            mesh = model.geom_dataid[geom]
+            va = model.mesh_vertadr[mesh]
+            vn = model.mesh_vertnum[mesh]
+            vertices = model.mesh_vert[va:va + vn]
+            geom_rotation = np.empty(9)
+            mujoco.mju_quat2Mat(geom_rotation, model.geom_quat[geom])
+            body_rotation = data.xmat[body].reshape(3, 3)
+            world = (data.xpos[body][:, None]
+                     + body_rotation @ (model.geom_pos[geom][:, None]
+                                        + geom_rotation.reshape(3, 3) @ vertices.T)).T
+            values.append(float(world[:, 2].min()))
+        if values:
+            bottoms[name] = min(values)
+    return bottoms
+
+
+def grounded_metadata(model, data):
+    data.qpos[:] = rest_qpos(model)
+    mujoco.mj_forward(model, data)
+    bottoms = visual_bottoms(model, data, SUPPORT_BODIES)
+    if len(bottoms) != len(SUPPORT_BODIES):
+        return {"support_bodies": sorted(bottoms), "status": "unavailable"}
+    source_z = round(float(np.mean(list(bottoms.values()))), 12)
+    spread = max(bottoms.values()) - min(bottoms.values())
+    assert spread <= 1e-7, f"Ground support spread {spread} exceeds source tolerance"
+    return {
+        "source_z": source_z,
+        "clearance": GROUND_CLEARANCE,
+        "platform_source_z": round(source_z - GROUND_CLEARANCE, 12),
+        "support_bodies": list(SUPPORT_BODIES),
+        "support_tolerance_source": 1e-7,
+        "support_bottoms_source_z": {name: round(value, 12) for name, value in bottoms.items()},
+        "method": "minimum exported visual mesh vertex after MuJoCo forward kinematics of explicit rest_qpos",
+    }
 
 
 def write_motion(model):
@@ -123,7 +202,7 @@ def write_motion(model):
                "limited": bool(model.jnt_limited[i]), "range": model.jnt_range[i].tolist()}
               for i in range(model.njnt)]
     motion = {"version": 1, "convention": "parent-local XYZ, quaternion XYZW; source Z-up, centimeters",
-              "bodies": bodies, "joints": joints, "clips": {}}
+              "bodies": bodies, "joints": joints, "ground": grounded_metadata(model, data), "clips": {}}
     for mode, duration in (("idle", 6), ("working", 2.4), ("success", 2.0), ("failure", 2.4)):
         frames, qposes = [], []
         for frame in range(48):
@@ -234,6 +313,7 @@ def main():
     model = mujoco.MjModel.from_xml_path(str(xml))
     if args.check:
         motion = json.loads((OUT / "motion.json").read_text())
+        joints = motion.get("joints", [])
         data = mujoco.MjData(model)
         count = 0
         for mode, clip in motion["clips"].items():
@@ -245,16 +325,38 @@ def main():
                 actual = np.concatenate([body_pose(model, data, i) for i in range(1, model.nbody)])
                 np.testing.assert_allclose(actual, expected, atol=2e-7, rtol=0)
                 count += 1
+        if motion.get("ground", {}).get("support_bodies"):
+            actual_ground = grounded_metadata(model, data)
+            np.testing.assert_allclose(actual_ground["source_z"], motion["ground"]["source_z"], atol=5e-12, rtol=0)
+            assert actual_ground["support_bodies"] == motion["ground"]["support_bodies"]
+            assert max(actual_ground["support_bottoms_source_z"].values()) - min(
+                actual_ground["support_bottoms_source_z"].values()) <= motion["ground"]["support_tolerance_source"]
+            frozen = [joint["qpos_address"] for joint in joints
+                      if joint["name"].startswith(("coxa", "femur", "tibia", "tarsus", "wing_"))]
+            for clip in motion["clips"].values():
+                reference = np.asarray(clip["qpos"][0])[frozen]
+                for qpos in clip["qpos"]:
+                    np.testing.assert_array_equal(np.asarray(qpos)[frozen], reference)
         provenance = json.loads((OUT / "provenance.json").read_text())
+        if motion.get("ground", {}).get("support_bodies"):
+            assert provenance["pose_label"].startswith("authored grounded rest pose")
+            assert provenance["ground"] == motion["ground"]
         for name, expected in provenance["artifacts"].items():
             assert digest((OUT / name).read_bytes()) == expected, name
         print(f"Verified {len(sources)} pinned source hashes and {count} MuJoCo articulated poses")
         return
+    prior_provenance = json.loads((OUT / "provenance.json").read_text()) if (OUT / "provenance.json").exists() else {}
     (OUT / "LICENSE.flybody").write_bytes((args.cache / "LICENSE").read_bytes())
     motion = write_motion(model)
-    geometry = write_glb(model, motion)
+    # The GLB is the reviewed 85-component geometry artifact.  Keep its bytes
+    # stable across pose-only rebuilds; motion.json supplies the new transforms.
+    geometry = prior_provenance.get("geometry") or write_glb(model, motion)
+    rest_payload = json.dumps(motion["clips"]["idle"]["qpos"][0], separators=(",", ":")).encode()
     provenance = {"repository": "https://github.com/TuragaLab/flybody", "revision": REVISION,
         "license": "Apache-2.0", "motion_kind": "procedural MuJoCo forward kinematics; not learned locomotion",
+        "pose_label": "authored grounded rest pose; lower body and folded wings fixed across procedural state clips",
+        "ground": motion["ground"],
+        "rest_qpos": digest(rest_payload),
         "dependencies": {"mujoco": "3.3.7", "numpy": "2.3.3", "fast-simplification": "0.1.12"},
         "geometry": geometry, "sources": sources,
         "artifacts": {name: digest((OUT / name).read_bytes()) for name in ("flybody.glb", "motion.json")}}

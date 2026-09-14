@@ -66,7 +66,39 @@ def test_motion_has_finite_articulated_poses_inside_source_joint_limits():
                 if joint["limited"]:
                     assert joint["range"][0] - 1e-6 <= qpos[joint["qpos_address"]] <= joint["range"][1] + 1e-6
     work = motion["clips"]["working"]["frames"]
-    for name in ("head", "antenna_left", "wing_left", "wing_right", "femur_T1_left", "tibia_T2_right"):
+    for name in ("head", "antenna_left"):
         index = names.index(name) * 7
         assert max(max(frame[index:index + 7][i] for frame in work)
                    - min(frame[index:index + 7][i] for frame in work) for i in range(7)) > 0.01, name
+
+
+def test_motion_uses_grounded_rest_pose_and_freezes_supporting_body():
+    motion = json.loads((BODY / "motion.json").read_text())
+    provenance = json.loads((BODY / "provenance.json").read_text())
+    ground = motion["ground"]
+    support = {"claw_T1_left", "claw_T1_right", "claw_T2_left", "claw_T2_right",
+               "claw_T3_left", "claw_T3_right"}
+    assert set(ground["support_bodies"]) == support
+    assert ground["source_z"] < 0
+    assert 0 < ground["clearance"] <= 0.0001
+    assert provenance["pose_label"].startswith("authored grounded rest pose")
+    names = [joint["name"] for joint in motion["joints"]]
+    frozen = {index for index, name in enumerate(names)
+              if (name.startswith(("coxa", "femur", "tibia", "tarsus"))
+                  or name.startswith("wing_"))}
+    for clip in motion["clips"].values():
+        reference = clip["qpos"][0]
+        for qpos in clip["qpos"]:
+            assert all(qpos[joint["qpos_address"]] == reference[joint["qpos_address"]]
+                       for joint in motion["joints"] if names.index(joint["name"]) in frozen)
+
+
+def test_motion_rest_upper_body_is_bounded():
+    motion = json.loads((BODY / "motion.json").read_text())
+    limits = {"head": 0.03, "antenna": 0.04, "abdomen": 0.005}
+    for prefix, limit in limits.items():
+        joints = [joint for joint in motion["joints"] if joint["name"].startswith(prefix)]
+        for joint in joints:
+            address = joint["qpos_address"]
+            values = [qpos[address] for clip in motion["clips"].values() for qpos in clip["qpos"]]
+            assert max(values) - min(values) <= 2 * limit + 1e-6, joint["name"]

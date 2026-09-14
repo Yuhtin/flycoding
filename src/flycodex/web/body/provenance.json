@@ -3,6 +3,34 @@
   "revision": "d015e9bfe441bd90ae431bac24c55cb74bdbce26",
   "license": "Apache-2.0",
   "motion_kind": "procedural MuJoCo forward kinematics; not learned locomotion",
+  "pose_label": "authored grounded rest pose; lower body and folded wings fixed across procedural state clips",
+  "ground": {
+    "source_z": -0.131000002041,
+    "clearance": 0.0001,
+    "platform_source_z": -0.131100002041,
+    "support_bodies": [
+      "claw_T1_left",
+      "claw_T1_right",
+      "claw_T2_left",
+      "claw_T2_right",
+      "claw_T3_left",
+      "claw_T3_right"
+    ],
+    "support_tolerance_source": 1e-07,
+    "support_bottoms_source_z": {
+      "claw_T1_left": -0.131000001588,
+      "claw_T1_right": -0.131000002332,
+      "claw_T2_left": -0.131000004409,
+      "claw_T2_right": -0.131000005454,
+      "claw_T3_left": -0.13100000156,
+      "claw_T3_right": -0.130999996906
+    },
+    "method": "minimum exported visual mesh vertex after MuJoCo forward kinematics of explicit rest_qpos"
+  },
+  "rest_qpos": {
+    "bytes": 884,
+    "sha256": "879569e0f85c82672fc66829cdbdb72cded6b4cfa9906d074fc53bdb55b1afe3"
+  },
   "dependencies": {
     "mujoco": "3.3.7",
     "numpy": "2.3.3",
@@ -457,8 +485,8 @@
       "sha256": "e670ceb7264233cba527134f5a49dbdd49a1edc9b2462e3f2ab725c042468cb8"
     },
     "motion.json": {
-      "bytes": 956222,
-      "sha256": "962864e78ed0ed79b4b981e163d2dbaed52bb5003230dcbed2d85c18e9dfd1c5"
+      "bytes": 943056,
+      "sha256": "09e57a606fc03664226c39022c717dbd3344bde78e6c34168384ca783d6f27f1"
     }
   }
 }
