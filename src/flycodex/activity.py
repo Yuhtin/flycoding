@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 import os
 from pathlib import Path
 from typing import Mapping
@@ -33,6 +34,107 @@ def _safe_json(value):
     if isinstance(value, (str, int, float, bool)) or value is None:
         return value
     return str(value)[:4096]
+
+
+def _is_int(value):
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _is_number(value):
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(value)
+    except (OverflowError, TypeError):
+        return False
+
+
+def _valid_bin(event):
+    if not isinstance(event, dict) or event.get("type") != "bin":
+        return False
+    required = {"seq", "type", "start_ms", "end_ms", "indices", "counts", "total_spikes"}
+    if not required <= event.keys() or not _is_int(event["seq"]):
+        return False
+    if not _is_number(event["start_ms"]) or not _is_number(event["end_ms"]):
+        return False
+    if event["end_ms"] <= event["start_ms"]:
+        return False
+    indices, counts = event["indices"], event["counts"]
+    if not isinstance(indices, list) or not isinstance(counts, list) or len(indices) != len(counts):
+        return False
+    if any(not _is_int(index) or index < 0 for index in indices):
+        return False
+    if indices != sorted(set(indices)):
+        return False
+    if any(not _is_int(count) or count < 0 for count in counts):
+        return False
+    return _is_int(event["total_spikes"]) and event["total_spikes"] >= 0 and sum(counts) == event["total_spikes"]
+
+
+def _valid_activity(document):
+    if not isinstance(document, dict) or document.get("schema_version") != PUBLIC_ACTIVITY_SCHEMA_VERSION:
+        return False
+    if not _is_int(document.get("schema_version")) or not _is_int(document.get("activity_schema_version")):
+        return False
+    if document["activity_schema_version"] != ACTIVITY_SCHEMA_VERSION:
+        return False
+    if not isinstance(document.get("available"), bool):
+        return False
+    status = document.get("status")
+    if status not in {"running", "complete", "error"}:
+        return False
+    if document["available"] != (status != "error"):
+        return False
+    identity = ("run", "attempt", "turn", "phase", "window_id", "neuron_order_sha256")
+    if not isinstance(document.get("run"), str) or not document["run"]:
+        return False
+    if not isinstance(document.get("attempt"), str) or not document["attempt"]:
+        return False
+    if not _is_int(document.get("turn")) or document["turn"] < 1:
+        return False
+    if document.get("phase") not in {"choice", "feedback"}:
+        return False
+    if not isinstance(document.get("window_id"), str) or not document["window_id"]:
+        return False
+    if not isinstance(document.get("neuron_order_sha256"), str) or not document["neuron_order_sha256"]:
+        return False
+    window = document.get("window")
+    if not isinstance(window, dict):
+        return False
+    required = {"window_id", "run", "attempt", "turn", "phase", "window_ms", "status", "events"}
+    if not required <= window.keys():
+        return False
+    if {key: window.get(key) for key in identity[:5]} != {key: document.get(key) for key in identity[:5]}:
+        return False
+    if window.get("status") != status or not _is_int(window.get("window_ms")) or window["window_ms"] <= 0:
+        return False
+    events = window.get("events")
+    if not isinstance(events, list):
+        return False
+    if status != "error" and not events:
+        return False
+    previous = 0
+    for position, event in enumerate(events):
+        if not isinstance(event, dict) or not _is_int(event.get("seq")) or event["seq"] <= previous:
+            return False
+        previous = event["seq"]
+        event_type = event.get("type")
+        if event_type == "start":
+            if position != 0 or not _is_int(event.get("window_ms")) or event["window_ms"] != window["window_ms"]:
+                return False
+        elif event_type == "bin":
+            if not _valid_bin(event):
+                return False
+        elif event_type == "end":
+            if position != len(events) - 1:
+                return False
+            if any(key in event and not isinstance(event[key], dict) for key in ("choice", "feedback")):
+                return False
+        else:
+            return False
+    if status == "complete" and (not events or events[-1].get("type") != "end"):
+        return False
+    return True
 
 
 class ActivityRecorder:
@@ -86,6 +188,7 @@ class ActivityRecorder:
                     "attempt": self.attempt,
                     "turn": self.turn,
                     "phase": self.phase,
+                    "window_ms": self._window.get("window_ms", 0),
                     "status": "error",
                     "error": "activity window exceeds bounded public size",
                     "events": [],
@@ -183,7 +286,7 @@ class ActivityReader:
             if target.stat().st_size > MAX_ACTIVITY_BYTES:
                 return {"available": False, "reason": "too_large"}
             document = json.loads(target.read_text())
-            if not isinstance(document, dict) or document.get("schema_version") != PUBLIC_ACTIVITY_SCHEMA_VERSION:
+            if not _valid_activity(document):
                 return {"available": False, "reason": "invalid"}
             if after is not None:
                 if isinstance(after, bool) or not isinstance(after, int) or after < 0:

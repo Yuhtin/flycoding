@@ -89,25 +89,37 @@ def create_server(run_dir: Path, *, host="127.0.0.1", port=8765, demo=False,
         def _expected_host(self):
             host_header = self.headers.get("Host", "")
             if host_header.count(":") == 1:
-                host_name, port = host_header.rsplit(":", 1)
-                if not port.isdecimal() or int(port) != self.server.server_port:
-                    return False
+                host_name, raw_port = host_header.rsplit(":", 1)
+                if not raw_port.isdecimal():
+                    return None
+                port = int(raw_port)
             else:
                 host_name = host_header
-            return host_name in {host, "127.0.0.1", "localhost"}
+                port = 80
+            if host_name not in {host, "127.0.0.1", "localhost"}:
+                return None
+            if port != self.server.server_port:
+                return None
+            return host_name, port
 
         def _same_origin(self):
-            if not self._expected_host():
+            expected = self._expected_host()
+            if expected is None:
                 return False
             origin = self.headers.get("Origin")
             if not origin:
                 return False
             parsed = urlsplit(origin)
             try:
-                port_ok = parsed.port in {None, self.server.server_port}
+                origin_port = parsed.port if parsed.port is not None else 80
             except ValueError:
                 return False
-            return parsed.scheme == "http" and port_ok and parsed.hostname in {host, "127.0.0.1", "localhost"}
+            expected_host, expected_port = expected
+            return (
+                parsed.scheme == "http"
+                and parsed.hostname == expected_host
+                and origin_port == expected_port
+            )
 
         def _read_json(self):
             content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
@@ -152,7 +164,7 @@ def create_server(run_dir: Path, *, host="127.0.0.1", port=8765, demo=False,
                         return self._not_found()
                     query = parse_qs(split.query, keep_blank_values=True)
                     raw_after = query.get("after", ["0"])[0]
-                    if not raw_after.isdecimal():
+                    if not raw_after.isdecimal() or len(raw_after) > 20:
                         return self._json_reply(400, {"error": "after must be a nonnegative integer"})
                     page = service.events(after=int(raw_after))
                     available = service.data_dir.is_dir() and (service.data_dir / "graph.npz").is_file()
@@ -161,7 +173,7 @@ def create_server(run_dir: Path, *, host="127.0.0.1", port=8765, demo=False,
                 if path == "/activity.json":
                     query = parse_qs(split.query, keep_blank_values=True)
                     raw_after = query.get("after", [None])[0]
-                    if raw_after is not None and not raw_after.isdecimal():
+                    if raw_after is not None and (not raw_after.isdecimal() or len(raw_after) > 20):
                         return self._json_reply(400, {"error": "after must be a nonnegative integer"})
                     result = ActivityReader(public).read(after=int(raw_after) if raw_after is not None else None)
                     return self._json_reply(200, result)

@@ -37,7 +37,7 @@ class FakePolicy:
             for start in (0.0, 10.0):
                 self.on_activity({"type": "bin", "start_ms": start, "end_ms": start + 10,
                                   "indices": [3], "counts": [2], "total_spikes": 2})
-        return {"action": "left", "reason": "synthetic"}
+        return {"action": "fix", "reason": "synthetic"}
 
 
 @pytest.fixture
@@ -57,8 +57,10 @@ def lab_server(tmp_path):
         thread.join(timeout=3)
 
 
-def json_headers(origin="http://127.0.0.1"):
-    return {"Content-Type": "application/json", "Origin": origin, "Host": "127.0.0.1"}
+def json_headers(address, origin_host="127.0.0.1", host="127.0.0.1"):
+    port = address[1]
+    authority = f"{host}:{port}"
+    return {"Content-Type": "application/json", "Origin": f"http://{origin_host}:{port}", "Host": authority}
 
 
 def test_lab_routes_require_small_exact_same_origin_json_payload(lab_server):
@@ -69,19 +71,23 @@ def test_lab_routes_require_small_exact_same_origin_json_payload(lab_server):
     assert state["availability"] is True
     assert "event_cursor" in state
 
-    assert request(address, "/lab/observe", "POST", b"{}", json_headers())[0] == 400
-    assert request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":true}', json_headers())[0] == 400
-    assert request(address, "/lab/observe", "POST", b'{"kind":[],"passed":0}', json_headers())[0] == 400
-    assert request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":0,"extra":1}', json_headers())[0] == 400
+    assert request(address, "/lab/observe", "POST", b"{}", json_headers(address))[0] == 400
+    assert request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":true}', json_headers(address))[0] == 400
+    assert request(address, "/lab/observe", "POST", b'{"kind":[],"passed":0}', json_headers(address))[0] == 400
+    assert request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":0,"extra":1}', json_headers(address))[0] == 400
     assert request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":0}',
-                   {**json_headers(), "Content-Type": "text/plain"})[0] == 400
+                   {**json_headers(address), "Content-Type": "text/plain"})[0] == 400
     assert request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":0}',
-                   {**json_headers(), "Origin": "http://evil.invalid"})[0] == 403
+                   {**json_headers(address), "Origin": f"http://evil.invalid:{address[1]}"})[0] == 403
     assert request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":0}',
-                   {**json_headers(), "Host": "evil.invalid"})[0] == 403
-    assert request(address, "/lab/observe", "POST", b"x" * 1025, json_headers())[0] == 400
+                   {**json_headers(address), "Host": f"evil.invalid:{address[1]}"})[0] == 403
+    assert request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":0}',
+                   {**json_headers(address), "Origin": f"http://localhost:{address[1]}"})[0] == 403
+    assert request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":0}',
+                   {**json_headers(address), "Origin": "http://127.0.0.1"})[0] == 403
+    assert request(address, "/lab/observe", "POST", b"x" * 1025, json_headers(address))[0] == 400
 
-    status, _, body = request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":0}', json_headers())
+    status, _, body = request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":0}', json_headers(address))
     assert status == 202
     job_id = json.loads(body)["job_id"]
     image_status, image_headers, image_body = request(address, f"/lab/input.png?job_id={job_id}")
@@ -89,7 +95,7 @@ def test_lab_routes_require_small_exact_same_origin_json_payload(lab_server):
     assert image_headers["Content-Type"] == "image/png"
     assert image_body.startswith(b"\x89PNG")
     assert request(address, "/lab/input.png?job_id=stale")[0] == 404
-    status, _, body = request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":0}', json_headers())
+    status, _, body = request(address, "/lab/observe", "POST", b'{"kind":"dark","passed":0}', json_headers(address))
     assert status in (202, 409)
     if status == 202:
         job_id = json.loads(body)["job_id"]
@@ -106,7 +112,8 @@ def test_lab_routes_require_small_exact_same_origin_json_payload(lab_server):
 
 def test_lab_cancel_and_cursor_validation(lab_server):
     assert request(lab_server, "/lab/events?after=not-int")[0] == 400
-    assert request(lab_server, "/lab/cancel", "POST", b"{}", json_headers())[0] in (200, 409)
+    assert request(lab_server, "/lab/events?after=" + "9" * 5000)[0] == 400
+    assert request(lab_server, "/lab/cancel", "POST", b"{}", json_headers(lab_server))[0] in (200, 409)
 
 
 def test_lab_disabled_and_read_only_compatibility(tmp_path):
@@ -115,7 +122,7 @@ def test_lab_disabled_and_read_only_compatibility(tmp_path):
     thread.start()
     try:
         assert request(server.server_address, "/lab/state")[0] == 404
-        assert request(server.server_address, "/lab/observe", "POST", b"{}", json_headers())[0] == 405
+        assert request(server.server_address, "/lab/observe", "POST", b"{}", json_headers(server.server_address))[0] == 405
         assert request(server.server_address, "/archive/snapshot.json")[0] == 200
         assert request(server.server_address, "/brain/manifest.json")[0] == 200
         assert request(server.server_address, "/brain/positions.bin")[0] == 200
@@ -137,7 +144,7 @@ def test_lab_reports_missing_data_without_fabricating_activity(tmp_path):
         state = json.loads(body)
         assert state["availability"] is False
         assert "unavailable" in state["error"]
-        assert request(server.server_address, "/lab/observe", "POST", b'{"kind":"dark","passed":0}', json_headers())[0] == 503
+        assert request(server.server_address, "/lab/observe", "POST", b'{"kind":"dark","passed":0}', json_headers(server.server_address))[0] == 503
     finally:
         server.shutdown()
         server.server_close()
@@ -169,7 +176,7 @@ def test_activity_recorder_identity_rotation_and_reader_bounds(tmp_path):
     recorder.start(window="choice-2", window_ms=500)
     recorder.bin({"type": "bin", "start_ms": 0.0, "end_ms": 10.0,
                   "indices": [4], "counts": [7], "total_spikes": 7})
-    recorder.end(choice={"action": "left"})
+    recorder.end(choice={"action": "fix"})
     payload = ActivityReader(public).read()
     assert payload["available"] is True
     assert payload["run"] == "run-1"
@@ -189,7 +196,7 @@ def test_activity_recorder_preserves_more_than_256_sparse_neurons(tmp_path):
     counts = [index + 1 for index in indices]
     recorder.bin({"type": "bin", "start_ms": 0.0, "end_ms": 10.0,
                   "indices": indices, "counts": counts, "total_spikes": sum(counts)})
-    recorder.end(choice={"action": "left"})
+    recorder.end(choice={"action": "fix"})
     event = ActivityReader(public).read()["window"]["events"][1]
     assert event["indices"] == indices
     assert event["counts"] == counts
@@ -222,6 +229,23 @@ def test_activity_reader_rejects_symlink_and_incomplete_write(tmp_path):
     result = ActivityReader(public).read()
     assert result["available"] is False
     assert result["reason"] == "incomplete"
+
+
+@pytest.mark.parametrize("document", [
+    {"schema_version": 1, "available": True},
+    {"schema_version": 1, "available": True, "status": "complete", "events": [{"seq": 1}]},
+    {"schema_version": 1, "activity_schema_version": 1, "available": True,
+     "status": "complete", "run": "r", "attempt": "a", "turn": 1,
+     "phase": "choice", "window_id": "w", "neuron_order_sha256": "hash",
+     "window": {"events": [{"seq": 1, "type": "bin", "indices": [1], "counts": [1]}]}},
+])
+def test_activity_reader_rejects_malformed_shape_with_or_without_cursor(tmp_path, document):
+    public = tmp_path / "public"
+    public.mkdir()
+    (public / "activity.json").write_text(json.dumps(document))
+    reader = ActivityReader(public)
+    assert reader.read()["available"] is False
+    assert reader.read(after=1)["available"] is False
 
 
 def test_synthetic_pilot_policy_is_not_forced_to_accept_activity(tmp_path):
