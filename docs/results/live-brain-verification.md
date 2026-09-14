@@ -60,8 +60,9 @@ and small model, disabled sharing, empty MCP/plugins/instructions, matching
 task permissions, and disabled LSP/formatting. No prompt was submitted by the
 diagnostic. Tool permissions are application-level controls, not an OS sandbox.
 
-Coding acceptance and final interface checks are recorded separately after
-the corresponding implementation is reviewed.
+The subsequent [actual Muse acceptance](muse-live-brain/README.md) records the
+permission trial and successful corrected run. Final interface and package
+checks are in [release verification](live-brain-release.md).
 
 ## Grounded body presentation
 

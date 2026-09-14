@@ -1,0 +1,9 @@
+{
+  "coding_calls": 0,
+  "before": "Waiting for a coding run",
+  "after": "Connected · refreshes every 1 s",
+  "score": "5 / 5",
+  "cap": "1 / 2",
+  "backend": "opencode · opencode/muse-spark-1.3-contributor-free",
+  "errors": []
+}

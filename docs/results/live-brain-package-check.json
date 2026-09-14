@@ -1,0 +1,13 @@
+{
+  "rebuild_byte_exact": true,
+  "bundle_hashes": {
+    "src/flycodex/web/brain-view.js": "55d62a2ac86b9f4929d6b4d127afa6998290bf61f3f651620a6a97cba624fa4f",
+    "src/flycodex/web/body-view.js": "fb82477fed9787baf6d1693a11022f01ed223cc99ba556966b20b667ec7cc391",
+    "src/flycodex/web/body/LICENSE.three": "bfe119ea4fd413f5f7ca3fcd63adb0c4a073ed39daa2fe7d3e6b769e21272601",
+    "src/flycodex/web/body/build.json": "0e0747034318de5f6483a6dcadb46df841928472e59dff61a37ae8717f59f260"
+  },
+  "wheel": "flycodex-0.1.0-py3-none-any.whl",
+  "wheel_web_files_byte_exact": 44,
+  "wheel_tracked_package_files_byte_exact": 65,
+  "actual_coding_calls": 0
+}

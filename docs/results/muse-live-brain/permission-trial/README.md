@@ -9,7 +9,8 @@ The neural policy selected Fix from 392,732 measured simulated spikes. The
 permission adapter used the wrong path form for OpenCode's edit lookup.
 The interrupted run and pending reservation remain preserved locally and
 count toward the shared acceptance budget. A subsequent corrected run is
-reported separately; this trial is not removed from the total.
+[reported separately](../corrected-run/README.md); this trial is not removed
+from the total.
 
 [Recorded report](pilot.md) · [Structured evidence](pilot.json)
 

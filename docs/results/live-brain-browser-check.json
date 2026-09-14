@@ -1,0 +1,40 @@
+{
+  "coding_calls": 0,
+  "jobs": [
+    {
+      "kind": "dark",
+      "live": {
+        "status": "Measuring CNS · live bins",
+        "brain": "MEASURED 10–20 MS · 7303 SPIKES"
+      },
+      "completed_quiet": true,
+      "hash": "53853188f83a941e2f45ec1383293ae935106c5721918079000dcb2254fc550b",
+      "left": "14.00 Hz",
+      "right": "22.00 Hz",
+      "gate": "13"
+    },
+    {
+      "kind": "light",
+      "live": {
+        "status": "Measuring CNS · live bins",
+        "brain": "MEASURED 0–10 MS · 4149 SPIKES"
+      },
+      "completed_quiet": true,
+      "hash": "07a38b70bc25eaddf9c4c4184b18fd9015598d321c56e013eac1b284f1eabe9b",
+      "left": "30.00 Hz",
+      "right": "32.00 Hz",
+      "gate": "17"
+    }
+  ],
+  "archive": {
+    "lab_hidden": true,
+    "spikes": "—",
+    "footer": "Archive events · English translations labeled"
+  },
+  "waiting": {
+    "terminal": "No coding run snapshot exists yet.",
+    "lab_hidden": true
+  },
+  "mobile_overflow": 0,
+  "errors": []
+}

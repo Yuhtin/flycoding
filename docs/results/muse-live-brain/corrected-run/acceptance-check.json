@@ -1,0 +1,43 @@
+{
+  "backend": "opencode",
+  "model": "opencode/muse-spark-1.3-contributor-free",
+  "backend_version": "1.18.27",
+  "source_revision": "160ca8ba043a15123a5702fa01705c1db1a3b632",
+  "source_dirty": false,
+  "status": "paused",
+  "prompt_submissions": 1,
+  "run_cap": 2,
+  "global_prompt_submissions": 2,
+  "authorized_global_cap": 3,
+  "attempts": {
+    "adaptive-1": {
+      "status": "success",
+      "baseline_passed": 1,
+      "final_passed": 5,
+      "instructions": [
+        "fix"
+      ]
+    }
+  },
+  "measured_activity": [
+    {
+      "attempt": "adaptive-1",
+      "turn": 1,
+      "phase": "choice",
+      "bins": 50,
+      "spikes": 392732,
+      "sha256": "23ea3e1a2327521d4d8485b8f03e3af73a64a21975085fe0d5daf7cd9356c195",
+      "bytes": 2894474
+    },
+    {
+      "attempt": "adaptive-1",
+      "turn": 1,
+      "phase": "feedback",
+      "bins": 20,
+      "spikes": 199794,
+      "sha256": "ab70ff9310fd81a90904bce832d89ab3b2e937e15418bc74578c5d2971d08951",
+      "bytes": 1428278
+    }
+  ],
+  "limitations": "One bounded coding task; no claim of learning, cognition or biological fidelity. The network selects a fixed prompt; Muse performs coding; body motion is procedural."
+}

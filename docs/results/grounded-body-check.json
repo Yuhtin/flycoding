@@ -74,6 +74,12 @@
   "asset_sha256": {
     "flybody.glb": "e670ceb7264233cba527134f5a49dbdd49a1edc9b2462e3f2ab725c042468cb8",
     "motion.json": "09e57a606fc03664226c39022c717dbd3344bde78e6c34168384ca783d6f27f1",
+    "provenance.json": "c51b791434dfbe1ef1841a6779a8e132cafd92dd9e4c0474e57f0a49701b0ded"
+  },
+  "asset_sha256_at_body_implementation": {
+    "flybody.glb": "e670ceb7264233cba527134f5a49dbdd49a1edc9b2462e3f2ab725c042468cb8",
+    "motion.json": "09e57a606fc03664226c39022c717dbd3344bde78e6c34168384ca783d6f27f1",
     "provenance.json": "a2bb9edb5071fa3d294c06ea235f287f74098814017e6d74d9a586bab10ad34f"
-  }
+  },
+  "metadata_revision_note": "Final review corrected source-versus-exported mesh wording in provenance.json. Geometry, motion and contact measurements are unchanged."
 }

@@ -1,0 +1,7 @@
+I gave a simulated fly brain a coding terminal.
+
+166,700 neurons picked “Fix.” Muse Spark via OpenCode did the coding: 1/5 → 5/5 tests.
+
+Measured spikes + actual flybody geometry. Procedural body motion; no learning claim.
+
+Open source: https://github.com/Yuhtin/flycodex

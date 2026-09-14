@@ -4,6 +4,16 @@ The original Codex pilot and mechanism checks were performed on September 13,
 2026, on a 16 GiB ARM64 Mac. Later observatory work is recorded separately and
 does not replace those measurements.
 
+## Muse Spark live acceptance
+
+The September 14 [OpenCode acceptance](muse-live-brain/README.md) used **two of
+three authorized prompt submissions**, including one interrupted permission
+trial. The corrected attempt selected Fix from measured neural activity and
+improved from **1/5 to 5/5 external tests** with one prompt. The
+[continuous video](../demo/live-brain-opencode.mp4) records that interaction;
+[release verification](live-brain-release.md) separates actual acceptance from
+synthetic tests and local neural checks.
+
 ## Live brain instrumentation
 
 [live-brain-verification.md](live-brain-verification.md) and
@@ -26,8 +36,8 @@ English dashboard, actual body model, demo replay, and package validation.
 later body visualization. This is a procedural presentation layer, not a
 locomotion experiment. [demo-check.json](demo-check.json) independently audits
 the bundled events, original images, translations, and unchanged pilot files.
-The [demo video](../demo/flycodex-demo.mp4) is a 54-second condensed replay
-with a final hold; it makes no new Codex calls.
+The [demo video](../demo/flycodex-demo.mp4) contains a 54-second condensed replay
+and a final hold (approximately 56 seconds total); it makes no new Codex calls.
 
 ## Codex pilot
 

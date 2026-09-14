@@ -1,0 +1,27 @@
+{
+  "source_revision": "160ca8ba043a15123a5702fa01705c1db1a3b632",
+  "recording": "Corrected actual OpenCode acceptance; continuous at original speed, no internal cuts",
+  "clip_start_seconds_in_original": 22,
+  "duration_seconds": 60,
+  "width": 1440,
+  "height": 1000,
+  "codec": "h264",
+  "pixel_format": "yuv420p",
+  "browser_errors": [],
+  "coding_calls_by_capture": 0,
+  "files": {
+    "docs/demo/live-brain-opencode.mp4": {
+      "sha256": "5012476fe2abeb7157de48ad3faf8670159e63687a572f86ad5f854a755c7700",
+      "bytes": 1720026
+    },
+    "docs/demo/live-brain-tweet.txt": {
+      "sha256": "de4bc9eff5e9ee0870b15ff087a7e944297aa0a35ad622ca0315b169a89a2c37",
+      "bytes": 278
+    },
+    "docs/results/live-brain-dashboard.png": {
+      "sha256": "3444a98bc7c64460f83beb7d15e542a05fb89bdb306dc46e2182b083f046553d",
+      "bytes": 192257
+    }
+  },
+  "screenshot": "Actual completed run observed after the connection-label fix; terminal scrolled to final output; no new model call."
+}

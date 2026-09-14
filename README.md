@@ -7,9 +7,16 @@ select an instruction for a coding terminal. The observatory pairs measured
 neural activity with the actual [flybody](https://github.com/TuragaLab/flybody)
 anatomy, the selected prompt, terminal output, and external test results.
 
-![Flybody observatory with a recorded Codex session](docs/results/dashboard.png)
+![Live brain observatory after Muse completed the selected instruction](docs/results/live-brain-dashboard.png)
 
-## Watch the demo
+**Latest live run:** the brain selected Fix, Muse Spark corrected the function,
+and external tests improved from **1/5 to 5/5**. Acceptance used **2 of 3 authorized
+prompt submissions**, including an earlier permission failure.
+[Watch the real run](docs/demo/live-brain-opencode.mp4) ·
+[Evidence](docs/results/muse-live-brain/README.md) ·
+[English post draft](docs/demo/live-brain-tweet.txt)
+
+## Watch the bundled Codex archive
 
 Python 3.11+, [uv](https://docs.astral.sh/uv/), and Git are enough to view the
 bundled recording. You do not need Codex authentication, neural data, MuJoCo,
@@ -28,8 +35,7 @@ pause the body animation.
 The replay uses a compressed presentation timeline and is labeled accordingly.
 It sends no prompts and cannot change the recorded experiment.
 
-[Download the 56-second demo video](docs/demo/flycodex-demo.mp4) ·
-[English post draft](docs/demo/tweet.txt)
+[Download the earlier Codex replay](docs/demo/flycodex-demo.mp4)
 
 Commands here use [RTK](https://github.com/rtk-ai/rtk). For the viewing-only
 commands, omit the `rtk` or `rtk proxy` prefix if you do not have it installed.
@@ -64,7 +70,7 @@ coding process, and the original Codex archive. Historical recordings have no
 per-neuron temporal telemetry; the viewer does not invent it. English translations
 of historical Portuguese messages are identified, with original text available.
 
-## The real pilot
+## The original Codex pilot
 
 On September 13, 2026, all **six attempts succeeded using nine Codex calls**.
 Every attempt started at **1/5 tests passing** and ended at **5/5**, with no task
@@ -187,9 +193,9 @@ and terminate their process group on cancellation or deadline.
 | Fix | Fix the discount function while preserving the tests. |
 | Test | Run the tests and report the result. |
 
-These English equivalents apply to future runs. The published pilot used the
-original Portuguese instructions; the language change has not been evaluated
-in another real pilot.
+The original Codex pilot used Portuguese instructions. The September 14
+[Muse acceptance](docs/results/muse-live-brain/README.md) used the English Fix
+instruction above. This single task does not compare prompting languages.
 
 The task is to fix `discounted_total` to compute
 `subtotal_cents * (100 - discount_percent) // 100`. The initial bug subtracts
