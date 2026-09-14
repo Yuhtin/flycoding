@@ -13,9 +13,17 @@ import subprocess
 import numpy as np
 
 from .codex import CodexRunner, PROMPTS
+from .opencode import DEFAULT_MODEL as OPENCODE_DEFAULT_MODEL, OpenCodeRunner
 from .neural import NeuralPolicy
 from .panel import render_panel
-from .storage import ATTEMPT_ORDER, ATTEMPT_CONDITIONS, RunStore, atomic_save_json, load_json
+from .storage import (
+    ATTEMPT_ORDER,
+    ATTEMPT_CONDITIONS,
+    BudgetExceeded,
+    RunStore,
+    atomic_save_json,
+    load_json,
+)
 from .task import DiscountTask
 
 
@@ -68,50 +76,127 @@ def _source_checkout(source_file: Path | None = None) -> Path:
     return root
 
 
-def _settings(data_dir, model, evidence):
+def _settings(data_dir, model, evidence, backend="codex", max_calls=None):
     if not model:
-        raise ValueError("An explicit Codex model is required")
+        raise ValueError(f"An explicit {backend} model is required")
+    if backend not in {"codex", "opencode"}:
+        raise ValueError("Unknown backend")
+    if max_calls is not None and (
+        isinstance(max_calls, bool) or not isinstance(max_calls, int) or not 1 <= max_calls <= 30
+    ):
+        raise ValueError("max_calls must be an integer from 1 through 30")
     if evidence == "genuine":
         if not shutil.which("git"):
             raise RuntimeError("Required executable missing: git")
         source = _source_checkout()
         data = verify_data(data_dir)
-        for executable in ("codex", "rtk", "python", "c++"):
+        executable_names = ("codex", "rtk", "python", "c++") if backend == "codex" else ("opencode", "rtk", "python", "c++")
+        for executable in executable_names:
             if not shutil.which(executable):
                 raise RuntimeError(f"Required executable missing: {executable}")
-        version = _command_output(["codex", "--version"])
+        executable = "codex" if backend == "codex" else "opencode"
+        version = _command_output([executable, "--version"])
+        if backend == "opencode" and model != OPENCODE_DEFAULT_MODEL:
+            raise ValueError(f"OpenCode requires the pinned free model {OPENCODE_DEFAULT_MODEL}")
     else:
         data, version = {"verified": False, "label": "synthetic fixture"}, "synthetic executable fixture"
         source = Path(__file__).resolve().parents[2]
     revision = _command_output(["git", "-C", str(source), "rev-parse", "HEAD"])
     dirty = bool(_command_output(["git", "-C", str(source), "status", "--porcelain"]))
-    return {"model": model, "codex_version": version, "source_revision": revision,
-            "source_dirty": dirty, "evidence": evidence, "data": data,
-            "codex_flags": ["-a", "never", "exec", "--sandbox", "workspace-write", "--ignore-user-config", "--json", "--color", "never"],
-            "turn_deadline_seconds": 300, "evaluation_deadline_seconds": 30,
-            "decision_ms": 500, "feedback_ms": 200, "feedback_mV_equivalent": 20,
-            "threshold_hz": 2, "random_seeds": {"random-1": 1729, "random-2": 1730}}
+    settings = {
+        "model": model,
+        "backend": backend,
+        "max_calls": max_calls,
+        "source_revision": revision,
+        "source_dirty": dirty,
+        "evidence": evidence,
+        "data": data,
+        "turn_deadline_seconds": 300,
+        "evaluation_deadline_seconds": 30,
+        "decision_ms": 500,
+        "feedback_ms": 200,
+        "feedback_mV_equivalent": 20,
+        "threshold_hz": 2,
+        "random_seeds": {"random-1": 1729, "random-2": 1730},
+    }
+    if backend == "codex":
+        settings.update(
+            codex_version=version,
+            codex_flags=[
+                "-a",
+                "never",
+                "exec",
+                "--sandbox",
+                "workspace-write",
+                "--ignore-user-config",
+                "--json",
+                "--color",
+                "never",
+            ],
+        )
+    else:
+        settings.update(
+            backend_version=version,
+            opencode_flags=[
+                "run",
+                "--pure",
+                "--format",
+                "json",
+                "--model",
+                model,
+                "--title",
+                "flycodex-task",
+                "--dir",
+                "<workspace>",
+                "--session",
+                "<explicit-session-only>",
+            ],
+            opencode_config_policy={
+                "share": "disabled",
+                "project_config": "disabled",
+                "external_skills": "disabled",
+                "default_plugins": "disabled",
+                "permissions": "workspace-read-discount-edit-test-command",
+                "os_sandbox": "process-group-cleanup",
+            },
+        )
+    return settings
 
 
 def _budget(store):
     records = list(store.snapshot()["reservations"].values())
-    return {"used": len(records), "limit": 30, "remaining": 30 - len(records),
+    total_limit = store.total_limit
+    return {"used": len(records), "limit": total_limit if total_limit < 30 else 30,
+            "global_limit": 30, "total_limit": total_limit,
+            "remaining": total_limit - len(records),
             "per_attempt_limit": 5, "per_condition_limit": 10,
             "conditions": {name: sum(r["condition"] == name for r in records) for name in ("adaptive", "frozen", "random")}}
 
 
 class Pilot:
     def __init__(self, run_dir: Path, data_dir: Path, *, model: str,
-                 evidence="genuine", policy_factory=None, runner_factory=None, task_factory=None):
+                 backend="codex", max_calls=None, evidence="genuine",
+                 policy_factory=None, runner_factory=None, task_factory=None):
         if evidence not in {"genuine", "synthetic"}:
             raise ValueError("Unknown evidence type")
         if evidence != "synthetic" and any((policy_factory, runner_factory, task_factory)):
             raise ValueError("Injected boundaries must be labeled synthetic")
+        if backend not in {"codex", "opencode"}:
+            raise ValueError("Unknown backend")
+        if max_calls is not None and (
+            isinstance(max_calls, bool) or not isinstance(max_calls, int) or not 1 <= max_calls <= 30
+        ):
+            raise ValueError("max_calls must be an integer from 1 through 30")
         self.root = Path(run_dir).expanduser().resolve()
         self.data_dir = Path(data_dir).expanduser().resolve()
-        self.model, self.evidence = model, evidence
+        self.model, self.backend, self.max_calls, self.evidence = model, backend, max_calls, evidence
         self.policy_factory = policy_factory or NeuralPolicy
-        self.runner_factory = runner_factory or (lambda workspace, model: CodexRunner(workspace, model=model))
+        if runner_factory is not None:
+            self.runner_factory = runner_factory
+        elif backend == "opencode":
+            self.runner_factory = lambda workspace, model: OpenCodeRunner(workspace, model=model)
+        else:
+            self.runner_factory = lambda workspace, model: CodexRunner(workspace, model=model)
         self.task_factory = task_factory or DiscountTask
         self.state = None
 
@@ -139,11 +224,16 @@ class Pilot:
                 "png_sha256": hashlib.sha256(target.read_bytes()).hexdigest()}
 
     def run(self, *, stop_after_attempts=None):
-        settings = _settings(self.data_dir, self.model, self.evidence)
+        settings = _settings(
+            self.data_dir, self.model, self.evidence, self.backend, self.max_calls
+        )
         with RunStore(self.root) as store:
             if store.manifest_path.exists():
                 original = load_json(store.manifest_path)["settings"]
-                if original != settings:
+                comparable = dict(original)
+                comparable.setdefault("backend", "codex")
+                comparable.setdefault("max_calls", None)
+                if comparable != settings:
                     raise ValueError("Run settings/provenance changed; existing run cannot be resumed")
             else:
                 store.initialize(settings)
@@ -171,6 +261,10 @@ class Pilot:
             for name in ATTEMPT_ORDER:
                 if name in self.state["attempts"]:
                     continue
+                if len(store.snapshot()["reservations"]) >= store.total_limit:
+                    self.state["status"] = "budget_exhausted"
+                    self._persist(store, "budget_exhausted")
+                    return self.state
                 attempt = {"id": name, "condition": ATTEMPT_CONDITIONS[name], "status": "running",
                            "phase": "reset_start", "turns": [], "session_id": None}
                 self.state["attempts"][name] = attempt
@@ -178,6 +272,12 @@ class Pilot:
                 self._persist(store, "reset_start", attempt=name)
                 try:
                     self._attempt(store, attempt)
+                except BudgetExceeded:
+                    attempt["status"] = "budget_exhausted"
+                    self._phase(store, attempt, "complete")
+                    self.state["status"] = "budget_exhausted"
+                    self._persist(store, "budget_exhausted")
+                    return self.state
                 except RecoveryError as exc:
                     self.state.update(status="recovery_error", error=str(exc))
                     attempt.update(status="recovery_error", error=str(exc))
@@ -269,6 +369,7 @@ class Pilot:
                 outcome = runner.run(turn["prompt"], attempt["session_id"], on_event)
                 self.state["busy"] = False
                 turn["codex"] = outcome
+                turn["backend"] = self.backend
                 attempt["session_id"] = outcome["session_id"]
                 self._phase(store, attempt, "turn_settled")
                 if outcome["status"] != "completed":
@@ -333,9 +434,12 @@ def write_report(run_dir: Path, output_dir: Path) -> dict:
     state = load_json(Path(run_dir) / "public/snapshot.json")
     settings = state["settings"]
     report = {"evidence": state["evidence"], "status": state["status"], "budget": state["budget"],
-              "model": settings["model"], "codex_version": settings["codex_version"],
+              "model": settings["model"], "backend": settings.get("backend", "codex"),
+              "backend_version": settings.get("backend_version", settings.get("codex_version")),
               "source_revision": settings["source_revision"], "source_dirty": settings["source_dirty"],
               "attempts": {}, "limitations": "Six attempts measure mechanism operation only; they do not demonstrate task learning, generalization, statistical significance, language ability or cognition."}
+    if report["backend"] == "codex":
+        report["codex_version"] = settings.get("codex_version", report["backend_version"])
     if state.get("error"):
         report["error"] = state["error"]
     for name in ATTEMPT_ORDER:

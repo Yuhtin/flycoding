@@ -156,6 +156,23 @@ def test_genuine_settings_reject_an_installed_package_before_data_or_codex(tmp_p
     assert "git clone https://github.com/Yuhtin/flycodex" in str(error.value)
 
 
+def test_backend_settings_keep_opencode_provenance_separate_from_codex(tmp_path):
+    settings = pilot_module._settings(
+        tmp_path / "missing-data",
+        "opencode/muse-spark-1.3-contributor-free",
+        "synthetic",
+        backend="opencode",
+        max_calls=3,
+    )
+
+    assert settings["backend"] == "opencode"
+    assert settings["backend_version"] == "synthetic executable fixture"
+    assert settings["opencode_flags"][0:5] == ["run", "--pure", "--format", "json", "--model"]
+    assert settings["opencode_config_policy"]["share"] == "disabled"
+    assert "codex_version" not in settings
+    assert "codex_flags" not in settings
+
+
 def test_noop_exhausts_equal_budgets_and_reuses_only_own_session(tmp_path, controlled_codex):
     root = tmp_path / "fixture_noop"
     result = synthetic_pilot(root, controlled_codex).run()
@@ -285,3 +302,67 @@ def test_history_preserves_each_turns_own_codex_response(tmp_path, controlled_co
         assert turn["events"][0]["thread_id"] == "synthetic-" + name
         assert turn["events"][-1]["type"] == "turn.completed"
         assert turn["events"][1]["item"]["text"].startswith("<script>")
+
+
+def test_opencode_total_cap_stops_before_a_fourth_submission(tmp_path):
+    calls = []
+
+    class FakeOpenCode:
+        def __init__(self, workspace, model):
+            self.model = model
+
+        def run(self, prompt, session_id, on_event):
+            calls.append((prompt, session_id, self.model))
+            on_event({
+                "backend": "opencode",
+                "source": "opencode.run.jsonl",
+                "kind": "step_finish",
+                "session_id": "oc-session",
+                "raw_type": "step_finish",
+                "raw": {"type": "step_finish", "sessionID": "oc-session", "part": {"reason": "stop"}},
+            })
+            return {"session_id": "oc-session", "status": "completed", "usage": {}, "error": None}
+
+    pilot = Pilot(
+        tmp_path / "run",
+        tmp_path / "unused-data",
+        model="free",
+        backend="opencode",
+        max_calls=3,
+        evidence="synthetic",
+        policy_factory=SyntheticPolicy,
+        runner_factory=FakeOpenCode,
+    )
+    result = pilot.run()
+
+    assert len(calls) == 3
+    assert result["status"] == "budget_exhausted"
+    assert result["budget"]["used"] == 3
+    assert result["budget"]["total_limit"] == 3
+    assert result["settings"]["backend"] == "opencode"
+
+
+def test_opencode_resume_rejects_changed_model_or_cap(tmp_path):
+    class FakeOpenCode:
+        def __init__(self, workspace, model):
+            pass
+
+        def run(self, prompt, session_id, on_event):
+            return {"session_id": "oc-session", "status": "failed", "usage": {}, "error": "fixture"}
+
+    kwargs = {
+        "model": "free",
+        "backend": "opencode",
+        "max_calls": 3,
+        "evidence": "synthetic",
+        "policy_factory": SyntheticPolicy,
+        "runner_factory": FakeOpenCode,
+    }
+    Pilot(tmp_path / "run", tmp_path / "unused-data", **kwargs).run(stop_after_attempts=1)
+
+    with pytest.raises(ValueError, match="settings/provenance"):
+        Pilot(
+            tmp_path / "run",
+            tmp_path / "unused-data",
+            **{**kwargs, "model": "other"},
+        ).run()

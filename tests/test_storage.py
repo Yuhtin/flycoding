@@ -162,3 +162,38 @@ def test_unknown_attempt_cannot_reserve_budget(tmp_path):
         store.initialize({})
         with pytest.raises(ValueError, match="unknown attempt"):
             store.reserve("adaptive-user-input")
+
+
+def test_opencode_total_cap_counts_pending_and_failed_reservations_across_reopen(tmp_path):
+    with RunStore(tmp_path) as store:
+        store.initialize({"backend": "opencode", "model": "free", "max_calls": 3})
+        first = store.reserve("adaptive-1")
+        store.complete(first, {"status": "failed", "error": "provider"})
+        store.reserve("adaptive-1")
+        store.reserve("adaptive-1")
+        with pytest.raises(BudgetExceeded, match="total"):
+            store.reserve("frozen-1")
+
+    with RunStore(tmp_path) as reopened:
+        assert reopened.snapshot()["reservations"]
+        with pytest.raises(BudgetExceeded, match="total"):
+            reopened.reserve("frozen-1")
+
+
+def test_opencode_backend_model_and_cap_are_immutable_on_resume(tmp_path):
+    with RunStore(tmp_path) as store:
+        store.initialize({"backend": "opencode", "model": "free", "max_calls": 3})
+        store.reserve("adaptive-1")
+
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    manifest["settings"]["max_calls"] = 30
+    (tmp_path / "manifest.json").write_text(json.dumps(manifest))
+    with pytest.raises(StoreCorrupt, match="total"):
+        RunStore(tmp_path)
+
+
+def test_run_store_rejects_an_invalid_total_cap_before_persisting(tmp_path):
+    with pytest.raises(StoreCorrupt, match="max_calls"):
+        with RunStore(tmp_path) as store:
+            store.initialize({"backend": "opencode", "model": "free", "max_calls": 0})
+    assert not (tmp_path / "manifest.json").exists()

@@ -24,7 +24,9 @@ def main(argv=None):
         if name in {"run", "status", "serve", "report"}:
             command.add_argument("--run-dir", type=Path, default=Path("runs/pilot"))
         if name == "run":
-            command.add_argument("--model", default="gpt-6-astra", help="Model fixed before the first submission (default: gpt-6-astra)")
+            command.add_argument("--backend", choices=("codex", "opencode"), default="codex")
+            command.add_argument("--model", help="Model fixed before the first submission")
+            command.add_argument("--max-calls", type=int, help="Durable total submission cap")
             command.add_argument("--stop-after-attempts", type=int, choices=range(1, 7), help="Stop at a safe attempt boundary in this run")
         if name in {"probe", "report"}:
             command.add_argument("--output-dir", type=Path, default=Path("runs/probe" if name == "probe" else "docs/results"))
@@ -43,7 +45,15 @@ def main(argv=None):
             result = probe(args.data_dir, args.output_dir)
         elif args.command == "run":
             from .pilot import Pilot
-            result = Pilot(args.run_dir, args.data_dir, model=args.model).run(stop_after_attempts=args.stop_after_attempts)
+            from .opencode import DEFAULT_MODEL
+            model = args.model or (DEFAULT_MODEL if args.backend == "opencode" else "gpt-6-astra")
+            result = Pilot(
+                args.run_dir,
+                args.data_dir,
+                model=model,
+                backend=args.backend,
+                max_calls=args.max_calls,
+            ).run(stop_after_attempts=args.stop_after_attempts)
         elif args.command == "status":
             result = load_json(args.run_dir / "public/snapshot.json")
         elif args.command == "report":

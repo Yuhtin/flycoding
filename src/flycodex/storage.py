@@ -79,14 +79,18 @@ def atomic_save_json(path: Path, value: Any) -> None:
 
 
 def _canonical_manifest(settings: dict[str, Any]) -> dict[str, Any]:
+    max_calls = settings.get("max_calls")
+    limits = {
+        "global": GLOBAL_LIMIT,
+        "attempt": ATTEMPT_LIMIT,
+        "condition": CONDITION_LIMIT,
+    }
+    if max_calls is not None:
+        limits["total"] = max_calls
     return {
         "version": 1,
         "settings": deepcopy(settings),
-        "limits": {
-            "global": GLOBAL_LIMIT,
-            "attempt": ATTEMPT_LIMIT,
-            "condition": CONDITION_LIMIT,
-        },
+        "limits": limits,
         "attempt_order": list(ATTEMPT_ORDER),
         "attempts": {
             attempt: {"condition": ATTEMPT_CONDITIONS[attempt]}
@@ -98,24 +102,45 @@ def _canonical_manifest(settings: dict[str, Any]) -> dict[str, Any]:
 def _validate_manifest(manifest: Any) -> None:
     if not isinstance(manifest, dict) or manifest.get("version") != 1:
         raise StoreCorrupt("unsupported manifest version")
-    if manifest.get("limits") != _canonical_manifest({})["limits"]:
-        raise StoreCorrupt("manifest limits differ from the fixed pilot limits")
+    settings = manifest.get("settings")
+    if not isinstance(settings, dict):
+        raise StoreCorrupt("manifest settings must be an object")
+    if "backend" in settings and settings["backend"] not in {"codex", "opencode"}:
+        raise StoreCorrupt("manifest backend is invalid")
+    if "model" in settings and (
+        not isinstance(settings["model"], str) or not settings["model"]
+    ):
+        raise StoreCorrupt("manifest model is invalid")
+    max_calls = settings.get("max_calls")
+    if max_calls is not None and (
+        isinstance(max_calls, bool)
+        or not isinstance(max_calls, int)
+        or not 1 <= max_calls <= GLOBAL_LIMIT
+    ):
+        raise StoreCorrupt("manifest total max_calls is invalid")
+    expected_limits = _canonical_manifest(settings)["limits"]
+    if manifest.get("limits") != expected_limits:
+        raise StoreCorrupt("manifest limits differ from the fixed pilot limits or total cap")
     if manifest.get("attempt_order") != list(ATTEMPT_ORDER):
         raise StoreCorrupt("manifest attempt order differs from the fixed pilot allocation")
     if manifest.get("attempts") != _canonical_manifest({})["attempts"]:
         raise StoreCorrupt("manifest condition allocation differs from the fixed pilot allocation")
-    if not isinstance(manifest.get("settings"), dict):
-        raise StoreCorrupt("manifest settings must be an object")
 
 
-def _validate_state(state: Any) -> None:
+def _validate_state(state: Any, manifest: dict[str, Any] | None = None) -> None:
     if not isinstance(state, dict) or state.get("version") != 1:
         raise StoreCorrupt("unsupported state version")
     reservations = state.get("reservations")
     if not isinstance(reservations, dict):
         raise StoreCorrupt("state reservations must be an object")
-    if len(reservations) > GLOBAL_LIMIT:
-        raise StoreCorrupt("state exceeds the fixed global budget")
+    if manifest is not None and "configuration" in state:
+        if state["configuration"] != manifest["settings"]:
+            raise StoreCorrupt("state configuration does not match the manifest")
+    total_limit = GLOBAL_LIMIT
+    if manifest is not None:
+        total_limit = manifest["limits"].get("total", GLOBAL_LIMIT)
+    if len(reservations) > total_limit:
+        raise StoreCorrupt("state exceeds the persisted total budget")
     attempt_counts = {attempt: 0 for attempt in ATTEMPT_ORDER}
     condition_counts = {condition: 0 for condition in set(ATTEMPT_CONDITIONS.values())}
     for send_id, reservation in reservations.items():
@@ -166,7 +191,7 @@ class RunStore:
             self._state = load_json(self.state_path) if state_exists else None
             if self._manifest is not None:
                 _validate_manifest(self._manifest)
-                _validate_state(self._state)
+                _validate_state(self._state, self._manifest)
         except Exception:
             self.close()
             raise
@@ -210,9 +235,14 @@ class RunStore:
         if not isinstance(settings, dict):
             raise TypeError("settings must be a dictionary")
         if self._state is not None and self._state["reservations"]:
-            raise ValueError("settings cannot change after the first reservation")
+            if self._manifest is not None and self._manifest["settings"] != settings:
+                raise ValueError("settings cannot change after the first reservation")
+        elif self._manifest is not None and self._manifest["settings"] != settings:
+            raise ValueError("settings cannot change after initialization")
         manifest = _canonical_manifest(settings)
+        _validate_manifest(manifest)
         state = self._state or {"version": 1, "reservations": {}}
+        state["configuration"] = deepcopy(settings)
         atomic_save_json(self.manifest_path, manifest)
         atomic_save_json(self.state_path, state)
         self._manifest = manifest
@@ -224,13 +254,25 @@ class RunStore:
         if self._manifest is None or self._state is None:
             raise RuntimeError("run store has not been initialized")
 
+    @property
+    def total_limit(self) -> int:
+        self._require_initialized()
+        return self._manifest["limits"].get("total", GLOBAL_LIMIT)
+
+    @property
+    def settings(self) -> dict[str, Any]:
+        self._require_initialized()
+        return deepcopy(self._manifest["settings"])
+
     def reserve(self, attempt: str) -> str:
         """Durably consume one send before a Codex submission begins."""
         self._require_initialized()
         if attempt not in self._manifest["attempts"]:
             raise ValueError(f"unknown attempt: {attempt}")
         reservations = self._state["reservations"]
-        if len(reservations) >= GLOBAL_LIMIT:
+        if len(reservations) >= self.total_limit:
+            if self.total_limit < GLOBAL_LIMIT:
+                raise BudgetExceeded("total send budget exhausted")
             raise BudgetExceeded("global send budget exhausted")
         condition = self._manifest["attempts"][attempt]["condition"]
         condition_count = sum(

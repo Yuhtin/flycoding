@@ -84,6 +84,72 @@ class CodexRunner:
         arguments.append("-")
         return arguments
 
+    @property
+    def _runner_name(self) -> str:
+        return "Codex"
+
+    def _new_event_state(self, session_id: str | None) -> dict[str, Any]:
+        return {
+            "reported_session": session_id,
+            "usage": {},
+            "turn_completed": False,
+            "turn_error": None,
+        }
+
+    def _normalize_event(
+        self,
+        event: dict[str, Any],
+        stream_name: str,
+        state: dict[str, Any],
+    ) -> dict[str, Any]:
+        event_type = event.get("type")
+        if event_type == "thread.started" and isinstance(
+            event.get("thread_id"), str
+        ):
+            state["reported_session"] = event["thread_id"]
+        elif event_type == "turn.completed":
+            state["turn_completed"] = True
+            if isinstance(event.get("usage"), dict):
+                state["usage"] = event["usage"]
+        elif event_type in {"turn.failed", "error"}:
+            state["turn_error"] = _event_error(event.get("error", event))
+        return event
+
+    def _final_result(
+        self,
+        state: dict[str, Any],
+        return_code: int,
+        cancelled: bool,
+        timed_out: bool,
+        callback_error: Exception | None,
+    ) -> dict[str, Any]:
+        if callback_error is not None and state["turn_error"] is None:
+            state["turn_error"] = f"event callback failed: {callback_error}"
+        if cancelled:
+            status = "cancelled"
+            error = f"{self._runner_name} turn was cancelled"
+        elif timed_out:
+            status = "timed_out"
+            error = f"{self._runner_name} turn exceeded {self.timeout} seconds"
+        elif return_code != 0 or state["turn_error"] is not None:
+            status = "failed"
+            error = state["turn_error"] or f"{self._runner_name} exited with status {return_code}"
+        elif not state["turn_completed"]:
+            status = "failed"
+            error = f"{self._runner_name} exited without a turn.completed event"
+        elif state["reported_session"] is None:
+            status = "failed"
+            error = f"{self._runner_name} did not report a session ID"
+        else:
+            status = "completed"
+            error = None
+        return {
+            "session_id": state["reported_session"],
+            "status": status,
+            "usage": state["usage"],
+            "error": error,
+        }
+
     @staticmethod
     def _environment() -> dict[str, str]:
         environment = os.environ.copy()
@@ -264,14 +330,11 @@ class CodexRunner:
                     "session_id": session_id,
                     "status": "failed",
                     "usage": {},
-                    "error": f"could not start Codex: {exc}",
+                    "error": f"could not start {self._runner_name}: {exc}",
                 }
             cancelled_before_submit = self._publish_process(process)
 
-            reported_session = session_id
-            usage: dict[str, Any] = {}
-            turn_completed = False
-            turn_error: str | None = None
+            event_state = self._new_event_state(session_id)
             callback_error: Exception | None = None
             timed_out = False
             event_queue: queue.Queue[object] = queue.Queue()
@@ -280,23 +343,15 @@ class CodexRunner:
             event_file = self.events_path.open("a")
 
             def emit(event: dict[str, Any]) -> None:
-                nonlocal reported_session, usage, turn_completed, turn_error, callback_error
-                event_file.write(json.dumps(event, sort_keys=True) + "\n")
+                nonlocal callback_error
+                delivered = self._normalize_event(
+                    event, event.get("stream", "stdout"), event_state
+                )
+                event_file.write(json.dumps(delivered, sort_keys=True) + "\n")
                 event_file.flush()
                 os.fsync(event_file.fileno())
-                event_type = event.get("type")
-                if event_type == "thread.started" and isinstance(
-                    event.get("thread_id"), str
-                ):
-                    reported_session = event["thread_id"]
-                elif event_type == "turn.completed":
-                    turn_completed = True
-                    if isinstance(event.get("usage"), dict):
-                        usage = event["usage"]
-                elif event_type in {"turn.failed", "error"}:
-                    turn_error = _event_error(event.get("error", event))
                 try:
-                    on_event(event)
+                    on_event(delivered)
                 except Exception as exc:
                     callback_error = exc
 
@@ -374,32 +429,13 @@ class CodexRunner:
             return_code = process.wait()
             with self._state_changed:
                 cancelled = self._cancel_requested
-            if callback_error is not None and turn_error is None:
-                turn_error = f"event callback failed: {callback_error}"
-            if cancelled:
-                status = "cancelled"
-                error = "Codex turn was cancelled"
-            elif timed_out:
-                status = "timed_out"
-                error = f"Codex turn exceeded {self.timeout} seconds"
-            elif return_code != 0 or turn_error is not None:
-                status = "failed"
-                error = turn_error or f"Codex exited with status {return_code}"
-            elif not turn_completed:
-                status = "failed"
-                error = "Codex exited without a turn.completed event"
-            elif session_id is None and reported_session is None:
-                status = "failed"
-                error = "Codex did not report a session ID"
-            else:
-                status = "completed"
-                error = None
-            return {
-                "session_id": reported_session,
-                "status": status,
-                "usage": usage,
-                "error": error,
-            }
+            return self._final_result(
+                event_state,
+                return_code,
+                cancelled,
+                timed_out,
+                callback_error,
+            )
         finally:
             if self._owns_claim(claim_token):
                 try:
