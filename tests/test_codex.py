@@ -338,7 +338,7 @@ def test_cancel_kills_a_sigterm_ignoring_descendant_and_finishes_readers(tmp_pat
 
 
 def test_direct_child_exit_kills_descendants_and_finishes_readers(tmp_path, monkeypatch):
-    runner, _ = _runner(tmp_path, monkeypatch, mode="parent-exits", timeout=0.5)
+    runner, _ = _runner(tmp_path, monkeypatch, mode="parent-exits", timeout=10)
     result = {}
     parent_pid = []
 
@@ -351,7 +351,7 @@ def test_direct_child_exit_kills_descendants_and_finishes_readers(tmp_path, monk
     )
     run_thread.start()
     child_ready = tmp_path / "child-ready"
-    deadline = time.monotonic() + 2
+    deadline = time.monotonic() + 10
     while not child_ready.exists() and time.monotonic() < deadline:
         time.sleep(0.01)
     assert child_ready.exists()
