@@ -45,17 +45,30 @@ def request(address, path, method="GET"):
 
 def test_http_only_enumerated_artifacts_and_no_mutation(dashboard):
     address, root = dashboard
-    for path in ("/", "/app.js", "/style.css", "/snapshot.json", "/images/adaptive-1-1-input.png"):
+    for path in ("/", "/observatory", "/app.js", "/style.css", "/player.css", "/player.mjs", "/player-state.mjs", "/watch/run.json", "/watch/activity.json", "/snapshot.json", "/images/adaptive-1-1-input.png"):
         status, headers, body = request(address, path)
         assert status == 200
         assert headers["X-Content-Type-Options"] == "nosniff"
         assert "default-src 'self'" in headers["Content-Security-Policy"]
-    for path in ("/../secret.txt", "/%2e%2e/secret.txt", "/secret.txt", "/images/../secret.txt", "/images/frozen-1-1-input.png", "/manifest.json", "/controller.json"):
+    for path in ("/../secret.txt", "/%2e%2e/secret.txt", "/secret.txt", "/images/../secret.txt", "/images/frozen-1-1-input.png", "/manifest.json", "/controller.json", "/watch/../snapshot.json"):
         assert request(address, path)[0] == 404
     before = (root / "public/snapshot.json").read_bytes()
     for method in ("POST", "PUT", "DELETE", "PATCH"):
         assert request(address, "/run", method)[0] == 405
     assert (root / "public/snapshot.json").read_bytes() == before
+
+
+def test_simple_player_and_advanced_observatory_have_distinct_readonly_routes(dashboard):
+    address, _ = dashboard
+    player = request(address, "/")[2]
+    observatory = request(address, "/observatory")[2]
+    assert b"id=\"play-toggle\"" in player
+    assert b"Live brain observatory" in observatory
+    run = json.loads(request(address, "/watch/run.json")[2])
+    activity = json.loads(request(address, "/watch/activity.json")[2])
+    assert run["version"] == activity["version"] == 1
+    assert run["backend"] == "opencode"
+    assert len(activity["bins"]) == 70
 
 
 def test_untrusted_text_stays_json_and_html_is_static(dashboard):
@@ -84,6 +97,13 @@ def test_dashboard_projection_and_replay():
     if not shutil.which("node"):
         pytest.skip("Node.js is required for presentation tests")
     result = subprocess.run(["node", "--test", "tests/web_presentation.mjs"], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_simple_player_state_projection():
+    if not shutil.which("node"):
+        pytest.skip("Node.js is required for player tests")
+    result = subprocess.run(["node", "--test", "tests/player_state.mjs"], capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stdout + result.stderr
 
 
