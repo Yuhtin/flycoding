@@ -241,8 +241,10 @@ export function createWorkstationView(container, options = {}) {
       renderer.setSize(width, height, false);
       cssRenderer.setSize(width, height);
       camera.aspect = width / height;
-      const narrowScale = Math.max(1, 0.9 / camera.aspect);
-      camera.position.set(5.0, -12.0, 6.0).sub(cameraTarget).multiplyScalar(narrowScale).add(cameraTarget);
+      const narrow = camera.aspect < 0.8;
+      const basePosition = narrow ? new THREE.Vector3(0.8, -15.0, 6.8) : new THREE.Vector3(5.0, -12.0, 6.0);
+      const distanceScale = narrow ? 1 : Math.max(1, 0.9 / camera.aspect);
+      camera.position.copy(basePosition).sub(cameraTarget).multiplyScalar(distanceScale).add(cameraTarget);
       camera.updateProjectionMatrix();
       requestRender();
     });
