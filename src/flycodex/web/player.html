@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Flycodex · recorded run</title>
+  <link rel="stylesheet" href="/player.css">
+  <script type="module" src="/player.mjs"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="wordmark" href="/">flycodex</a>
+    <span class="recorded-mark">RECORDED RUN</span>
+    <a class="observatory-link" href="/observatory">Details <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main>
+    <section class="hero" aria-label="Recorded run controls">
+      <div class="controls">
+        <button id="play-toggle" type="button" class="play-button" disabled aria-describedby="player-status">Play</button>
+        <span id="player-status" class="player-status" role="status">Loading the recorded run…</span>
+      </div>
+    </section>
+
+    <section id="error-panel" class="error-panel" hidden aria-live="polite">
+      <p id="error-message">The recorded run could not load.</p>
+      <button id="retry-button" type="button">Try again</button>
+    </section>
+
+    <section class="workbench" aria-label="Recorded fly decision and OpenCode response">
+      <div class="stage-wrap">
+        <div id="body-stage" class="body-stage" aria-label="Recorded flybody presentation"></div>
+        <div class="brain-inset">
+          <div class="inset-label">measured CNS</div>
+          <div id="brain-stage" aria-label="Measured recorded CNS activity"></div>
+        </div>
+        <div class="stage-caption"><span id="timeline-label">Ready</span></div>
+      </div>
+
+      <aside class="decision-panel" aria-label="Fly decision">
+        <p class="kicker amber-label">FLY DECIDED</p>
+        <div class="decision-word" id="decision-word" aria-live="polite">Press Play</div>
+        <p class="decision-text" id="decision-text" hidden></p>
+      </aside>
+
+      <section class="conversation-panel" aria-labelledby="conversation-title">
+        <div class="conversation-head">
+          <div>
+            <h2 id="conversation-title">OpenCode</h2>
+          </div>
+          <span id="run-model" class="model-label">Muse Spark</span>
+        </div>
+        <div id="conversation" class="conversation" tabindex="0" aria-live="polite" aria-label="Recorded OpenCode output">
+          <p class="conversation-empty">Output appears after the fly chooses.</p>
+        </div>
+        <div id="result-line" class="result-line" data-kind="result" hidden aria-live="polite"></div>
+      </section>
+    </section>
+
+    <details id="details" class="details">
+      <summary>About this recording</summary>
+      <p id="provenance-copy">Measured neural activity and the OpenCode response come from one preserved run. Play does not start a coding backend.</p>
+      <p>Model: <code id="recording-model">opencode/muse-spark-1.3-contributor-free</code></p>
+      <p><a href="/observatory">Open the full observatory</a> for live lab, coding observer, and archive views.</p>
+    </details>
+  </main>
+</body>
+</html>
