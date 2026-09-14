@@ -11,7 +11,7 @@
 
 - All agents gpt-5.6-luna, per explicit user instruction (overrides skill tier suggestions).
 - All shell commands start rtk; work only in isolated flycodex-brain checkout.
-- Original /Users/daviduarte/development/flycodex/runs/pilot and source data read-only. Prepared data may be read for real neural validation; runtime build caches only if code hash already matches, otherwise use owned cache/data links safely.
+- Original main-checkout `runs/pilot` and source `data/` remain read-only. Prepared data may be read for real neural validation; runtime build caches only if code hash already matches, otherwise use owned cache/data links safely.
 - No actual Codex calls while implementing/testing. Synthetic coding boundary only. No original pilot resume.
 - English UI/docs; numerical invariance; original hashes/records preserved; no fake brain activity.
 - One implementing agent at a time; independent read-only research may overlap. Root owns docs/results/media and release integration.
