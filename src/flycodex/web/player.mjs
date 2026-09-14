@@ -20,6 +20,9 @@ let lastMeasuredHud = null;
 let rasterIndexSubset = [];
 let userAtConversationEnd = true;
 let workstation;
+let rasterContext;
+
+const RASTER_BACKGROUND = '#0b1718';
 
 function setText(id, value) {
   const node = byId(id);
@@ -49,18 +52,25 @@ function phaseLabel(phase) {
 }
 
 function clearRaster() {
-  raster.getContext('2d')?.clearRect(0, 0, raster.width, raster.height);
+  if (!rasterContext) return;
+  rasterContext.fillStyle = RASTER_BACKGROUND;
+  rasterContext.fillRect(0, 0, raster.width, raster.height);
 }
 
 function createRaster() {
   raster.width = 280;
   raster.height = 72;
+  rasterContext = raster.getContext('2d', {alpha: false});
+  if (rasterContext) {
+    rasterContext.imageSmoothingEnabled = false;
+    clearRaster();
+  }
 }
 
 function renderRaster(columns) {
-  const context = raster.getContext('2d');
+  const context = rasterContext;
   if (!context) return;
-  context.clearRect(0, 0, raster.width, raster.height);
+  clearRaster();
   if (!columns.length) return;
   const columnWidth = raster.width / Math.max(70, columns.length);
   const rowHeight = raster.height / RASTER_CELLS;

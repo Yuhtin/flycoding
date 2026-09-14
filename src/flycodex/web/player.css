@@ -68,7 +68,7 @@ button { font: inherit; }
 .hud-metrics div { min-width: 0; }
 .hud-metrics strong { display: block; color: #edf2e8; font-size: 17px; font-weight: 650; }
 .hud-metrics span { color: #94a49e; font-size: 10px; }
-.neural-raster { display: block; width: 280px; height: 72px; max-width: 100%; image-rendering: pixelated; background: rgba(114, 228, 229, .04); }
+.neural-raster { display: block; width: 280px; height: 72px; max-width: 100%; image-rendering: pixelated; background: #0b1718; }
 .raster-caption { margin-top: 9px; }
 .details { position: fixed; z-index: 20; right: 28px; bottom: 26px; width: min(350px, calc(100% - 56px)); color: #a7b3af; font-size: 12px; line-height: 1.5; }
 .details summary { width: fit-content; margin-left: auto; cursor: pointer; color: #c2ceca; }
