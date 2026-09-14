@@ -5,6 +5,7 @@ import {
   frameFor,
   reducePlayerState,
   validatePayload,
+  viewReadiness,
 } from '../src/flycodex/web/player-state.mjs';
 
 const run = {
@@ -90,4 +91,12 @@ test('error and retry states never expose stale recorded output', () => {
   state = reducePlayerState(state, {type: 'RETRY'});
   assert.equal(state.status, 'loading');
   assert.equal(state.run, null);
+});
+
+test('view readiness accepts only explicit success and classifies renderer failures', () => {
+  assert.equal(viewReadiness('Flybody ready · procedural motion'), 'ready');
+  assert.equal(viewReadiness('Source CNS ready · 139,662 positioned'), 'ready');
+  assert.equal(viewReadiness('The flybody model could not load. Reload to retry.'), 'error');
+  assert.equal(viewReadiness('3D brain view unavailable: WebGL could not start.'), 'error');
+  assert.equal(viewReadiness('Loading source CNS anatomy…'), 'loading');
 });

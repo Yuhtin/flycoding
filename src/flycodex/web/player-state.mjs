@@ -3,6 +3,13 @@ const PHASES = new Set(['choice', 'execution', 'feedback']);
 
 const finite = value => Number.isFinite(value);
 
+export function viewReadiness(message) {
+  const text = String(message || '').toLowerCase();
+  if (/\bready\b/.test(text)) return 'ready';
+  if (/unavailable|could not load|could not start|interrupted/.test(text)) return 'error';
+  return 'loading';
+}
+
 export function validatePayload(run, activity, expectedOrderHash = null) {
   if (!run || run.version !== 1 || run.backend !== 'opencode') return {ok: false, reason: 'Recorded run metadata is unavailable.'};
   if (!run.model || !run.source_revision || !finite(run.duration_ms) || run.duration_ms <= 0) return {ok: false, reason: 'Recorded run timing is unavailable.'};

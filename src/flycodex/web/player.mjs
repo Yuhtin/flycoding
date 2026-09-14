@@ -1,6 +1,6 @@
 import {createBodyView} from '/body-view.js';
 import {createBrainView} from '/brain-view.js';
-import {buttonLabel, createPlayerState, frameFor, reducePlayerState, validatePayload} from './player-state.mjs';
+import {buttonLabel, createPlayerState, frameFor, reducePlayerState, validatePayload, viewReadiness} from './player-state.mjs';
 
 const byId = id => document.getElementById(id);
 const bodyStage = byId('body-stage');
@@ -27,18 +27,23 @@ function setText(id, value) {
   if (node && node.textContent !== String(value)) node.textContent = String(value);
 }
 
-function statusReady(message) {
-  return /ready|unavailable|could not load|could not start|interrupted/.test(String(message).toLowerCase());
-}
-
 function syncPlayAvailability() {
   const available = Boolean(state.run && state.activity && bodyReady && brainReady);
   playButton.disabled = state.status === 'loading' || state.status === 'error' || !available;
   playButton.textContent = buttonLabel(state);
+  if (available && state.status === 'ready') setStatus('Ready · one recorded run');
 }
 
 function setStatus(message) {
   setText('player-status', message);
+}
+
+function showViewError(message) {
+  state = reducePlayerState(state, {type: 'ERROR', message});
+  setText('error-message', message);
+  setText('retry-button', 'Reload page');
+  byId('error-panel').hidden = false;
+  render();
 }
 
 function phaseLabel(phase) {
@@ -209,19 +214,27 @@ async function loadPayload() {
 }
 
 playButton.addEventListener('click', onPlay);
-byId('retry-button').addEventListener('click', () => { byId('error-panel').hidden = true; loadPayload(); });
+byId('retry-button').addEventListener('click', () => {
+  if (byId('retry-button').textContent === 'Reload page') { location.reload(); return; }
+  byId('error-panel').hidden = true;
+  loadPayload();
+});
 conversation.addEventListener('scroll', () => {
   userAtConversationEnd = conversation.scrollHeight - conversation.scrollTop - conversation.clientHeight < 24;
 });
 prefersReducedMotion.addEventListener('change', () => updateBody(frameFor(state).phase));
 
 body = createBodyView(bodyStage, {onStatus(message) {
-  bodyReady ||= statusReady(message);
+  const readiness = viewReadiness(message);
+  if (readiness === 'ready') bodyReady = true;
+  if (readiness === 'error') { bodyReady = false; showViewError('Flybody view unavailable. Reload to retry.'); return; }
   if (message) bodyStage.setAttribute('aria-label', `Recorded flybody presentation. ${message}`);
   syncPlayAvailability();
 }});
 brain = createBrainView(brainStage, {onStatus(message) {
-  brainReady ||= statusReady(message);
+  const readiness = viewReadiness(message);
+  if (readiness === 'ready') brainReady = true;
+  if (readiness === 'error') { brainReady = false; showViewError('CNS view unavailable. Reload to retry.'); return; }
   syncPlayAvailability();
 }, onReady(info) {
   brainReady = true;
