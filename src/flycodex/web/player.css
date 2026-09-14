@@ -85,8 +85,8 @@ h2 { margin-bottom: 0; font-size: 21px; letter-spacing: -.03em; font-weight: 640
   .play-button { min-height: 48px; }
   .workbench { display: flex; flex-direction: column; gap: 13px; }
   .stage-wrap { min-height: 220px; border-radius: 16px; }
-  .body-stage { inset: 14px 4% 34px; }
-  .brain-inset { top: 12px; right: 12px; width: 42%; height: 122px; }
+  .body-stage { inset: 14px 31% 34px 4%; }
+  .brain-inset { top: 12px; right: 12px; width: 32%; height: 122px; }
   .stage-caption { right: 14px; bottom: 12px; left: 14px; font-size: 11px; }
   .decision-panel { min-height: 0; padding: 18px 20px; }
   .decision-word { font-size: 38px; }
