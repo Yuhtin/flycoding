@@ -40,7 +40,9 @@ if mode in {"child-delay", "parent-exits"}:
     child_source = (
         "import os, signal, time; "
         "signal.signal(signal.SIGTERM, signal.SIG_IGN); "
-        f"open({child_ready!r}, 'w').write(str(os.getpid())); "
+        f"ready_tmp = {str(child_ready) + '.tmp'!r}; "
+        "handle = open(ready_tmp, 'w'); handle.write(str(os.getpid())); handle.close(); "
+        f"os.replace(ready_tmp, {str(child_ready)!r}); "
         "time.sleep(30)"
     )
     subprocess.Popen([sys.executable, "-c", child_source])
