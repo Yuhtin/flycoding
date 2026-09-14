@@ -111,14 +111,19 @@ def _valid_activity(document):
         return False
     if {key: window.get(key) for key in identity[:5]} != {key: document.get(key) for key in identity[:5]}:
         return False
-    if window.get("status") != status or not _is_int(window.get("window_ms")) or window["window_ms"] not in {200, 500}:
+    expected_window_ms = 500 if document["phase"] == "choice" else 200
+    if (
+        window.get("status") != status
+        or not _is_int(window.get("window_ms"))
+        or window["window_ms"] != expected_window_ms
+    ):
         return False
     events = window.get("events")
     if not isinstance(events, list):
         return False
     if status != "error" and not events:
         return False
-    if events and events[0].get("type") != "start":
+    if events and (not isinstance(events[0], dict) or events[0].get("type") != "start"):
         return False
     previous = 0
     expected_bin_start = None

@@ -251,12 +251,12 @@ def test_activity_reader_rejects_malformed_shape_with_or_without_cursor(tmp_path
 
 
 def test_activity_reader_rejects_impossible_state_machine_and_hash(tmp_path):
-    start = {"seq": 1, "type": "start", "window_ms": 200}
+    start = {"seq": 1, "type": "start", "window_ms": 500}
     measured = {"seq": 2, "type": "bin", "start_ms": 500.0, "end_ms": 510.0,
                 "indices": [1], "counts": [2], "total_spikes": 2}
     end = {"seq": 3, "type": "end", "choice": {"action": "fix"}}
 
-    def document(events, *, status="complete", available=True, order="a" * 64, window_ms=200):
+    def document(events, *, status="complete", available=True, order="a" * 64, window_ms=500):
         return {
             "schema_version": 1, "available": available, "status": status,
             "run": "r", "attempt": "a", "turn": 1, "phase": "choice", "window_id": "w",
@@ -270,7 +270,13 @@ def test_activity_reader_rejects_impossible_state_machine_and_hash(tmp_path):
         document([measured], status="running", available=True),
         document([start, {**measured, "end_ms": 501.0}, end]),
         document([start, measured, end], order="order-hash"),
+        document([start, measured, end], window_ms=200),
+        document([1], status="running", available=True),
     ]
+    wrong_feedback = document([start, measured, end])
+    wrong_feedback["phase"] = "feedback"
+    wrong_feedback["window"]["phase"] = "feedback"
+    invalid.append(wrong_feedback)
     public = tmp_path / "public"
     public.mkdir()
     for value in invalid:
