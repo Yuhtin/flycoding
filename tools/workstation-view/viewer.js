@@ -200,10 +200,12 @@ export function createWorkstationView(container, options = {}) {
     });
   }
 
-  function applyTypingMotion(seconds) {
-    if (!typingLegs) return;
+  function applyTypingMotion(seconds, typing) {
+    if (!typingLegs || !typing?.active) return;
+    const cadence = Number.isFinite(typing.cadence) && typing.cadence > 0 ? typing.cadence : 1;
+    const activeSide = Math.floor(seconds * cadence * 2.4) % 2;
     for (const [side, chain] of typingLegs.entries()) {
-      const tap = Math.max(0, Math.sin(seconds * 8.5 + side * Math.PI));
+      const tap = side === activeSide ? 1 : 0.12;
       // Keep the authored pose dominant: the measured full-tap displacement is
       // about 0.21 world units at the front claws.
       const angles = [0.018 * tap, -0.108 * tap, 0.158 * tap, -0.117 * tap, 0.063 * tap, -0.027 * tap];
@@ -239,7 +241,7 @@ export function createWorkstationView(container, options = {}) {
         quaternion.slerp(nextQuaternion, fraction);
         node.quaternion.copy(quaternion);
       });
-      if (state.mode === 'working') applyTypingMotion(Number.isFinite(state.elapsedMs) ? state.elapsedMs / 1000 : clipTime);
+      if (state.mode === 'working') applyTypingMotion(Number.isFinite(state.elapsedMs) ? state.elapsedMs / 1000 : clipTime, state.typing);
     }
     camera.lookAt(cameraTarget);
     renderer?.render(scene, camera);
