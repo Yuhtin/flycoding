@@ -1,0 +1,12 @@
+{
+  "/body-view.js": "text/javascript; charset=utf-8",
+  "/body/flybody.glb": "model/gltf-binary",
+  "/body/motion.json": "application/json",
+  "/body/provenance.json": "application/json",
+  "/body/sources.lock.json": "application/json",
+  "/body/build.json": "application/json",
+  "/body/routes.json": "application/json",
+  "/body/PROVENANCE.md": "text/plain; charset=utf-8",
+  "/body/LICENSE.flybody": "text/plain; charset=utf-8",
+  "/body/LICENSE.three": "text/plain; charset=utf-8"
+}

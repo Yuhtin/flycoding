@@ -16,3 +16,13 @@
   The compiled graph and experimental dynamics are derived interpretations,
   not an official dataset product.
 - No trading, brokerage, market-data, or Codex client dependency is included.
+- The articulated browser model uses the actual visual meshes from
+  [TuragaLab/flybody](https://github.com/TuragaLab/flybody), revision
+  `d015e9bfe441bd90ae431bac24c55cb74bdbce26`, under Apache-2.0.
+  Source hashes, geometry changes, motion conventions and the full license are
+  in [`src/flycodex/web/body/`](src/flycodex/web/body/PROVENANCE.md).
+  Its motion is procedural MuJoCo forward kinematics, not learned locomotion.
+- The local browser bundle includes Three.js 0.180.0 and its GLTFLoader and
+  OrbitControls modules under the MIT license, retained in
+  [`LICENSE.three`](src/flycodex/web/body/LICENSE.three). The optional build tool
+  uses esbuild 0.25.10. Neither npm nor MuJoCo is needed to view the dashboard.
