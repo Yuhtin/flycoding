@@ -110,6 +110,8 @@ test('integrated reduced-motion panel rests, wakes for orbit/zoom/resize, resume
     await page.setViewportSize({width:1000,height:800});
     await page.waitForFunction(before => window.renderCount > before, beforeResize);
     assert(await settled(page) > count, 'Resize must redraw');
+    await page.locator('#replay-play').click();
+    await mode(page, 'Replaying work');
     const still = await canvas.screenshot();
     await page.locator('#motion-toggle').click();
     await page.waitForTimeout(600);
