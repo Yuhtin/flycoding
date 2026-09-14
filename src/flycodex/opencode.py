@@ -67,7 +67,10 @@ class OpenCodeRunner(CodexRunner):
             },
             "edit": {
                 "*": "deny",
-                str(self.workspace / "discount.py"): "allow",
+                # OpenCode v1.18.27 asks for edit/write paths relative to
+                # Instance.worktree, so the exact workspace file is named
+                # relative to that root here.
+                "discount.py": "allow",
             },
             "bash": {
                 "*": "deny",

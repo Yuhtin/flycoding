@@ -1,10 +1,26 @@
 import json
 from pathlib import Path
+import re
 import sys
 import threading
 import time
 
 from flycodex.opencode import DEFAULT_MODEL, OpenCodeRunner
+
+
+def _pinned_opencode_wildcard_match(value: str, pattern: str) -> bool:
+    """Mirror v1.18.27 core/util/wildcard.ts for synthetic policy checks."""
+    escaped = re.escape(pattern).replace(r"\*", ".*").replace(r"\?", ".")
+    return re.fullmatch(escaped, value.replace("\\", "/"), flags=re.DOTALL) is not None
+
+
+def _pinned_opencode_action(rules: dict[str, str], path: str) -> str:
+    """Mirror v1.18.27 permission/index.ts: last matching rule wins."""
+    action = "ask"
+    for pattern, candidate in rules.items():
+        if _pinned_opencode_wildcard_match(path, pattern):
+            action = candidate
+    return action
 
 
 def _fixture_executable(tmp_path: Path) -> Path:
@@ -98,6 +114,14 @@ def test_fresh_turn_pins_model_sessionless_args_and_isolated_config(tmp_path, mo
         "*": "deny",
         "rtk proxy python -B -m unittest -v": "allow",
     }
+    edit_rules = json.loads(invocation["config"])["permission"]["edit"]
+    assert edit_rules == {"*": "deny", "discount.py": "allow"}
+    assert _pinned_opencode_action(edit_rules, "discount.py") == "allow"
+    assert _pinned_opencode_action(edit_rules, "test_discount.py") == "deny"
+    assert _pinned_opencode_action(edit_rules, "subdir/discount.py") == "deny"
+    assert _pinned_opencode_action(edit_rules, "../discount.py") == "deny"
+    assert _pinned_opencode_action(edit_rules, str(tmp_path / "workspace" / "discount.py")) == "deny"
+    assert json.loads(invocation["config"])["permission"]["external_directory"] == "deny"
     assert Path(invocation["config_dir"]).parent.parent == tmp_path
     assert Path(invocation["xdg"]).parent.parent == tmp_path
     assert result["status"] == "completed"
