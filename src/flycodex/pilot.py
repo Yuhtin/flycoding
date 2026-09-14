@@ -441,6 +441,7 @@ class Pilot:
                 self._phase(store, attempt, "feedback_start")
                 feedback_image = render_panel(evaluation["passed"], evaluation["total"])
                 turn["feedback_input"] = self._image(feedback_image, f"{name}-{step}-feedback.png")
+                self._persist(store, "feedback_input", attempt=name, turn=step)
                 if policy:
                     if self.policy_factory is NeuralPolicy:
                         recorder = ActivityRecorder(
@@ -496,11 +497,13 @@ def write_report(run_dir: Path, output_dir: Path) -> dict:
     """Export a compact report without model event text, session IDs or local paths."""
     state = load_json(Path(run_dir) / "public/snapshot.json")
     settings = state["settings"]
+    backend = settings.get("backend", "codex")
+    total_limit = state["budget"].get("total_limit", state["budget"].get("limit", 30))
     report = {"evidence": state["evidence"], "status": state["status"], "budget": state["budget"],
-              "model": settings["model"], "backend": settings.get("backend", "codex"),
+              "model": settings["model"], "backend": backend,
               "backend_version": settings.get("backend_version", settings.get("codex_version")),
               "source_revision": settings["source_revision"], "source_dirty": settings["source_dirty"],
-              "attempts": {}, "limitations": "Six attempts measure mechanism operation only; they do not demonstrate task learning, generalization, statistical significance, language ability or cognition."}
+              "attempts": {}, "limitations": ""}
     if report["backend"] == "codex":
         report["codex_version"] = settings.get("codex_version", report["backend_version"])
     if state.get("error"):
@@ -521,15 +524,20 @@ def write_report(run_dir: Path, output_dir: Path) -> dict:
                 report["attempts"][name]["turns"][-1]["execution"] = {
                     key: execution.get(key) for key in ("status", "error", "usage")
                 }
+    attempt_count = len(report["attempts"])
+    attempt_label = "attempt" if attempt_count == 1 else "attempts"
+    report["limitations"] = (
+        f"{attempt_count} recorded {attempt_label} measure mechanism operation only; "
+        f"backend `{backend}`, model `{settings['model']}`, persisted send cap "
+        f"{report['budget'].get('used', 0)}/{total_limit}. These records do not demonstrate "
+        "task learning, generalization, statistical significance, language ability or cognition."
+    )
     # Remove machine-local root paths from diagnostic strings; raw events are never exported.
     serialized = json.dumps(report).replace(str(Path(run_dir).resolve()), "<run>").replace(str(Path.home()), "<home>")
     report = json.loads(serialized)
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     atomic_save_json(output / "pilot.json", report)
-    total_limit = report["budget"].get(
-        "total_limit", report["budget"].get("limit", 30)
-    )
     lines = ["# Flycodex pilot", "", f"Evidence: **{report['evidence']}**. Status: **{report['status']}**.",
              f"Backend: `{report['backend']}`. Model: `{report['model']}`. Reserved sends: {report['budget']['used']}/{total_limit}."]
     if report.get("error"):

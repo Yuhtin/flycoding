@@ -77,3 +77,8 @@ clips. Idle is static; work and feedback use restrained head, antenna and
 abdomen movement. The exporter checked 87 source hashes and 192 poses. This is
 forward-kinematic pose verification, not a physics rollout or trained gait.
 See [grounded body measurements and hashes](grounded-body-check.json).
+## Missing-data behavior
+
+A real local server started with absent neural data returned HTTP 503 and
+`Prepared neural data is unavailable` for both state inspection and observation.
+It remained idle, created no run directory, and made no coding calls.

@@ -90,5 +90,15 @@
         "anatomy_identity_matches": true
       }
     ]
+  },
+  "missing_data_http": {
+    "implementation_revision": "37b7281",
+    "state_http_status": 503,
+    "observe_http_status": 503,
+    "availability": false,
+    "message": "Prepared neural data is unavailable",
+    "job_started": false,
+    "run_created": false,
+    "coding_calls": 0
   }
 }

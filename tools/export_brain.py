@@ -73,6 +73,8 @@ def export_brain(data_dir: Path, output_dir: Path) -> dict:
     annotations = feather.read_table(annotation_path).to_pandas()
     if "bodyId" not in annotations or "somaLocation" not in annotations:
         raise ValueError("annotations must contain bodyId and somaLocation")
+    if annotations["bodyId"].duplicated().any():
+        raise ValueError("duplicate annotation bodyId values are ambiguous")
     by_id = annotations.drop_duplicates("bodyId").set_index("bodyId")
     normalized_path = data_dir / "normalized" / "neurons.feather"
     if normalized_path.exists():

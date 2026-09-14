@@ -190,7 +190,7 @@ def grounded_metadata(model, data):
         "support_bodies": list(SUPPORT_BODIES),
         "support_tolerance_source": 1e-7,
         "support_bottoms_source_z": {name: round(value, 12) for name, value in bottoms.items()},
-        "method": "minimum exported visual mesh vertex after MuJoCo forward kinematics of explicit rest_qpos",
+        "method": "minimum compiled MuJoCo source mesh vertex after forward kinematics of explicit rest_qpos",
     }
 
 

@@ -139,6 +139,7 @@ class OpenCodeRunner(CodexRunner):
         return {
             "reported_session": session_id,
             "expected_session": session_id,
+            "observed_session": False,
             "usage": {},
             "turn_error": None,
             "malformed_stdout": False,
@@ -154,14 +155,12 @@ class OpenCodeRunner(CodexRunner):
     ) -> dict[str, Any]:
         raw_type = event.get("type")
         session_id = event.get("sessionID")
-        if (
-            isinstance(session_id, str)
-            and session_id
-            and state["expected_session"] is not None
-            and session_id != state["expected_session"]
-        ):
-            state["session_mismatch"] = True
         if isinstance(session_id, str) and session_id:
+            if state["expected_session"] is None:
+                state["expected_session"] = session_id
+            elif session_id != state["expected_session"]:
+                state["session_mismatch"] = True
+            state["observed_session"] = True
             state["reported_session"] = session_id
         if event.get("_malformed"):
             if stream_name == "stdout":
@@ -229,8 +228,8 @@ class OpenCodeRunner(CodexRunner):
             error = "OpenCode emitted malformed JSON on stdout"
         elif state["session_mismatch"]:
             status = "failed"
-            error = "OpenCode session ID did not match the explicit resume session"
-        elif state["reported_session"] is None:
+            error = "OpenCode session ID did not match the expected session identity"
+        elif not state["observed_session"]:
             status = "failed"
             error = "OpenCode did not report a session ID"
         elif state["last_step_reason"] != "stop":

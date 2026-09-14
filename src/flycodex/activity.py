@@ -321,7 +321,7 @@ class ActivityReader:
                 if isinstance(window, dict):
                     window["events"] = [event for event in window.get("events", []) if event.get("seq", 0) > after]
             return document
-        except (OSError, UnicodeError, ValueError, TypeError, json.JSONDecodeError):
+        except (OSError, UnicodeError, ValueError, TypeError, RecursionError, json.JSONDecodeError):
             return {"available": False, "reason": "incomplete"}
 
 

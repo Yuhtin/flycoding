@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {applyActivityPage, createBrainState, feedbackLabel, measuredActivity, measurementAge, overlayIdentity, emptyReadout} from '../src/flycodex/web/brain-state.mjs';
+import {applyActivityPage, codingActivityAllowed, createBrainState, feedbackLabel, measuredActivity, measurementAge, overlayIdentity, emptyReadout} from '../src/flycodex/web/brain-state.mjs';
 
 test('activity pages retain the newest measured bin and server timestamp', () => {
   const initial = createBrainState('order-a');
@@ -96,4 +96,19 @@ test('coding feedback label and empty readout are explicit', () => {
   assert.equal(feedbackLabel({signal:0}), 'Neutral');
   assert.equal(feedbackLabel(undefined), '—');
   assert.deepEqual(emptyReadout(), {choice:null, feedback:null, input:null, latestBin:null, identity:'No window'});
+});
+
+test('coding overlay allows an in-flight neural window before choice or feedback is persisted', () => {
+  const activity = {available:true, status:'running', phase:'choice', run:'run-1', attempt:'adaptive-1', turn:1, window_id:'w', neuron_order_sha256:'h'};
+  const current = {status:'running', busy:false, active_attempt:'adaptive-1', attempts:{'adaptive-1':{status:'running', phase:'choice_start', turns:[{step:1}]}}};
+  assert.equal(codingActivityAllowed(activity, current, 'adaptive-1', 1, 'h'), true);
+  assert.equal(codingActivityAllowed({...activity, phase:'feedback'}, {...current, attempts:{'adaptive-1':{status:'running', phase:'feedback_start', turns:[{step:1, choice:{action:'fix'}}]}}}, 'adaptive-1', 1, 'h'), true);
+});
+
+test('coding overlay rejects terminal owners and a busy backend', () => {
+  const activity = {available:true, status:'running', phase:'choice', run:'run-1', attempt:'adaptive-1', turn:1, window_id:'w', neuron_order_sha256:'h'};
+  const base = {status:'running', busy:false, active_attempt:'adaptive-1', attempts:{'adaptive-1':{status:'running', phase:'choice_start', turns:[{step:1}]}}};
+  for (const status of ['paused','completed','error']) assert.equal(codingActivityAllowed(activity, {...base, status}, 'adaptive-1', 1, 'h'), false);
+  for (const status of ['paused','completed','error']) assert.equal(codingActivityAllowed(activity, {...base, attempts:{'adaptive-1':{status, phase:'complete', turns:[{step:1}]}}}, 'adaptive-1', 1, 'h'), false);
+  assert.equal(codingActivityAllowed(activity, {...base, busy:true}, 'adaptive-1', 1, 'h'), false);
 });

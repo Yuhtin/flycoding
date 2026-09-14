@@ -25,7 +25,7 @@
       "claw_T3_left": -0.13100000156,
       "claw_T3_right": -0.130999996906
     },
-    "method": "minimum exported visual mesh vertex after MuJoCo forward kinematics of explicit rest_qpos"
+    "method": "minimum compiled MuJoCo source mesh vertex after forward kinematics of explicit rest_qpos"
   },
   "rest_qpos": {
     "bytes": 884,

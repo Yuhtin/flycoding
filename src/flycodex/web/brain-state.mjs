@@ -56,6 +56,21 @@ export function overlayIdentity(event, expected) {
   return true;
 }
 
+export function codingActivityAllowed(activity, current, attemptName, turnNumber, orderHash = null) {
+  if (!activity?.available || activity.status !== 'running' || !current || current.status !== 'running' || current.busy) return false;
+  if (orderHash != null && activity.neuron_order_sha256 !== orderHash) return false;
+  if (current.active_attempt !== attemptName || activity.attempt !== attemptName || Number(activity.turn) !== Number(turnNumber)) return false;
+  const attempt = current.attempts?.[attemptName];
+  if (!attempt || attempt.status !== 'running') return false;
+  const phase = activity.phase === 'choice' ? 'choice_start' : activity.phase === 'feedback' ? 'feedback_start' : null;
+  if (!phase || attempt.phase !== phase) return false;
+  const turn = (attempt.turns || []).find(item => Number(item.step) === Number(turnNumber));
+  if (!turn) return false;
+  const expectedRun = current.run || current.settings?.run;
+  if (expectedRun != null && activity.run !== expectedRun) return false;
+  return true;
+}
+
 export function applyActivityPage(previous, page = {}) {
   const reset = Boolean(page.reset);
   const events = Array.isArray(page.events) ? page.events : [];

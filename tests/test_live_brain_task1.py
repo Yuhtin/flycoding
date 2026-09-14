@@ -278,3 +278,18 @@ def test_brain_export_retains_positions_and_binds_packaged_files(tmp_path, brain
     ]
     stored = json.loads((out / "manifest.json").read_text())
     assert stored["files"]["positions.bin"]["sha256"] == hashlib.sha256((out / "positions.bin").read_bytes()).hexdigest()
+
+
+def test_brain_export_rejects_duplicate_annotation_ids(tmp_path, brain_exporter):
+    import pandas as pd
+    import pyarrow.feather as feather
+
+    data = tmp_path / "data"
+    data.mkdir()
+    np.savez(data / "graph.npz", ids=np.array([10], dtype=np.int64), superclass=np.array(["brain"]))
+    feather.write_feather(pd.DataFrame({
+        "bodyId": [10, 10], "somaLocation": [np.array([1, 2, 3]), np.array([1, 2, 3])],
+        "type": ["A", "A"], "class": ["x", "x"],
+    }), data / "annotations.feather")
+    with pytest.raises(ValueError, match="duplicate annotation"):
+        brain_exporter.export_brain(data, tmp_path / "out")

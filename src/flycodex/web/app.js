@@ -1,6 +1,6 @@
 import {createBodyView} from '/body-view.js';
 import {createBrainView} from '/brain-view.js';
-import {applyActivityPage, createBrainState, emptyReadout, feedbackLabel, measurementAge} from '/brain-state.mjs';
+import {applyActivityPage, codingActivityAllowed, createBrainState, emptyReadout, feedbackLabel, measurementAge} from '/brain-state.mjs';
 import {coalesceItemEvents, createReplay, evaluationForTurn, order, readableEvent, recordedWorkspace, translatePrompt, turns} from '/presentation.mjs';
 
 const byId = id => document.getElementById(id);
@@ -48,7 +48,7 @@ const brain = createBrainView(byId('brain-stage'), {
     setText('selected-spikes', '—');
   },
   onActivitySummary(summary) {
-    setText('selected-spikes', summary.selectedIndex == null ? '—' : summary.selectedSpikes);
+    setText('selected-spikes', summary.selectedIndex == null || !summary.hasActivity ? '—' : summary.selectedSpikes);
     setText('unplaced-measured', summary.unplacedCount ? `${summary.unplacedCount} unplaced · ${summary.unplacedSpikes} spikes` : 'No unplaced activity');
   },
 });
@@ -70,6 +70,20 @@ function updateLabControls() {
   byId('observe-passed').disabled = mode !== 'lab' || ['loading','running'].includes(lab.status);
 }
 
+function updatePhaseStrip(phase = 'sensory') {
+  const phases = ['sensory', 'cns', 'gate', 'instruction', 'execution'];
+  document.querySelectorAll('#phase-strip span').forEach((node, index) => node.classList.toggle('active', phases[index] === phase));
+}
+
+function phaseForState(state, attempt = null) {
+  if (state?.busy) return 'execution';
+  if (attempt?.phase === 'choice_start' || attempt?.phase === 'feedback_start') return 'cns';
+  if (attempt?.phase === 'reserve_start') return 'gate';
+  if (attempt?.phase === 'send_start') return 'instruction';
+  if (attempt?.phase && attempt.phase !== 'complete') return 'execution';
+  return state?.status === 'completed' || state?.choice ? 'instruction' : 'sensory';
+}
+
 function setMode(next) {
   if (!['lab','coding','archive'].includes(next)) return;
   mode = next;
@@ -82,6 +96,7 @@ function setMode(next) {
   if (next !== 'coding') codingActivity = null;
   updateLabControls();
   if (next === 'archive') loadArchive();
+  updatePhaseStrip(next === 'archive' ? 'sensory' : next === 'lab' ? 'sensory' : 'cns');
   render();
 }
 document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => setMode(button.dataset.mode)));
@@ -103,6 +118,8 @@ function clearLiveReadout() {
   setText('trace', 'No trace available.'); setText('input-label', 'Awaiting input'); setText('unplaced-measured', 'No unplaced activity'); setText('selected-spikes', '—'); setText('brain-mode', mode === 'coding' ? 'Waiting for measured coding window' : 'Measured bins idle');
   const image = byId('sensory'); image.hidden = true; image.removeAttribute('src'); delete image.dataset.job; byId('image-empty').hidden = false;
   document.querySelectorAll('[data-action]').forEach(node => node.classList.remove('selected'));
+  setText('terminal-state', 'Waiting'); setText('terminal-backend', 'Backend —'); setText('terminal-scope', 'No coding backend connected');
+  setText('translation-note', 'No coding events'); setText('model', 'Model not recorded'); setText('events', 'No coding run snapshot exists yet.'); setText('raw-events', 'No events.');
 }
 function updateMeasuredReadout(choice, latestBin, input, identityLabel, feedback = null) {
   const actual = choice || {};
@@ -175,6 +192,7 @@ async function refreshLab() {
   }
   if (lab.job_id) labJobSeen = lab.job_id;
   labCursor = Number.isInteger(labCursor) ? labCursor : 0;
+  updatePhaseStrip(lab.status === 'loading' || lab.status === 'running' ? 'cns' : lab.choice ? 'gate' : 'sensory');
   const pageResult = await jsonFetch(`/lab/events?after=${labCursor}`);
   if (pageResult.value?.events) {
     brainState = applyActivityPage(brainState, pageResult.value);
@@ -210,8 +228,21 @@ async function refreshLab() {
 function executionText(event, original = false, workspace = '') {
   if (event?.backend === 'opencode' || event?.source === 'opencode.run.jsonl') {
     const raw = event.raw || {};
+    const part = raw.part || {};
+    const state = part.state || raw.state || {};
+    const redact = value => {
+      const text = typeof value === 'string' ? value : JSON.stringify(value);
+      return text ? (workspace ? text.replaceAll(workspace, '<workspace>') : text) : '';
+    };
+    if (event.kind === 'tool' || raw.type === 'tool_use' || part.tool || state.input || state.output) {
+      const lines = [`[OpenCode · tool]`, `Tool: ${redact(part.tool || raw.tool || 'unknown')}`];
+      if (state.status || part.status) lines.push(`Status: ${redact(state.status || part.status)}`);
+      if (state.input ?? part.input) lines.push(`Input: ${redact(state.input ?? part.input)}`);
+      if (state.output ?? part.output) lines.push(`Output: ${redact(state.output ?? part.output)}`);
+      return lines.join('\n');
+    }
     const text = raw.part?.text || raw.part?.content || raw.message?.content || raw.error?.message || event.kind || 'event';
-    return `[OpenCode · ${event.kind || 'event'}]\n${typeof text === 'string' ? text : JSON.stringify(text)}`;
+    return `[OpenCode · ${event.kind || 'event'}]\n${redact(text)}`;
   }
   return readableEvent(event, workspace, original ? [] : translations);
 }
@@ -235,28 +266,29 @@ async function refreshCoding() {
   if (!result.response.ok || !result.value?.attempts) {
     connected = false; setText('connection', 'Waiting for a coding run'); setText('run-status', 'Waiting for live coding files'); setText('evidence', 'Start the CLI run separately; no automatic runner');
     setText('terminal-state', 'Waiting'); setText('terminal-backend', 'Backend —'); setText('events', 'No coding run snapshot exists yet. Select Live coding before starting the CLI run.');
-    brain.clearActivity(); clearLiveReadout(); setBodyMode('idle'); return;
+    brain.clearActivity(); clearLiveReadout(); updatePhaseStrip('sensory'); setBodyMode('idle'); return;
   }
   connected = true; current = result.value;
   const entries = turns(current);
   const latest = entries.at(-1);
-  if (!latest) { setText('run-status', 'Waiting for first coding turn'); clearLiveReadout(); return; }
+  if (!latest) { setText('run-status', 'Waiting for first coding turn'); clearLiveReadout(); updatePhaseStrip('sensory'); return; }
   latest.turn._attemptName = latest.name;
   const turn = latest.turn;
   const busy = Boolean(current.busy);
+  const liveInput = current.attempts?.[latest.name]?.phase === 'feedback_start' ? turn.feedback_input || turn.input : turn.input;
+  updatePhaseStrip(phaseForState(current, current.attempts?.[latest.name]));
   setText('run-status', busy ? 'Coding backend executing' : labels[current.status] || current.status || 'Coding run available');
   setText('evidence', current.evidence === 'genuine' ? 'Actual recorded coding run' : 'Synthetic fixture · no live submission');
-  updateMeasuredReadout(turn.choice, null, turn.input, `${latest.name} · turn ${turn.step}`, turn.feedback);
+  updateMeasuredReadout(turn.choice, null, liveInput, `${latest.name} · turn ${turn.step}`, turn.feedback);
   renderTerminal(turn, current, busy);
   const activityResult = await jsonFetch('/activity.json');
   if (activityResult.value?.available) {
     const document = activityResult.value;
     const expectedOrder = brainState.orderHash;
-    const expectedRun = current.run || current.settings?.run || null;
-    const matchesTurn = document.attempt === latest.name && Number(document.turn) === Number(turn.step) && (!expectedRun || !document.run || document.run === expectedRun);
-    if (!matchesTurn || (expectedOrder && document.neuron_order_sha256 !== expectedOrder)) {
+    const matchesTurn = codingActivityAllowed(document, current, latest.name, turn.step, expectedOrder);
+    if (!matchesTurn) {
       codingActivity = null; brain.clearActivity();
-      setText('brain-mode', !matchesTurn ? 'Activity belongs to another coding turn' : 'Activity order does not match anatomy');
+      setText('brain-mode', expectedOrder && document.neuron_order_sha256 !== expectedOrder ? 'Activity order does not match anatomy' : 'Measured activity owner is unavailable');
       setText('measurement-age', 'Age unavailable');
     } else {
       if (codingWindow !== document.window_id) { codingWindow = document.window_id; codingCursor = 0; brainState = createBrainState(expectedOrder); }
@@ -264,9 +296,8 @@ async function refreshCoding() {
       brainState = applyActivityPage(brainState, page);
       codingCursor = brainState.cursor;
       const latestBin = brainState.lastBin;
-      if (busy || document.status !== 'running') brain.clearActivity();
-      else if (latestBin && brainState.overlayAllowed) brain.setActivity(latestBin);
-      updateMeasuredReadout(turn.choice, latestBin, turn.input, `${document.attempt} · turn ${document.turn} · ${document.phase}`, turn.feedback);
+      if (latestBin && brainState.overlayAllowed) brain.setActivity(latestBin);
+      updateMeasuredReadout(turn.choice, latestBin, document.phase === 'feedback' ? turn.feedback_input || liveInput : liveInput, `${document.attempt} · turn ${document.turn} · ${document.phase}`, turn.feedback);
     }
   } else {
     brain.clearActivity(); setText('brain-mode', activityResult.value?.reason === 'missing' ? 'No measured activity file yet' : 'Measured activity unavailable');
@@ -293,6 +324,7 @@ function renderTable(frame) {
 function archiveEntry(frame) { const entries = turns(current || {}); const selection = byId('history').value; return frame.active ? frame.entry : selection === 'live' ? entries.at(-1) : entries.find(item => item.key === selection); }
 function renderArchive() {
   if (!current) return;
+  updatePhaseStrip('sensory');
   const frame = replay.frame(); const entry = archiveEntry(frame); const demo = current.presentation?.mode === 'demo';
   const successCount = Object.values(current.attempts || {}).filter(item => item.status === 'success').length;
   setText('run-status', frame.active ? frame.phase === 'complete' ? 'Replay complete' : frame.playing ? 'Condensed replay' : 'Replay paused' : `${labels[current.status] || current.status}${current.status === 'completed' ? ` · ${successCount} / 6 successful` : ''}`);
@@ -301,7 +333,14 @@ function renderArchive() {
   setText('replay-label', frame.active ? `Condensed replay · ${Math.floor(frame.elapsed / 1000)} / ${Math.round(frame.duration / 1000)} s` : `Recorded session · ${Math.round(frame.duration / 1000)} s replay`);
   byId('replay-progress').value = frame.active ? frame.progress : 0; renderTable(frame);
   brain.clearActivity(); setText('brain-mode', 'Historic activity unavailable');
-  if (!entry) { setBodyMode('idle'); return; }
+  if (!entry) {
+    clearLiveReadout();
+    setText('run-status', 'Archive has no selected coding turn');
+    setText('evidence', 'Read-only archive · no measured live bins');
+    setText('terminal-state', 'Archive readout'); setText('terminal-backend', `Historical Codex · ${current.settings?.model || 'model not recorded'}`);
+    setText('terminal-scope', 'Read-only recorded archive'); setText('translation-note', 'Archive events only'); setText('events', 'No selected coding turn in this archive.');
+    setText('model', current.settings?.model || 'Model not recorded'); setText('brain-mode', 'Historic activity unavailable'); updatePhaseStrip('sensory'); setBodyMode('idle'); return;
+  }
   const {name,turn} = entry; const choice = turn.choice || {}; const working = frame.active && frame.phase === 'working'; const live = !frame.active && byId('history').value === 'live';
   let bodyState = working ? 'replay' : 'idle'; if (!frame.active && live && current.busy) bodyState = 'working'; else if (!frame.active && live) bodyState = liveFeedback;
   setBodyMode(bodyState, entry); updateMeasuredReadout(choice, null, turn.input, `${name} · turn ${turn.step}`, turn.feedback);

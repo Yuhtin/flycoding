@@ -25,6 +25,14 @@ capture.write_text(json.dumps({
 mode = os.environ.get("FLYCODEX_OPENCODE_MODE", "success")
 session = "oc-session-fixture"
 print(json.dumps({"type": "step_start", "sessionID": session, "part": {"id": "s1"}}), flush=True)
+if mode == "mixed-session":
+    print(json.dumps({"type": "text", "sessionID": "oc-session-other", "part": {"text": "wrong"}}), flush=True)
+    print(json.dumps({"type": "step_finish", "sessionID": session, "part": {"reason": "stop"}}), flush=True)
+    raise SystemExit
+if mode == "tool-use":
+    print(json.dumps({"type": "tool_use", "sessionID": session, "part": {"tool": "bash", "state": {"status": "completed", "input": {"command": "rtk proxy python -B -m unittest -v"}, "output": "5 tests passed"}}}), flush=True)
+    print(json.dumps({"type": "step_finish", "sessionID": session, "part": {"reason": "stop"}}), flush=True)
+    raise SystemExit
 if mode == "malformed":
     print("not-json", flush=True)
 elif mode == "error":
@@ -114,6 +122,24 @@ def test_resume_uses_only_explicit_session_and_preserves_raw_identity(tmp_path, 
     assert "--continue" not in invocation["argv"]
     assert "--share" not in invocation["argv"]
     assert result["session_id"] == "oc-session-fixture"
+
+
+def test_fresh_turn_rejects_mixed_observed_session_ids(tmp_path, monkeypatch):
+    runner, _ = _runner(tmp_path, monkeypatch, mode="mixed-session")
+    result = runner.run("Run", None, lambda event: None)
+    assert result["status"] == "failed"
+    assert "session" in result["error"].lower()
+
+
+def test_tool_use_fixture_preserves_command_output_and_status(tmp_path, monkeypatch):
+    runner, _ = _runner(tmp_path, monkeypatch, mode="tool-use")
+    events = []
+    result = runner.run("Run", None, events.append)
+    assert result["status"] == "completed"
+    tool = next(event for event in events if event["kind"] == "tool")
+    assert tool["raw"]["part"]["tool"] == "bash"
+    assert tool["raw"]["part"]["state"]["input"]["command"].startswith("rtk proxy")
+    assert tool["raw"]["part"]["state"]["output"] == "5 tests passed"
 
 
 def test_explicit_resume_rejects_a_different_reported_session(tmp_path, monkeypatch):

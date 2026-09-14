@@ -207,6 +207,19 @@ def test_activity_recorder_preserves_more_than_256_sparse_neurons(tmp_path):
     assert event["total_spikes"] == sum(counts)
 
 
+def test_lab_event_deque_rollover_resets_lagged_cursor(tmp_path):
+    from flycodex.lab import LabService
+
+    service = LabService(tmp_path / "missing")
+    for index in range(300):
+        service._append("job", "synthetic", index=index)
+    page = service.events(after=1)
+    assert page["oldest_seq"] == 45
+    assert page["reset"] is True
+    assert page["events"][0]["seq"] == 45
+    assert page["latest_seq"] == 300
+
+
 def test_activity_recorder_marks_oversized_window_unavailable(tmp_path, monkeypatch):
     import flycodex.activity as activity
 
@@ -233,6 +246,15 @@ def test_activity_reader_rejects_symlink_and_incomplete_write(tmp_path):
     result = ActivityReader(public).read()
     assert result["available"] is False
     assert result["reason"] == "incomplete"
+
+
+def test_activity_reader_turns_recursion_error_into_unavailable(tmp_path, monkeypatch):
+    public = tmp_path / "public"
+    public.mkdir()
+    (public / "activity.json").write_text("{}")
+    monkeypatch.setattr(json, "loads", lambda value: (_ for _ in ()).throw(RecursionError("deep")))
+    result = ActivityReader(public).read()
+    assert result == {"available": False, "reason": "incomplete"}
 
 
 @pytest.mark.parametrize("document", [

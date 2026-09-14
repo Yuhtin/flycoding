@@ -162,7 +162,7 @@ export function createBrainView(container, options = {}) {
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       if (fitCenter) {
-        const distance = fitRadius / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.35 * Math.max(1, 1 / camera.aspect);
+        const distance = fitRadius / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.12 * Math.max(1, 1 / camera.aspect);
         camera.position.copy(fitCenter).add(fitDirection.clone().multiplyScalar(distance));
         controls.target.copy(fitCenter);
         controls.update();
@@ -208,7 +208,7 @@ export function createBrainView(container, options = {}) {
     const radius = Math.max(1, bounds.getBoundingSphere(new THREE.Sphere()).radius);
     fitCenter = center.clone(); fitRadius = radius;
     controls.target.copy(center);
-    const fitDistance = radius / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.35 * Math.max(1, 1 / camera.aspect);
+    const fitDistance = radius / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.12 * Math.max(1, 1 / camera.aspect);
     camera.position.copy(center).add(fitDirection.clone().multiplyScalar(fitDistance));
     camera.near = Math.max(0.01, radius / 1000); camera.far = radius * 20; camera.updateProjectionMatrix(); controls.update();
     renderer.domElement.dataset.ready = 'true';
@@ -243,18 +243,18 @@ export function createBrainView(container, options = {}) {
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(overlayPositions, 3));
         geometry.setAttribute('color', new THREE.Float32BufferAttribute(overlayColors, 3));
-        overlayPoints = new THREE.Points(geometry, new THREE.PointsMaterial({size:120, vertexColors:true, transparent:true, opacity:0.95, sizeAttenuation:true, depthWrite:false}));
+        overlayPoints = new THREE.Points(geometry, new THREE.PointsMaterial({size:7, vertexColors:true, transparent:true, opacity:0.95, sizeAttenuation:false, depthTest:false, depthWrite:false}));
         scene.add(overlayPoints);
       }
       options.onActivitySummary?.({selectedIndex: selectedRetained, selectedSpikes: measured.selectedSpikes,
-        unplacedCount: measured.unplacedCount, unplacedSpikes: measured.unplacedSpikes});
+        unplacedCount: measured.unplacedCount, unplacedSpikes: measured.unplacedSpikes, hasActivity: activity.size > 0});
       applyColors(); render();
     },
     clearActivity() {
       if (!activity.size && !overlayPoints) return;
       activity = new Map(); overlayKey = '';
       if (overlayPoints) { scene.remove(overlayPoints); overlayPoints.geometry.dispose(); overlayPoints.material.dispose(); overlayPoints = null; }
-      options.onActivitySummary?.({selectedIndex: selectedRetained, selectedSpikes: 0, unplacedCount: 0, unplacedSpikes: 0});
+      options.onActivitySummary?.({selectedIndex: selectedRetained, selectedSpikes: 0, unplacedCount: 0, unplacedSpikes: 0, hasActivity: false});
       applyColors(); render();
     },
     select(index) { const point = pointByRetained?.[index] ?? -1; if (point >= 0) selectPoint(point); },

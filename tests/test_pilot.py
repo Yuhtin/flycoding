@@ -110,6 +110,8 @@ def test_six_pristine_attempts_final_feedback_and_memory_retention(tmp_path, con
     assert "events" not in report
     for name, attempt in report["attempts"].items():
         assert attempt["turns"][0]["feedback_input"] == result["attempts"][name]["turns"][0]["feedback_input"]
+    journal_events = [json.loads(line)["event"] for line in (tmp_path / "run" / "journal.jsonl").read_text().splitlines()]
+    assert journal_events.index("feedback_start") < journal_events.index("feedback_input")
 
 
 def test_report_exports_sanitized_run_recovery_error_without_completed_turns(tmp_path):
@@ -140,6 +142,8 @@ def test_report_exports_sanitized_run_recovery_error_without_completed_turns(tmp
     report = write_report(run_dir, tmp_path / "report")
 
     assert report["error"] == "Inspect <run>/journal.jsonl before recovery."
+    assert "1 recorded attempt" in report["limitations"]
+    assert "persisted send cap 1/30" in report["limitations"]
     assert "Recovery error: Inspect <run>/journal.jsonl before recovery." in (tmp_path / "report/pilot.md").read_text()
 
 
