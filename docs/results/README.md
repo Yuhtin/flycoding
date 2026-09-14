@@ -4,6 +4,13 @@ The original Codex pilot and mechanism checks were performed on September 13,
 2026, on a 16 GiB ARM64 Mac. Later observatory work is recorded separately and
 does not replace those measurements.
 
+## Simple player
+
+The [one-button player](simple-player.md) is the new default page. It presents
+the same recorded Muse decision and response with separate colors, keeps tool
+details collapsed, and makes no new model calls. The advanced observatory is
+still available at `/observatory`.
+
 ## Muse Spark live acceptance
 
 The September 14 [OpenCode acceptance](muse-live-brain/README.md) used **two of

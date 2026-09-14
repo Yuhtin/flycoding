@@ -2,24 +2,24 @@
 
 **A simulated fly brain picks the prompt. OpenCode or Codex does the coding.**
 
-Watch an experimental connectome model receive task-state pixels, fire, and
-select an instruction for a coding terminal. The observatory pairs measured
-neural activity with the actual [flybody](https://github.com/TuragaLab/flybody)
-anatomy, the selected prompt, terminal output, and external test results.
+Press **Play** to watch a recorded fly-brain decision become an OpenCode prompt.
+**Amber is the fly's decision. Blue is OpenCode's response.** The player uses
+actual [flybody](https://github.com/TuragaLab/flybody) geometry and the measured
+neural activity from that same run.
 
-![Live brain observatory after Muse completed the selected instruction](docs/results/live-brain-dashboard.png)
+![Simple player showing the fly's decision and OpenCode's response](docs/results/simple-player-dashboard.png)
 
 **Latest live run:** the brain selected Fix, Muse Spark corrected the function,
 and external tests improved from **1/5 to 5/5**. Acceptance used **2 of 3 authorized
 prompt submissions**, including an earlier permission failure.
-[Watch the real run](docs/demo/live-brain-opencode.mp4) ·
+[Watch the simple player](docs/demo/simple-player.mp4) ·
 [Evidence](docs/results/muse-live-brain/README.md) ·
 [English post draft](docs/demo/live-brain-tweet.txt)
 
-## Watch the bundled Codex archive
+## Press Play
 
 Python 3.11+, [uv](https://docs.astral.sh/uv/), and Git are enough to view the
-bundled recording. You do not need Codex authentication, neural data, MuJoCo,
+bundled Muse recording. You do not need model authentication, neural data, MuJoCo,
 or a training setup to watch it.
 
 ```sh
@@ -29,13 +29,16 @@ rtk proxy uv sync --frozen
 rtk proxy uv run flycodex serve --demo --port 8765
 ```
 
-Open **http://127.0.0.1:8765**, select **Archive**, and press **Play replay**.
-Drag the fly or CNS to orbit, scroll to zoom, and use the motion control to
-pause the body animation.
-The replay uses a compressed presentation timeline and is labeled accordingly.
-It sends no prompts and cannot change the recorded experiment.
+Open **http://127.0.0.1:8765** and press **Play**. Pause and resume with the same
+button, or replay after completion. The fly's instruction and the actual model
+output appear in order. Commands and tool errors stay under **Terminal details**.
 
-[Download the earlier Codex replay](docs/demo/flycodex-demo.mp4)
+The player is labeled **Recorded run** and preserves the recorded timing. It
+sends no prompts. **Details** opens the local lab, live
+CLI observer, and historical Codex archive at `/observatory`.
+
+[Original live Muse capture](docs/demo/live-brain-opencode.mp4) ·
+[Earlier Codex replay](docs/demo/flycodex-demo.mp4)
 
 Commands here use [RTK](https://github.com/rtk-ai/rtk). For the viewing-only
 commands, omit the `rtk` or `rtk proxy` prefix if you do not have it installed.
@@ -107,7 +110,7 @@ rtk proxy uv run flycodex prepare --data-dir data
 rtk proxy uv run flycodex serve --lab --data-dir data --port 8767
 ```
 
-Open **http://127.0.0.1:8767**. Choose the task's passing-test count or a uniform
+Open **http://127.0.0.1:8767/observatory**. Choose the task's passing-test count or a uniform
 dark/light input, then start one observation. Each request computes a fresh
 frozen-network decision. No coding CLI or authentication is needed for the lab.
 The first request loads the graph; cancellation takes effect at a neural bin
@@ -175,7 +178,8 @@ rtk proxy uv run flycodex run --data-dir data --run-dir runs/muse-demo --backend
 The cap counts **prompt submissions**, including failed or uncertain started
 sends. A submission may contain multiple model/tool steps. The stored cap,
 backend, and model must match on resume. Success ends the attempt early.
-Select **Live coding** before starting the run to see its first neural window.
+Open `/observatory` and select **Live coding** before starting the run to see
+its first neural window.
 The observer itself never launches a coding backend. Its input, readout, prompt,
 terminal, external score, feedback, and call cap follow the same recorded turn.
 

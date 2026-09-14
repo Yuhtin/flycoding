@@ -1,0 +1,49 @@
+{
+  "playback": {
+    "coding_calls": 0,
+    "idle_text": "flycodex\nRECORDED RUN\nDetails \u2197\nPlay\nReady \u00b7 one recorded run\nMEASURED CNS\nReady\n\nFLY DECIDED\n\nPress Play\nOpenCode\nMuse Spark\n\nOutput appears after the fly chooses.\n\nAbout this recording",
+    "idle_words": 30,
+    "pause_preserves_transcript": true,
+    "pause_stops_body": true,
+    "result": "5/5 external tests passed",
+    "mobile_overflow": 0,
+    "mobile_play_above_fold": true,
+    "posts": [],
+    "errors": []
+  },
+  "recovery": {
+    "coding_calls": 0,
+    "clock": "Synthetic browser clock for behavior checks; not used for published video",
+    "failed_payload_blocks_play": true,
+    "retry_recovers": true,
+    "replay_clears_prior_result_and_messages": true,
+    "pause_stops_clock": true,
+    "reduced_motion_respected": true,
+    "advanced_observer_preserved": true,
+    "missing_body_blocks_play": true,
+    "body_reload_recovers_with_ready_label": true,
+    "errors": []
+  },
+  "final_mobile": {
+    "coding_calls": 0,
+    "overflow": 0,
+    "body": {
+      "x": 29.390625,
+      "y": 155,
+      "width": 234.015625,
+      "height": 170
+    },
+    "brain": {
+      "x": 247.8125,
+      "y": 153,
+      "width": 115.1875,
+      "height": 122
+    },
+    "errors": []
+  },
+  "tests": {
+    "python_passed": 134,
+    "python_skipped": 2,
+    "player_state_js_passed": 6
+  }
+}

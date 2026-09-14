@@ -1,0 +1,36 @@
+{
+  "presentation_revision": "8f32e3ebf64dbbd855da7bcefbea559b787d5cc9",
+  "source_run_revision": "160ca8ba043a15123a5702fa01705c1db1a3b632",
+  "new_model_calls": 0,
+  "timeline_ms": 43696,
+  "video": {
+    "duration_seconds": 49.8,
+    "codec": "h264",
+    "pixel_format": "yuv420p",
+    "width": 1440,
+    "height": 900,
+    "note": "Continuous screen recording of the player, including a brief user pause/resume and the final result. Recorded-run timing is unchanged while playing."
+  },
+  "package": {
+    "tracked_package_files_byte_exact": 71,
+    "new_player_assets_included": true
+  },
+  "files": {
+    "docs/results/simple-player-dashboard.png": {
+      "bytes": 417436,
+      "sha256": "6ea9c7a5968f48636bfb7caf98f015b16e5fd677e8979457e0a4508372e9e2ee"
+    },
+    "docs/demo/simple-player.mp4": {
+      "bytes": 1336210,
+      "sha256": "9fa83c71cef8899e2ef1dc64d7daf93fef006f21a982b057e68b415e579e0662"
+    },
+    "src/flycodex/web/watch/run.json": {
+      "bytes": 9418,
+      "sha256": "69d3867fada596f3da1316b3e30b79771a49e8901d21134cc294b413585a1ca5"
+    },
+    "src/flycodex/web/watch/activity.json": {
+      "bytes": 4318924,
+      "sha256": "712dc258e62f4d9f0a9646f6f27762abd415bd6eff6a34ea84ad1196a033ed83"
+    }
+  }
+}

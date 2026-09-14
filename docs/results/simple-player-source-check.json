@@ -1,0 +1,26 @@
+{
+  "original_run_files_unchanged": {
+    "runs/pilot": 68,
+    "runs/muse-live-brain-20260914": 7326,
+    "runs/muse-live-brain-20260914-fixed": 7329
+  },
+  "original_assets_unchanged": 11,
+  "source_revision": "160ca8ba043a15123a5702fa01705c1db1a3b632",
+  "measured_bins_byte_values_match": {
+    "choice": {
+      "bins": 50,
+      "spikes": 392732
+    },
+    "feedback": {
+      "bins": 20,
+      "spikes": 199794
+    }
+  },
+  "duration_ms": 43696,
+  "phases": {
+    "choice_end_ms": 8314,
+    "execution_end_ms": 37303,
+    "feedback_end_ms": 40091
+  },
+  "new_model_calls": 0
+}
