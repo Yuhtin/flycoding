@@ -189,8 +189,9 @@ rtk proxy uv build
 
 Tests and CI use synthetic boundaries. They do not download neural data, call
 the real Codex CLI, or constitute experimental results. The body assets and
-viewer ship with the package; their optional regeneration instructions and
-source hashes are recorded alongside the assets.
+viewer ship with the package. See the [body provenance and optional rebuild
+instructions](src/flycodex/web/body/PROVENANCE.md) for pinned sources,
+MuJoCo pose checks, and the local viewer build.
 
 - Neural simulation: adapted from [Stonkfly at a pinned revision](https://github.com/nftechie/stonkfly/commit/78ef3e05ab0fa086032098558d893667068944a0), with its original notices retained.
 - Body geometry: [TuragaLab/flybody](https://github.com/TuragaLab/flybody), developed by Google DeepMind and HHMI Janelia; Apache-2.0.
