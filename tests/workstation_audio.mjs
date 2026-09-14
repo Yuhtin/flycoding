@@ -21,6 +21,19 @@ test('cue plan places deterministic key bursts and mouse boundaries', () => {
   assert.equal(typingStateAt(plan, 270, false).active, false);
 });
 
+test('typing lift alternates sides and is zero outside each pre-contact window', () => {
+  const plan = buildCuePlan(run, 200);
+  const firstLift = typingStateAt(plan, 150, true);
+  assert.equal(firstLift.left > 0, true);
+  assert.equal(firstLift.right, 0);
+  const secondLift = typingStateAt(plan, 350, true);
+  assert.equal(secondLift.left, 0);
+  assert.equal(secondLift.right > 0, true);
+  assert.deepEqual(typingStateAt(plan, 240, true), {active: true, cadence: 1, left: 0, right: 0});
+  assert.deepEqual(typingStateAt(plan, 20, true), {active: false, cadence: 0, left: 0, right: 0});
+  assert.deepEqual(typingStateAt(plan, 150, false), {active: false, cadence: 0, left: 0, right: 0});
+});
+
 class FakeParam {
   setValueAtTime() {}
   exponentialRampToValueAtTime() {}
@@ -33,11 +46,20 @@ class FakeNode {
     this.Q = {value: 0};
     this.started = [];
     this.stopped = [];
+    this.connections = [];
+    this.listeners = new Map();
+    this.disconnected = false;
   }
-  connect(destination) { return destination; }
+  connect(destination) { this.connections.push(destination); return destination; }
+  disconnect() { this.disconnected = true; }
   start(time) { this.started.push(time); }
   stop(time) { this.stopped.push(time); }
-  addEventListener() {}
+  addEventListener(type, listener) {
+    const listeners = this.listeners.get(type) || [];
+    listeners.push(listener);
+    this.listeners.set(type, listeners);
+  }
+  emit(type) { for (const listener of this.listeners.get(type) || []) listener(); }
 }
 
 class FakeAudioContext {
@@ -53,7 +75,8 @@ class FakeAudioContext {
   createGain() { return new FakeNode(); }
   createBuffer(channels, length) {
     assert.equal(channels, 1);
-    return {getChannelData: () => new Float32Array(length)};
+    const samples = new Float32Array(length);
+    return {getChannelData: () => samples};
   }
   createBufferSource() {
     const node = new FakeNode();
@@ -106,6 +129,13 @@ test('scheduleSound is safe for an offline-style context and missing audio API',
   const node = scheduleSound(context, {type: 'mouse'}, 2, context.destination);
   assert.deepEqual(node.started, [2]);
   assert.deepEqual(node.stopped, [2.055]);
+  assert.equal(node.buffer.getChannelData(0).some(sample => sample !== 0), true);
+  const filter = node.connections[0];
+  const gain = filter.connections[0];
+  node.emit('ended');
+  assert.equal(node.disconnected, true);
+  assert.equal(filter.disconnected, true);
+  assert.equal(gain.disconnected, true);
   const silent = createWorkstationAudio({AudioContext: undefined});
   assert.doesNotThrow(() => { silent.start(run); silent.advance(100, true); silent.stop(); silent.dispose(); });
 });

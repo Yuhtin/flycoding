@@ -39,9 +39,19 @@ export function cuesBetween(plan, fromMs, toMs) {
 }
 
 export function typingStateAt(plan, elapsedMs, playing) {
-  if (!playing || !finite(elapsedMs)) return {active: false, cadence: 0};
-  const active = plan.some(item => item.type === 'key' && elapsedMs >= item.at_ms && elapsedMs < item.at_ms + item.duration_ms);
-  return {active, cadence: active ? 1 : 0};
+  if (!playing || !finite(elapsedMs)) return {active: false, cadence: 0, left: 0, right: 0};
+  const keyCues = plan.filter(item => item.type === 'key');
+  let left = 0;
+  let right = 0;
+  for (const [keyIndex, item] of keyCues.entries()) {
+    const liftStart = item.at_ms - 180;
+    if (elapsedMs < liftStart || elapsedMs >= item.at_ms) continue;
+    const lift = Math.sin(Math.PI * (elapsedMs - liftStart) / 180);
+    if (keyIndex % 2 === 0) left = Math.max(left, lift);
+    else right = Math.max(right, lift);
+  }
+  const active = keyCues.some(item => elapsedMs >= item.at_ms && elapsedMs < item.at_ms + item.duration_ms);
+  return {active, cadence: active ? 1 : 0, left, right};
 }
 
 export function scheduleSound(context, item, time = context.currentTime, destination = context.destination) {
@@ -62,10 +72,20 @@ export function scheduleSound(context, item, time = context.currentTime, destina
   filter.type = item.type === 'mouse' ? 'lowpass' : 'highpass';
   filter.frequency.setValueAtTime(item.type === 'mouse' ? 1100 : 2600, time);
   filter.Q.value = item.type === 'mouse' ? .7 : .45;
+  gain.gain.value = 0;
   gain.gain.setValueAtTime(.0001, time);
-  gain.gain.exponentialRampToValueAtTime(item.type === 'mouse' ? .045 : .022, time + .002);
+  gain.gain.exponentialRampToValueAtTime(item.type === 'mouse' ? .12 : .09, time + .002);
   gain.gain.exponentialRampToValueAtTime(.0001, end);
+  let cleaned = false;
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    try { source.disconnect(); } catch {}
+    try { filter.disconnect(); } catch {}
+    try { gain.disconnect(); } catch {}
+  };
   source.connect(filter).connect(gain).connect(destination);
+  source.addEventListener?.('ended', cleanup);
   source.start(time);
   source.stop(end);
   return source;
