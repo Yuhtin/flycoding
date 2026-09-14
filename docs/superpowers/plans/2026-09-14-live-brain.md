@@ -26,7 +26,16 @@ Anatomy export: manifest.json with version, total_neurons, positioned_neurons, m
 - [ ] Export actual local anatomy to packaged assets and source hashes; verify 139662 positions,166700 IDs,4 output positions, byte layout and mapping.
 - [ ] Run focused tests and report contract/commands; commit only owned code/assets/tests.
 
-### Task 2: Live endpoints and future coding telemetry
+### Task 2: OpenCode runner and durable capped execution
+**Files:** new opencode.py and runner-focusedtests; pilot.py/cli.py/storage.py only where backend/maxcalls contractsrequire; existingCodexadapterpreserved.
+**Authorization:** Userallowsmaximum3actualOpenCodepromptsubmissions usingexactfreeMuseSpark1.3 model; rootacceptance onlyafterreview, workersfakeprocessonly. NoactualCodex calls.
+**Produces:** `OpenCodeRunner(workspace, model=..., timeout=300).run(prompt, session_id, on_event)` matchingexistingrunneroutcome shape and truthfully normalizedliveevents withbackend field/originalrawrecord. Explicitmodel/session/cwd; process-groupdeadline/cancel anduncertainprocessfailclosed as existingCodexadapter. `Pilot(..., backend='codex', max_calls=None)` and CLI flags `--backend codex|opencode --max-calls N` withimmutablemanifest/totalcap; defaultsbackwardcompatible. Acceptancecallerchoosesopencode/freeMuse/maxcalls3 andfreshdirectory. No fallbackorautomaticretriesoutsidecap.
+- [ ] Inspect installedOpenCode1.18.27CLIhelp andprimarydocs. Verifyfreecatalog withoutsendingprompts; use--pure, --formatjson, explicitmodel, explicitresumeID; no--continue/share. Scoped taskpermissions/config do notmodifyuserglobalconfig.
+- [ ] Add syntheticprocess tests forJSONevents/sessioncapture/resume/malformed/error/deadline/config/modelpin; reserve-before-send and3cap/resume tests withinjectedrunner; compatibilityexistingCodexsuite.
+- [ ] Implement separateadapter and persistedbackend/capmetadata; normalizeevents preservingrawidentity/labels; distinguishtoolpermissionsfromOSsandbox, neverclaimequivalence.
+- [ ] Commit/report exactbackendCLI/configprotocol,3-cap semantics andtestresults. Rootrecordsnewrunlater; do notspendanyrequests.
+
+### Task 3: Live endpoints and future coding telemetry
 **Files:** web/__init__.py, cli.py, pilot.py; new activity recording/reading module as needed; tests/test_web.py and focused integration tests.
 **Consumes:** Task1LabService and activity callback; actual anatomy manifest assets.
 **Produces HTTP:** `GET /lab/state`, `GET /lab/events?after=N`, `POST /lab/observe` small JSON exactlykind/passed, `POST /lab/cancel`; `GET /brain/manifest.json`, positions.bin,indices.bin,neurons.json. Lab routes only enabled with --lab; localhost-only, enforce expected Host/Origin and application/json for mutations, 1KiB limit; reject unsupported fields/values. GET state response includes availability and eventcursor; errors400/409/503. Snapshot/oldbodyroutes unchanged andread-only.
@@ -35,15 +44,15 @@ Future coding runs use optional callback wiring on actual NeuralPolicy to emit b
 - [ ] Wire lab ownership/server shutdown and CLI --lab --data-dir; preserve --demo behavior, add activity recording futurepilot only.
 - [ ] Test limits, stalecursor, cancel/shutdown, missingdata; commit/report exactfrontendcontract.
 
-### Task 3: Brain-first live interface
+### Task 4: Brain-first live interface
 **Files:** web/index.html,app.js,style.css; new brain-view source/bundle and state module; existing buildtool ifneeded; focused JS/browser tests.
-**Consumes:** Task1anatomy and Task2finalHTTPschemas.
+**Consumes:** Task1anatomy and Task3finalHTTPschemas.
 - [ ] Implement actual Three.js Points brain anatomy with classfilters, orbit/zoom, selectedneuronidentity and actualfiring overlay mapped byretainedindex. No inventedtiming: paint receivedbins with timestamp/age, clear livefiring when paused/finished/disconnected. Handle frames arriving between polls by showing measured windows explicitly ratherthan pretending delayedplayback iscurrent. Use existing localbuilddependency pins, nobrowserCDN.
-- [ ] Primary Live brain lab tab uses realPOSTobserve, task passedcount anddark/lightinputs, cancel/busy/missingdatastates; clearlystatesnoCodexcalls. LiveCodex tab follows realrun, fixedpromptreadoutthreshold, phaseflow and actualterminal; Archive preserves oldrealpilot withoutfakefullbrainspikes andlabelsrandomcontrols.
+- [ ] Primary Live brain lab tab uses realPOSTobserve, task passedcount anddark/lightinputs, cancel/busy/missingdatastates; clearlystatesnoCodexcalls. Live coding tab follows realrun, fixedpromptreadoutthreshold, phaseflow and actualterminal; Archive preserves oldrealpilot withoutfakefullbrainspikes andlabelsrandomcontrols.
 - [ ] Make flybody/brain/selectedpromptandphase visible together at1440x1000; physicalunits disclaimers whereuseful; allEnglish, responsive390px, keyboard/reducedmotion/WebGLfallback.
 - [ ] Add focusedcontracttests and freshbrowser checks using syntheticevents +realserverdata; fix oldoptionalresize test to await newrenderafterresize beforequietperiod. Commit/report.
 
-### Task 4: Grounded flybody and final integration
+### Task 5: Grounded flybody and final integration
 **Files:** tools/body-view/viewer.js, exporter ifneeded, generatedbodybundle/assets/provenance, relevant tests.
 - [ ] Inspectactualbodygeometry/stance and upstreamwalkingavailability fromresearch; choose stablegroundedrestingposture with visiblysupportedfeet and restrainedupperbodymotion. No danglingwalkinglegs orwingflappingwhilebrainidle.
 - [ ] Keep actualgeometry and scopedproceduraltruth; documentposes and any changedprovenance. Groundplane placement follows consistent stance, notarbitraryallmeshboundingboxshadow. Rebuildbundle/assets asneeded withoptionalpinnedtools.
@@ -52,5 +61,14 @@ Future coding runs use optional callback wiring on actual NeuralPolicy to emit b
 ### Coordinator acceptance and release
 - [ ] Independent full-graph lab observations fromexistingdata, compare telemetrysumsandaggregatehashes withobserver-disabledbaseline; no originalstate writes.
 - [ ] Fullsuite, focusedbrowser, isolatedwheel/labmissingdata checks; auditoriginalevidence andprivatepaths.
-- [ ] Root EnglishREADME/resultsdocs and recordactualbrainvideo (label lab, nofakecoding). Taskreviews thenwholebranchreview; onecombinedfinalfixwave andonescopedre-review.
+- [ ] Root EnglishREADME/resultsdocs and recordactualbrain/OpenCodevideo (actual measured activity and backend output). Taskreviews thenwholebranchreview; onecombinedfinalfixwave andonescopedre-review.
 - [ ] Merge/push existingauthorizedpublicrepo afterverification, checkCI, serve newlablocally, preserveverifiedartifacts and cleanonlyownscratch/worktree.
+
+## Steering precedence
+
+Latestuserauthorizationoverrides earlier no-new-calls global text only for root's
+bounded OpenCode acceptance: maximum3promptsubmissions, exactfreeMuseSpark1.3,
+stoponsuccess, originalsimmutable. All worker testsremain synthetic. Backend/UI
+must display actual runnername/provider; modes are Live brain lab, Live coding,
+and Archive. Tasknumbersshifted:1neural,2OpenCodeadapter/cap,3HTTPtelemetry,
+4frontend,5groundedbody. Task1alreadyunderimplementationdoesnotchangecoreAPI.

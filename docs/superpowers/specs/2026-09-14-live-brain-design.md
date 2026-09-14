@@ -60,3 +60,26 @@ changes are real (choices need not differ); clear live/lab/archive boundaries;
 new coding-run telemetry tested with synthetic Codex boundary; original evidence
 unchanged; mobile/desktop/WebGL/reduced-motion/error/cancel checks; all appropriate
 tests and package checks pass; English README and a newly captured real-brain video.
+
+## User update: OpenCode acceptance backend
+
+The user subsequently authorized a new live coding acceptance run through the
+installed OpenCode CLI using `opencode/muse-spark-1.3-contributor-free`, with a
+maximum of THREE prompt submissions total. This replaces the previous zero-new-
+calls restriction only for this explicitly bounded run. Luna agents continue
+implementing and reviewing; worker tests remain synthetic. Root alone conducts
+the recorded acceptance after reviewed, committed code. No automatic paid/model
+fallback, no retries outside the cap, and uncertain/failed started sends count.
+Stop early on task success. Preserve original Codex support and measured records.
+
+Add an OpenCode runner using explicit `run --format json --model ... --pure`,
+unique session identity and explicit `--session` continuation, never global
+`--continue`. Verify installed CLI semantics and record version/provider/model/
+permissions in the manifest. Use owned task workspace and deterministic scoped
+permissions/configuration without personal plugins or public sharing. Stream
+actual JSON events through a normalized observer without fabricating Codex events.
+Label the live terminal OpenCode and model Muse Spark1.3; archive stays Codex.
+CLI `--backend opencode --model ... --max-calls 3` must persist the cap across
+resume, reserve before launch, reject incompatible resumed configuration and stop
+at the totalcap independent of historical per-attempt allocations. The existing
+Codex defaults and historical budgets remain backward-compatible.
