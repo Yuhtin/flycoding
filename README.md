@@ -91,7 +91,8 @@ preserved; the new presentation is not another experimental run.
 
 ## Run a live brain experiment
 
-Prepare the data once, then start the local lab:
+Local simulation needs macOS or Linux, Python 3.11+, `uv`, Git, `curl`, RTK,
+and a C++17 compiler. Prepare the data once, then start the local lab:
 
 ```sh
 rtk proxy uv sync --frozen
@@ -213,7 +214,8 @@ controls use seeds **1729** and **1730**.
 
 ## Budget, stopping, and recovery
 
-The fixed allocation is **5 calls per attempt, 10 per condition, 30 total**.
+The default allocation is **5 calls per attempt, 10 per condition, 30 total**.
+An explicit `--max-calls` adds a lower total cap, which also survives resume.
 An early success ends its attempt without transferring unused calls. Every
 send reserves budget durably before starting the coding backend. Pending or uncertain sends
 still count; they are never automatically resent.

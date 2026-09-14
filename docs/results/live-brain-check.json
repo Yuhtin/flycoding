@@ -65,5 +65,30 @@
       "spikes": 392732,
       "input_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
     }
-  ]
+  ],
+  "synthetic_coding_integration": {
+    "evidence": "Real local neural computation; synthetic coding executor",
+    "actual_model_calls": 0,
+    "passing_tests": 5,
+    "windows": [
+      {
+        "phase": "choice",
+        "bins": 50,
+        "sparse_entries": 335128,
+        "spikes": 392732,
+        "bytes": 2892905,
+        "aggregate_hash_matches": true,
+        "anatomy_identity_matches": true
+      },
+      {
+        "phase": "feedback",
+        "bins": 20,
+        "sparse_entries": 168109,
+        "spikes": 199794,
+        "bytes": 1427638,
+        "aggregate_hash_matches": true,
+        "anatomy_identity_matches": true
+      }
+    ]
+  }
 }

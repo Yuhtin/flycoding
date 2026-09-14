@@ -27,6 +27,20 @@ sum matched its reported aggregate. Different sensory activity did not imply
 a different selected instruction. These checks establish instrumentation
 consistency, not biological validity or a learning advantage.
 
+## Full-size integration fixture
+
+A separate one-attempt fixture used the real local neural policy and a clearly
+synthetic coding executor. It made **zero model calls**. Its 50 choice bins and
+20 feedback bins were recorded without sparse-array truncation. Their sums and
+spike hashes matched the normal aggregates: **392,732** choice spikes and
+**199,794** feedback spikes. The five task tests passed after the fixture edit;
+this is integration validation, not evidence of a coding model's performance.
+
+Both full-size documents passed the activity reader's shape validation. Actual
+HTTP checks accepted the exact panel origin, rejected a missing/wrong port and
+a mismatched loopback alias, and served the measured activity plus the separate
+bundled archive. No model invocation occurred in these checks.
+
 ## Anatomical mapping
 
 An independent comparison checked all **139,662** exported float32 XYZ positions
