@@ -1,6 +1,6 @@
 import {createBodyView} from '/body-view.js';
 import {createBrainView} from '/brain-view.js';
-import {applyActivityPage, createBrainState, measurementAge} from '/brain-state.mjs';
+import {applyActivityPage, createBrainState, emptyReadout, feedbackLabel, measurementAge} from '/brain-state.mjs';
 import {coalesceItemEvents, createReplay, evaluationForTurn, order, readableEvent, recordedWorkspace, translatePrompt, turns} from '/presentation.mjs';
 
 const byId = id => document.getElementById(id);
@@ -47,6 +47,10 @@ const brain = createBrainView(byId('brain-stage'), {
     setText('selected-index', neuron.index ?? '—');
     setText('selected-spikes', '—');
   },
+  onActivitySummary(summary) {
+    setText('selected-spikes', summary.selectedIndex == null ? '—' : summary.selectedSpikes);
+    setText('unplaced-measured', summary.unplacedCount ? `${summary.unplacedCount} unplaced · ${summary.unplacedSpikes} spikes` : 'No unplaced activity');
+  },
 });
 
 function updateMotion() {
@@ -74,6 +78,7 @@ function setMode(next) {
   byId('archive-panel').hidden = next !== 'archive';
   setText('footer-mode', next === 'lab' ? 'Measured local lab · no coding calls' : next === 'coding' ? 'Live coding observer · actual backend events' : 'Read-only archive · historical full-brain activity unavailable');
   if (next !== 'lab') { brain.clearActivity(); setText('brain-mode', next === 'archive' ? 'Historic activity unavailable' : 'Waiting for measured coding window'); }
+  if (next === 'coding') clearLiveReadout();
   if (next !== 'coding') codingActivity = null;
   updateLabControls();
   if (next === 'archive') loadArchive();
@@ -90,8 +95,18 @@ function formatRecorded(value) {
   if (!Number.isFinite(value)) return '—';
   return new Date(value).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
 }
-function updateMeasuredReadout(choice, latestBin, input, identityLabel) {
+function clearLiveReadout() {
+  const blank = emptyReadout();
+  setText('active', blank.identity); setText('prompt', 'Waiting for a live coding run.'); setText('prompt-language', 'No instruction selected');
+  setText('reason', 'Waiting for measured neural output.'); setText('left', '—'); setText('right', '—'); setText('gate', '—'); setText('feedback', '—');
+  setText('simulation-time', '—'); setText('recorded-time', '—'); setText('measurement-age', 'Age unavailable'); setText('input-hash', '—'); setText('live-score', '—'); setText('live-cap', '—'); setText('live-evaluation-state', 'No coding run');
+  setText('trace', 'No trace available.'); setText('input-label', 'Awaiting input'); setText('unplaced-measured', 'No unplaced activity'); setText('selected-spikes', '—'); setText('brain-mode', mode === 'coding' ? 'Waiting for measured coding window' : 'Measured bins idle');
+  const image = byId('sensory'); image.hidden = true; image.removeAttribute('src'); delete image.dataset.job; byId('image-empty').hidden = false;
+  document.querySelectorAll('[data-action]').forEach(node => node.classList.remove('selected'));
+}
+function updateMeasuredReadout(choice, latestBin, input, identityLabel, feedback = null) {
   const actual = choice || {};
+  const actualFeedback = feedback || actual.feedback;
   const action = actual.action;
   setText('active', identityLabel || 'No window');
   setText('prompt', action ? prompts[action] || action : 'Waiting for the first measured choice.');
@@ -101,7 +116,7 @@ function updateMeasuredReadout(choice, latestBin, input, identityLabel) {
   setText('left', actual.left_hz === undefined ? '—' : `${Number(actual.left_hz).toFixed(2)} Hz`);
   setText('right', actual.right_hz === undefined ? '—' : `${Number(actual.right_hz).toFixed(2)} Hz`);
   setText('gate', actual.gate_spikes ?? '—');
-  setText('feedback', actual.feedback ? ({'-1':'Negative','0':'Neutral','1':'Positive'}[actual.feedback.signal] || 'Recorded') : '—');
+  setText('feedback', feedbackLabel(actualFeedback));
   setText('simulation-time', latestBin ? `${latestBin.start_ms}–${latestBin.end_ms} ms` : '—');
   setText('recorded-time', formatRecorded(latestBin?.recorded_at_ms));
   setText('measurement-age', measurementAge(latestBin?.recorded_at_ms));
@@ -125,6 +140,7 @@ async function jsonFetch(path, options = {}) {
 
 async function observe(event) {
   event.preventDefault();
+  brain.clearActivity(); brainState = createBrainState(brainState.orderHash); clearLiveReadout();
   const passed = Number(byId('observe-passed').value);
   const value = {kind:byId('observe-kind').value, passed:Number.isInteger(passed) ? passed : 0};
   const result = await jsonFetch('/lab/observe', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(value)});
@@ -219,18 +235,18 @@ async function refreshCoding() {
   if (!result.response.ok || !result.value?.attempts) {
     connected = false; setText('connection', 'Waiting for a coding run'); setText('run-status', 'Waiting for live coding files'); setText('evidence', 'Start the CLI run separately; no automatic runner');
     setText('terminal-state', 'Waiting'); setText('terminal-backend', 'Backend —'); setText('events', 'No coding run snapshot exists yet. Select Live coding before starting the CLI run.');
-    brain.clearActivity(); setBodyMode('idle'); return;
+    brain.clearActivity(); clearLiveReadout(); setBodyMode('idle'); return;
   }
   connected = true; current = result.value;
   const entries = turns(current);
   const latest = entries.at(-1);
-  if (!latest) { setText('run-status', 'Waiting for first coding turn'); return; }
+  if (!latest) { setText('run-status', 'Waiting for first coding turn'); clearLiveReadout(); return; }
   latest.turn._attemptName = latest.name;
   const turn = latest.turn;
   const busy = Boolean(current.busy);
   setText('run-status', busy ? 'Coding backend executing' : labels[current.status] || current.status || 'Coding run available');
   setText('evidence', current.evidence === 'genuine' ? 'Actual recorded coding run' : 'Synthetic fixture · no live submission');
-  updateMeasuredReadout(turn.choice, null, turn.input, `${latest.name} · turn ${turn.step}`);
+  updateMeasuredReadout(turn.choice, null, turn.input, `${latest.name} · turn ${turn.step}`, turn.feedback);
   renderTerminal(turn, current, busy);
   const activityResult = await jsonFetch('/activity.json');
   if (activityResult.value?.available) {
@@ -250,7 +266,7 @@ async function refreshCoding() {
       const latestBin = brainState.lastBin;
       if (busy || document.status !== 'running') brain.clearActivity();
       else if (latestBin && brainState.overlayAllowed) brain.setActivity(latestBin);
-      updateMeasuredReadout(turn.choice, latestBin, turn.input, `${document.attempt} · turn ${document.turn} · ${document.phase}`);
+      updateMeasuredReadout(turn.choice, latestBin, turn.input, `${document.attempt} · turn ${document.turn} · ${document.phase}`, turn.feedback);
     }
   } else {
     brain.clearActivity(); setText('brain-mode', activityResult.value?.reason === 'missing' ? 'No measured activity file yet' : 'Measured activity unavailable');
@@ -288,7 +304,7 @@ function renderArchive() {
   if (!entry) { setBodyMode('idle'); return; }
   const {name,turn} = entry; const choice = turn.choice || {}; const working = frame.active && frame.phase === 'working'; const live = !frame.active && byId('history').value === 'live';
   let bodyState = working ? 'replay' : 'idle'; if (!frame.active && live && current.busy) bodyState = 'working'; else if (!frame.active && live) bodyState = liveFeedback;
-  setBodyMode(bodyState, entry); updateMeasuredReadout(choice, null, turn.input, `${name} · turn ${turn.step}`);
+  setBodyMode(bodyState, entry); updateMeasuredReadout(choice, null, turn.input, `${name} · turn ${turn.step}`, turn.feedback);
   const prompt = translatePrompt(turn.prompt || prompts[choice.action] || 'Recorded instruction'); const original = byId('original-language').checked; setText('prompt', original ? turn.prompt || prompt.text : prompt.text); setText('prompt-language', prompt.translated ? original ? 'Original recorded instruction · Portuguese' : 'English translation · original preserved' : 'Original recorded instruction');
   setText('feedback', turn.feedback ? ({'-1':'Negative','0':'Neutral','1':'Positive'}[turn.feedback.signal] || 'Recorded') : working ? 'Pending replay' : 'Not delivered');
   const evaluation = evaluationForTurn(current.attempts[name], turn, !working); setText('score', evaluation ? `${evaluation.passed} / ${evaluation.total}` : '—'); setText('evaluation-state', working ? 'Before this turn' : 'Recorded result');

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {measuredActivity} from '../../src/flycodex/web/brain-state.mjs';
 
 const FILTERS = {
   all: () => true,
@@ -25,6 +26,7 @@ export function createBrainView(container, options = {}) {
   let overlayPoints;
   let overlayKey = '';
   let selectedPoint = -1;
+  let selectedRetained = null;
   let fitCenter = null;
   let fitRadius = 1;
   const fitDirection = new THREE.Vector3(0.65, -1.0, 0.75).normalize();
@@ -89,7 +91,12 @@ export function createBrainView(container, options = {}) {
     if (pointIndex < 0 || pointIndex >= retainedIndices.length) return;
     selectedPoint = pointIndex;
     const retained = retainedIndices[pointIndex];
+    selectedRetained = retained;
     options.onSelection?.({index: retained, ...(metadata[retained] || {})});
+    const currentIndices = [...activity.keys()], currentCounts = currentIndices.map(index => activity.get(index));
+    const summary = measuredActivity(currentIndices, currentCounts, pointByRetained, retained);
+    options.onActivitySummary?.({selectedIndex: retained, selectedSpikes: summary.selectedSpikes,
+      unplacedCount: summary.unplacedCount, unplacedSpikes: summary.unplacedSpikes});
     render();
   }
 
@@ -219,13 +226,14 @@ export function createBrainView(container, options = {}) {
       const key = `${indices.join(',')}|${counts.join(',')}`;
       if (key === overlayKey) return;
       overlayKey = key;
+      const measured = measuredActivity(indices, counts, pointByRetained, selectedRetained);
       activity = new Map();
       const overlayPositions = [], overlayColors = [];
       const max = Math.max(1, ...counts);
       for (let index = 0; index < indices.length; index += 1) {
         const retained = indices[index], point = pointByRetained?.[retained] ?? -1;
-        if (point < 0) continue;
         activity.set(retained, counts[index] || 0);
+        if (point < 0) continue;
         overlayPositions.push(positions[point * 3], positions[point * 3 + 1], positions[point * 3 + 2]);
         const brightness = 0.65 + 0.35 * Math.min(1, (counts[index] || 0) / max);
         overlayColors.push(1, brightness, 0.25);
@@ -238,12 +246,15 @@ export function createBrainView(container, options = {}) {
         overlayPoints = new THREE.Points(geometry, new THREE.PointsMaterial({size:120, vertexColors:true, transparent:true, opacity:0.95, sizeAttenuation:true, depthWrite:false}));
         scene.add(overlayPoints);
       }
+      options.onActivitySummary?.({selectedIndex: selectedRetained, selectedSpikes: measured.selectedSpikes,
+        unplacedCount: measured.unplacedCount, unplacedSpikes: measured.unplacedSpikes});
       applyColors(); render();
     },
     clearActivity() {
       if (!activity.size && !overlayPoints) return;
       activity = new Map(); overlayKey = '';
       if (overlayPoints) { scene.remove(overlayPoints); overlayPoints.geometry.dispose(); overlayPoints.material.dispose(); overlayPoints = null; }
+      options.onActivitySummary?.({selectedIndex: selectedRetained, selectedSpikes: 0, unplacedCount: 0, unplacedSpikes: 0});
       applyColors(); render();
     },
     select(index) { const point = pointByRetained?.[index] ?? -1; if (point >= 0) selectPoint(point); },

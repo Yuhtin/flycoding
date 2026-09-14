@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {applyActivityPage, createBrainState, measurementAge, overlayIdentity} from '../src/flycodex/web/brain-state.mjs';
+import {applyActivityPage, createBrainState, feedbackLabel, measuredActivity, measurementAge, overlayIdentity, emptyReadout} from '../src/flycodex/web/brain-state.mjs';
 
 test('activity pages retain the newest measured bin and server timestamp', () => {
   const initial = createBrainState('order-a');
@@ -38,6 +38,20 @@ test('reset and mixed identity refuse stale overlays while retaining the new pag
   assert.match(reset.overlayError, /identity/i);
 });
 
+test('reset page starts the new job identity while preserving the expected anatomy order', () => {
+  let state = applyActivityPage(createBrainState('order-a'), {
+    reset:false, latest_seq:1,
+    events:[{seq:1, type:'bin', job_id:'old', neuron_order_sha256:'order-a', start_ms:0, end_ms:10, indices:[1], counts:[1], total_spikes:1}],
+  });
+  state = applyActivityPage(state, {
+    reset:true, latest_seq:2,
+    events:[{seq:2, type:'bin', job_id:'new', neuron_order_sha256:'order-a', start_ms:0, end_ms:10, indices:[2], counts:[3], total_spikes:3}],
+  });
+  assert.equal(state.identity.jobId, 'new');
+  assert.equal(state.overlayAllowed, true);
+  assert.equal(state.orderHash, 'order-a');
+});
+
 test('measurement age uses recorded time and reports unavailable when absent', () => {
   assert.equal(measurementAge(1700000000000, 1700000001250), '1.3 s ago');
   assert.equal(measurementAge(undefined, 1700000001250), 'Age unavailable');
@@ -65,4 +79,21 @@ test('activity identity must match the selected coding turn before overlaying', 
   const expected = {orderHash:'h', jobId:null, windowId:'w', run:'run-1', attempt:'adaptive-1', turn:2, phase:'choice'};
   assert.equal(overlayIdentity({neuron_order_sha256:'h', window_id:'w', run:'run-1', attempt:'adaptive-1', turn:2, phase:'choice'}, expected), true);
   assert.equal(overlayIdentity({neuron_order_sha256:'h', window_id:'w', run:'run-1', attempt:'adaptive-1', turn:1, phase:'choice'}, expected), false);
+});
+
+test('measured activity retains unplaced counts and selected retained-neuron spikes', () => {
+  const result = measuredActivity([2, 7, 9], [3, 4, 5], new Int32Array([-1, -1, 0, -1, 1]), 7);
+  assert.deepEqual(result.drawableIndices, [2]);
+  assert.deepEqual(result.drawableCounts, [3]);
+  assert.equal(result.unplacedCount, 2);
+  assert.equal(result.unplacedSpikes, 9);
+  assert.equal(result.selectedSpikes, 4);
+});
+
+test('coding feedback label and empty readout are explicit', () => {
+  assert.equal(feedbackLabel({signal:1}), 'Positive');
+  assert.equal(feedbackLabel({signal:-1}), 'Negative');
+  assert.equal(feedbackLabel({signal:0}), 'Neutral');
+  assert.equal(feedbackLabel(undefined), '—');
+  assert.deepEqual(emptyReadout(), {choice:null, feedback:null, input:null, latestBin:null, identity:'No window'});
 });

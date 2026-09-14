@@ -11,6 +11,28 @@ export function createBrainState(orderHash = null) {
   };
 }
 
+export function feedbackLabel(feedback) {
+  if (!feedback || !Number.isInteger(feedback.signal)) return '—';
+  return ({'-1': 'Negative', '0': 'Neutral', '1': 'Positive'})[String(feedback.signal)] || 'Recorded';
+}
+
+export function emptyReadout() {
+  return {choice: null, feedback: null, input: null, latestBin: null, identity: 'No window'};
+}
+
+export function measuredActivity(indices = [], counts = [], pointByRetained = new Int32Array(), selectedIndex = null) {
+  const drawableIndices = [], drawableCounts = [];
+  let unplacedCount = 0, unplacedSpikes = 0, selectedSpikes = 0;
+  for (let position = 0; position < indices.length; position += 1) {
+    const retained = indices[position], count = counts[position] || 0;
+    if (retained === selectedIndex) selectedSpikes = count;
+    const point = pointByRetained[retained] ?? -1;
+    if (point < 0) { unplacedCount += 1; unplacedSpikes += count; }
+    else { drawableIndices.push(retained); drawableCounts.push(count); }
+  }
+  return {drawableIndices, drawableCounts, unplacedCount, unplacedSpikes, selectedSpikes};
+}
+
 function eventIdentity(event) {
   return {
     orderHash: event.neuron_order_sha256 ?? null,
@@ -44,6 +66,7 @@ export function applyActivityPage(previous, page = {}) {
     lastRecordedAtMs: reset ? null : previous.lastRecordedAtMs,
     overlayAllowed: reset ? true : previous.overlayAllowed,
     overlayError: reset ? '' : previous.overlayError,
+    identity: reset ? {...previous.identity, jobId: null, windowId: null, run: null, attempt: null, turn: null, phase: null} : previous.identity,
   };
   for (const event of events) {
     if (!reset && Number.isInteger(event.seq) && event.seq <= next.cursor && next.events.some(previousEvent => previousEvent.seq === event.seq)) continue;
