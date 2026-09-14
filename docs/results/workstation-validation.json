@@ -1,0 +1,82 @@
+{
+  "browser-check": {
+    "coding_calls": 0,
+    "idle_text": "flycoding\n\nThe new era of vibe coding\n\nRECORDED RUN\nPlay\nReady \u00b7 one recorded run\nOpenCode\nMuse Spark \u00b7 recorded\nFLY PROMPT\n\nOutput appears after the fly chooses.\n\nNEURAL ACTIVITY\nReady \u00b7 press Play\n166,700\nneurons\n\u2014\nactive\n\u2014\nspikes/s\n96 measured cells\nsource replay\nAbout this recording",
+    "idle_words": 48,
+    "desktop_monitor": {
+      "x": 608.6213989257812,
+      "y": 165.34950256347656,
+      "width": 618.3654174804688,
+      "height": 449.22508239746094
+    },
+    "pause_preserves_transcript": true,
+    "pause_stops_body": true,
+    "metrics_match_measured_choice": {
+      "active": 6579,
+      "rate": 890100
+    },
+    "result": "5/5 external tests passed",
+    "mobile_overflow": 0,
+    "mobile_play_above_fold": true,
+    "mobile_monitor": {
+      "x": 30.634227752685547,
+      "y": 212.77178955078125,
+      "width": 328.7315559387207,
+      "height": 214.00628662109375
+    },
+    "posts": [],
+    "errors": []
+  },
+  "browser-recovery": {
+    "coding_calls": 0,
+    "clock": "Synthetic browser clock for behavior checks; not used for published video",
+    "failed_payload_blocks_play": true,
+    "retry_recovers": true,
+    "replay_clears_prior_result_and_messages": true,
+    "pause_stops_clock": true,
+    "reduced_motion_respected": true,
+    "advanced_observer_preserved": true,
+    "missing_body_blocks_play": true,
+    "body_reload_recovers_with_ready_label": true,
+    "errors": []
+  },
+  "motion-check": {
+    "coding_calls": 0,
+    "motion": {
+      "body_pose_changes_while_playing": true,
+      "body_pose_stable_while_paused": true,
+      "disposed_dom": true
+    },
+    "errors": []
+  },
+  "package-check": {
+    "package": "flycoding",
+    "wheel_files_match_source": 73,
+    "legacy_cli_alias": true,
+    "wheel_sha256": "4754cca903a6c91731bf5d0fbe5306f83df2e3a05f32fa5380551a9a5164827e",
+    "pytest": {
+      "passed": 135,
+      "skipped": 2,
+      "seconds": 32.49
+    }
+  },
+  "implementation_revision": "35045f77639a1d4345e98de65d07cef632824773",
+  "video": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "width": 1440,
+        "height": 900,
+        "pix_fmt": "yuv420p",
+        "r_frame_rate": "30/1"
+      }
+    ],
+    "format": {
+      "duration": "50.400000",
+      "size": "3784044"
+    },
+    "sha256": "ebaaa9352e5c28407b770ef879ed6e8d1c5b7d13efba387e158d59151e2cb246"
+  }
+}

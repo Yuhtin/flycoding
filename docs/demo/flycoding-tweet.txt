@@ -1,0 +1,9 @@
+flycoding. The new era of vibe coding.
+
+A simulated fly brain picks a prompt. OpenCode does the coding.
+
+166,700 neurons. One tiny developer at a keyboard. This recorded run went from 1/5 to 5/5 tests.
+
+Open source: https://github.com/Yuhtin/flycoding
+
+Follow-up: The brain selects from three fixed prompts. The HUD replays measured simulated spikes; the body motion is procedural. This is a playful experiment, not evidence that a fly understands code.

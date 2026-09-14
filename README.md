@@ -1,20 +1,23 @@
-# Flycodex
+# flycoding
+
+**The new era of vibe coding.**
 
 **A simulated fly brain picks the prompt. OpenCode or Codex does the coding.**
 
-Press **Play** to watch a recorded fly-brain decision become an OpenCode prompt.
-**Amber is the fly's decision. Blue is OpenCode's response.** The player uses
-actual [flybody](https://github.com/TuragaLab/flybody) geometry and the measured
-neural activity from that same run.
+A fly at a keyboard. Its chosen prompt on the monitor. OpenCode answering.
+Press **Play** to watch the recorded run in a full-screen, pixelated 3D workstation.
+**Amber is the fly prompt. Cyan is OpenCode.** The fly uses actual
+[flybody](https://github.com/TuragaLab/flybody) geometry; the neural HUD shows
+measured activity from that same run.
 
-![Simple player showing the fly's decision and OpenCode's response](docs/results/simple-player-dashboard.png)
+![flycoding: a fly at a physical keyboard with its prompt and OpenCode on the monitor](docs/results/workstation-dashboard.png)
 
 **Latest live run:** the brain selected Fix, Muse Spark corrected the function,
 and external tests improved from **1/5 to 5/5**. Acceptance used **2 of 3 authorized
 prompt submissions**, including an earlier permission failure.
-[Watch the simple player](docs/demo/simple-player.mp4) ·
+[Watch flycoding](docs/demo/workstation.mp4) ·
 [Evidence](docs/results/muse-live-brain/README.md) ·
-[English post draft](docs/demo/live-brain-tweet.txt)
+[English post draft](docs/demo/flycoding-tweet.txt)
 
 ## Press Play
 
@@ -23,10 +26,10 @@ bundled Muse recording. You do not need model authentication, neural data, MuJoC
 or a training setup to watch it.
 
 ```sh
-rtk git clone https://github.com/Yuhtin/flycodex
-cd flycodex
+rtk git clone https://github.com/Yuhtin/flycoding
+cd flycoding
 rtk proxy uv sync --frozen
-rtk proxy uv run flycodex serve --demo --port 8765
+rtk proxy uv run flycoding serve --demo --port 8765
 ```
 
 Open **http://127.0.0.1:8765** and press **Play**. Pause and resume with the same
@@ -34,8 +37,9 @@ button, or replay after completion. The fly's instruction and the actual model
 output appear in order. Commands and tool errors stay under **Terminal details**.
 
 The player is labeled **Recorded run** and preserves the recorded timing. It
-sends no prompts. **Details** opens the local lab, live
+sends no prompts. **About this recording** links to the local lab, live
 CLI observer, and historical Codex archive at `/observatory`.
+[Workstation validation and media](docs/results/workstation.md).
 
 [Original live Muse capture](docs/demo/live-brain-opencode.mp4) ·
 [Earlier Codex replay](docs/demo/flycodex-demo.mp4)
@@ -56,13 +60,17 @@ instruction and performs the coding work in a dedicated task workspace.
 5. Five external tests score the result, followed by a separate **200 ms feedback**
    interval in the neural simulation.
 
-The enlarged CNS view uses actual soma coordinates for **139,662 of 166,700
-retained neurons**. The other **27,038 neurons have no usable position** and
+The advanced observatory at `/observatory` uses actual soma coordinates for
+**139,662 of 166,700 retained neurons**. The other **27,038 neurons have no usable position** and
 are counted separately. Each activity bin contains measured simulated spikes
 from a 10 ms interval, bound to the same neuron order as the anatomy. These are
 soma positions, not reconstructed axons or a brain registered inside the fly's
 head. The model is experimental; activity does not establish biological fidelity,
 language understanding, or task learning.
+
+The workstation HUD shows the retained neuron count, active neurons per bin,
+simulated spikes per second, and a measured 96-cell raster. It holds the last
+measurement with **Paused** or **Waiting** when the neural timeline stops.
 
 The 3D specimen uses the actual flybody geometry. Its resting motion is a
 **procedural presentation**, separate from neural computation. The connectome
@@ -106,8 +114,8 @@ and a C++17 compiler. Prepare the data once, then start the local lab:
 
 ```sh
 rtk proxy uv sync --frozen
-rtk proxy uv run flycodex prepare --data-dir data
-rtk proxy uv run flycodex serve --lab --data-dir data --port 8767
+rtk proxy uv run flycoding prepare --data-dir data
+rtk proxy uv run flycoding serve --lab --data-dir data --port 8767
 ```
 
 Open **http://127.0.0.1:8767/observatory**. Choose the task's passing-test count or a uniform
@@ -131,8 +139,8 @@ require an editable checkout so the manifest can identify the source revision.
 
 ```sh
 rtk proxy uv sync --frozen --group dev
-rtk proxy uv run flycodex prepare --data-dir data
-rtk proxy uv run flycodex probe --data-dir data --output-dir runs/probe
+rtk proxy uv run flycoding prepare --data-dir data
+rtk proxy uv run flycoding probe --data-dir data --output-dir runs/probe
 ```
 
 `prepare` downloads the pinned MaleCNS sources, verifies their hashes, and
@@ -148,8 +156,8 @@ checkpoints in the pilot were approximately 6.5 MB each.
 Run the dashboard and experiment in separate terminals:
 
 ```sh
-rtk proxy uv run flycodex serve --run-dir runs/pilot --port 8765
-rtk proxy uv run flycodex run --data-dir data --run-dir runs/pilot --model gpt-6-astra
+rtk proxy uv run flycoding serve --run-dir runs/pilot --port 8765
+rtk proxy uv run flycoding run --data-dir data --run-dir runs/pilot --model gpt-6-astra
 ```
 
 The viewer does not start the runner. The runner fixes its model, CLI version,
@@ -171,8 +179,8 @@ There is no automatic model fallback.
 Use a fresh run directory and start the observer in another terminal:
 
 ```sh
-rtk proxy uv run flycodex serve --lab --data-dir data --run-dir runs/muse-demo --port 8767
-rtk proxy uv run flycodex run --data-dir data --run-dir runs/muse-demo --backend opencode --model opencode/muse-spark-1.3-contributor-free --max-calls 3 --stop-after-attempts 1
+rtk proxy uv run flycoding serve --lab --data-dir data --run-dir runs/muse-demo --port 8767
+rtk proxy uv run flycoding run --data-dir data --run-dir runs/muse-demo --backend opencode --model opencode/muse-spark-1.3-contributor-free --max-calls 3 --stop-after-attempts 1
 ```
 
 The cap counts **prompt submissions**, including failed or uncertain started
@@ -236,8 +244,8 @@ send reserves budget durably before starting the coding backend. Pending or unce
 still count; they are never automatically resent.
 
 ```sh
-rtk proxy uv run flycodex status --run-dir runs/pilot
-rtk proxy uv run flycodex report --run-dir runs/pilot --output-dir docs/results
+rtk proxy uv run flycoding status --run-dir runs/pilot
+rtk proxy uv run flycoding report --run-dir runs/pilot --output-dir docs/results
 ```
 
 Ctrl-C stops the active process and preserves its reservation. Resume with the
@@ -266,9 +274,11 @@ rtk proxy uv build
 ```
 
 Tests and CI use synthetic boundaries. They do not download neural data, call
-the real Codex CLI, or constitute experimental results. The body assets and
-viewer ship with the package. See the [body provenance and optional rebuild
-instructions](src/flycodex/web/body/PROVENANCE.md) for pinned sources,
+the real Codex CLI, or constitute experimental results. The body assets,
+workstation, and viewer ship with the package. Rebuild the workstation JavaScript with
+`rtk proxy node tools/build_workstation_view.mjs`. The `flycodex` command remains
+an alias; internal module names and historical records preserve their original
+identity. See the [body provenance and optional rebuild instructions](src/flycodex/web/body/PROVENANCE.md) for pinned sources,
 MuJoCo pose checks, and the local viewer build.
 
 - Neural simulation: adapted from [Stonkfly at a pinned revision](https://github.com/nftechie/stonkfly/commit/78ef3e05ab0fa086032098558d893667068944a0), with its original notices retained.
