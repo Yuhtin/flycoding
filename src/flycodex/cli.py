@@ -8,7 +8,7 @@ from .storage import load_json
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="flycodex", description="Local neural control pilot for Codex")
+    parser = argparse.ArgumentParser(prog="flycoding", description="The new era of vibe coding")
     commands = parser.add_subparsers(dest="command", required=True)
     for name, help_text in (
         ("prepare", "Download and verify the pinned dataset"),
@@ -85,5 +85,5 @@ def main(argv=None):
         print("Interrupted. Any reservation remains consumed; resume from the same directory.", file=sys.stderr)
         return 130
     except (OSError, RuntimeError, ValueError) as exc:
-        print(f"flycodex: {exc}", file=sys.stderr)
+        print(f"flycoding: {exc}", file=sys.stderr)
         return 1

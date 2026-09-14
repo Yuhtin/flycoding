@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "flycodex"
+name = "flycoding"
 version = "0.1.0"
-description = "A reproducible full-connectome neural control pilot for Codex."
+description = "The new era of vibe coding: a simulated fly brain picks prompts for OpenCode or Codex."
 requires-python = ">=3.11"
 dependencies = [
   "numpy>=2.0",
@@ -15,6 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
+flycoding = "flycodex.cli:main"
 flycodex = "flycodex.cli:main"
 
 [tool.pytest.ini_options]

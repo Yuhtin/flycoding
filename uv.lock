@@ -23,7 +23,7 @@ wheels = [
 ]
 
 [[package]]
-name = "flycodex"
+name = "flycoding"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
