@@ -110,6 +110,7 @@ def test_lab_routes_require_small_exact_same_origin_json_payload(lab_server):
     events = json.loads(request(address, "/lab/events?after=0")[2])
     assert events["events"]
     assert {event["job_id"] for event in events["events"]} == {job_id}
+    assert all(isinstance(event["recorded_at_ms"], int) for event in events["events"])
 
 
 def test_lab_cancel_and_cursor_validation(lab_server):
@@ -186,6 +187,7 @@ def test_activity_recorder_identity_rotation_and_reader_bounds(tmp_path):
     assert payload["window"]["turn"] == 2
     assert payload["window"]["phase"] == "choice"
     assert payload["window"]["events"][1]["counts"] == [7]
+    assert isinstance(payload["window"]["events"][1]["recorded_at_ms"], int)
     assert len(json.dumps(payload)) < 64 * 1024
 
 

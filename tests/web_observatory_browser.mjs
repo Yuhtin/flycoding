@@ -71,6 +71,8 @@ async function countRenders(context) {
   });
 }
 async function settled(page) {
+  await page.waitForSelector('#body-stage canvas[data-ready="true"]');
+  await page.waitForSelector('#brain-stage canvas[data-ready="true"]');
   await page.waitForFunction(() => {
     const now = performance.now();
     if (window.lastRenderCount !== window.renderCount) {
@@ -104,7 +106,9 @@ test('integrated reduced-motion panel rests, wakes for orbit/zoom/resize, resume
     await page.mouse.wheel(0, 100);
     assert(await settled(page) > count, 'Wheel zoom must redraw');
     count = await page.evaluate(() => window.renderCount);
+    const beforeResize = await page.evaluate(() => window.renderCount);
     await page.setViewportSize({width:1000,height:800});
+    await page.waitForFunction(before => window.renderCount > before, beforeResize);
     assert(await settled(page) > count, 'Resize must redraw');
     const still = await canvas.screenshot();
     await page.locator('#motion-toggle').click();

@@ -54,6 +54,9 @@ def create_server(run_dir: Path, *, host="127.0.0.1", port=8765, demo=False,
     for route, mime in json.loads((assets / "body/routes.json").read_text()).items():
         routes[route] = (route.lstrip("/"), mime)
     routes.update({"/presentation.mjs": ("presentation.mjs", "text/javascript; charset=utf-8"),
+                   "/brain-view.js": ("brain-view.js", "text/javascript; charset=utf-8"),
+                   "/brain-state.mjs": ("brain-state.mjs", "text/javascript; charset=utf-8"),
+                   "/live-extra.css": ("live-extra.css", "text/css; charset=utf-8"),
                    "/translations.json": ("demo/translations.json", "application/json; charset=utf-8")})
     if demo:
         routes["/demo-provenance.json"] = ("demo/provenance.json", "application/json; charset=utf-8")

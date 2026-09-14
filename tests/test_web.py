@@ -87,6 +87,13 @@ def test_dashboard_projection_and_replay():
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+def test_brain_state_projection():
+    if not shutil.which("node"):
+        pytest.skip("Node.js is required for brain state tests")
+    result = subprocess.run(["node", "--test", "tests/brain_state.mjs"], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_demo_is_bundled_read_only_and_routes_are_exact(tmp_path):
     server = create_server(tmp_path / "absent", port=0, demo=True)
     thread = threading.Thread(target=server.serve_forever)
@@ -101,7 +108,7 @@ def test_demo_is_bundled_read_only_and_routes_are_exact(tmp_path):
         assert len(snapshot["attempts"]) == 6
         assert all(a["status"] == "success" for a in snapshot["attempts"].values())
         assert b"session_id" not in before and b"/Users/" not in before
-        for path in ("/body-view.js", "/body/flybody.glb", "/body/motion.json", "/body/provenance.json", "/presentation.mjs", "/translations.json", "/demo-provenance.json"):
+        for path in ("/body-view.js", "/brain-view.js", "/brain-state.mjs", "/live-extra.css", "/body/flybody.glb", "/body/motion.json", "/body/provenance.json", "/presentation.mjs", "/translations.json", "/demo-provenance.json"):
             assert request(address, path)[0] == 200
         for a in snapshot["attempts"].values():
             for turn in a["turns"]:

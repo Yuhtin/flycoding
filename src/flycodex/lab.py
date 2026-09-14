@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import inspect
 import threading
+import time
 import uuid
 from collections import deque
 from pathlib import Path
@@ -131,6 +132,7 @@ class LabService:
             "seq": self._next_seq,
             "job_id": job_id,
             "type": event_type,
+            "recorded_at_ms": int(time.time() * 1000),
             "neuron_order_sha256": self.neuron_order_sha256,
             "activity_schema_version": ACTIVITY_SCHEMA_VERSION,
             **payload,

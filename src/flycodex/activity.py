@@ -15,6 +15,7 @@ import math
 import os
 from pathlib import Path
 import re
+import time
 from typing import Mapping
 
 from .neural.activity import ACTIVITY_SCHEMA_VERSION, BIN_MS, copy_bin
@@ -269,7 +270,7 @@ class ActivityRecorder:
             raise RuntimeError("activity window is not running")
         measured = copy_bin(value)
         self._sequence += 1
-        self._window["events"].append({"seq": self._sequence, **measured})
+        self._window["events"].append({"seq": self._sequence, "recorded_at_ms": int(time.time() * 1000), **measured})
         self._write()
 
     def end(self, *, choice=None, feedback=None, error=None):
