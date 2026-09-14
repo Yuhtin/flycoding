@@ -1,0 +1,127 @@
+{
+  "attempts": {
+    "adaptive-1": {
+      "baseline": {
+        "error": null,
+        "passed": 1,
+        "tests": [
+          {
+            "actual": 5000,
+            "id": "no_discount",
+            "passed": true
+          },
+          {
+            "actual": 9975,
+            "id": "partial_discount",
+            "passed": false
+          },
+          {
+            "actual": 6300,
+            "id": "total_discount",
+            "passed": false
+          },
+          {
+            "actual": -40,
+            "id": "zero_subtotal",
+            "passed": false
+          },
+          {
+            "actual": 966,
+            "id": "rounding_down",
+            "passed": false
+          }
+        ],
+        "total": 5,
+        "violation": null
+      },
+      "condition": "adaptive",
+      "error": null,
+      "seed": null,
+      "status": "interrupted",
+      "turns": [
+        {
+          "choice": {
+            "action": "fix",
+            "cell_ids": {
+              "gate": [
+                "10527",
+                "555871"
+              ],
+              "left": [
+                "10162"
+              ],
+              "right": [
+                "10059"
+              ]
+            },
+            "compute_seconds": 1.8152316678897478,
+            "difference_hz": 4.0,
+            "gate_spikes": 14,
+            "input_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6",
+            "left_hz": 28.0,
+            "memory": {
+              "changed_edges": 0,
+              "mean_efficacy": 1.0,
+              "minimum_efficacy": 1.0,
+              "plastic_edges": 7835,
+              "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+              "weights_frozen": false
+            },
+            "reason": "right_threshold",
+            "right_hz": 32.0,
+            "simulated_ms": 500.0,
+            "spike_sha256": "19486a3b34cfd1e8a49f1acf3cd7d6fd4f9d69540275f1222462800fe2d7fd81",
+            "total_spikes": 392732,
+            "window_ms": 500
+          },
+          "input": {
+            "file": "inputs/adaptive-1-1-input.png",
+            "png_sha256": "4856ec0305c04be6469d651434c198966f8158cf1a794b3cca06e32b3e9ad86c",
+            "rgb_sha256": "79c2a9427cf3c411e75a65660eef394a694c5f7367e744182e51323d60a665e6"
+          },
+          "prompt": "Fix the discount function while preserving the tests.",
+          "send_id": "send-2fb302e67f11432c93ddcf7190d8e961",
+          "step": 1,
+          "weights_after_choice": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": false
+          },
+          "weights_before": {
+            "changed_edges": 0,
+            "mean_efficacy": 1.0,
+            "minimum_efficacy": 1.0,
+            "plastic_edges": 7835,
+            "sha256": "9f9c000fb9819eb99c214cc1da747d44e13f009bc4c3454f6b7dfe4ee669acf7",
+            "weights_frozen": false
+          }
+        }
+      ]
+    }
+  },
+  "backend": "opencode",
+  "backend_version": "1.18.27",
+  "budget": {
+    "conditions": {
+      "adaptive": 1,
+      "frozen": 0,
+      "random": 0
+    },
+    "global_limit": 30,
+    "limit": 3,
+    "per_attempt_limit": 5,
+    "per_condition_limit": 10,
+    "remaining": 2,
+    "total_limit": 3,
+    "used": 1
+  },
+  "evidence": "genuine",
+  "limitations": "1 recorded attempt measure mechanism operation only; backend `opencode`, model `opencode/muse-spark-1.3-contributor-free`, persisted send cap 1/3. These records do not demonstrate task learning, generalization, statistical significance, language ability or cognition.",
+  "model": "opencode/muse-spark-1.3-contributor-free",
+  "source_dirty": false,
+  "source_revision": "979fc9e8c6b24524b4b2fb12d74d8077aeea9dd3",
+  "status": "interrupted"
+}
