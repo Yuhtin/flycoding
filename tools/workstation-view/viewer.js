@@ -204,7 +204,9 @@ export function createWorkstationView(container, options = {}) {
     if (!typingLegs) return;
     for (const [side, chain] of typingLegs.entries()) {
       const tap = Math.max(0, Math.sin(seconds * 8.5 + side * Math.PI));
-      const angles = [0.12 * tap, -0.72 * tap, 1.05 * tap, -0.78 * tap, 0.42 * tap, -0.18 * tap];
+      // Keep the authored pose dominant: the measured full-tap displacement is
+      // about 0.21 world units at the front claws.
+      const angles = [0.018 * tap, -0.108 * tap, 0.158 * tap, -0.117 * tap, 0.063 * tap, -0.027 * tap];
       chain.forEach((node, index) => {
         if (!node) return;
         const rotation = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), angles[index]);
@@ -309,7 +311,7 @@ export function createWorkstationView(container, options = {}) {
     if (!ground || !Number.isFinite(ground.source_z) || !Number.isFinite(ground.clearance)) throw new Error('Ground contact metadata is missing');
     model = gltf.scene;
     model.scale.setScalar(15);
-    model.position.set(-1.8, -1.4, 0.0);
+    model.position.set(-1.8, -1.15, 0.0);
     model.rotation.z = 0.25;
     scene.add(model);
     nodes = motion.bodies.map((body) => {
