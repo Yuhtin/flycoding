@@ -1,7 +1,10 @@
-const DEFAULT_KEY_PERIOD_MS = 60_000 / (70 * 5);
+const DEFAULT_KEY_PERIOD_MS = 60_000 / (100 * 5);
 const MAX_FRAME_ADVANCE_MS = 100;
 const KEY_LIFT_MS = DEFAULT_KEY_PERIOD_MS;
 const KEY_ACTIVE_MS = 45;
+const KEY_SPRITE_SLOTS = 16;
+const KEY_SPRITE_SLOT_MS = 100;
+const KEY_SAMPLE_MS = 90;
 
 function finite(value) {
   return Number.isFinite(value);
@@ -11,9 +14,9 @@ function typingSnapshot(text, count, complete, elapsedMs, typing, contact) {
   return {text, count, complete, elapsedMs, typing, contact};
 }
 
-export function createTypingSession(sourceText, {wpm = 70} = {}) {
+export function createTypingSession(sourceText, {wpm = 100} = {}) {
   const source = Array.from(String(sourceText ?? ''));
-  const wordsPerMinute = finite(Number(wpm)) && Number(wpm) > 0 ? Number(wpm) : 70;
+  const wordsPerMinute = finite(Number(wpm)) && Number(wpm) > 0 ? Number(wpm) : 100;
   const intervalMs = 60_000 / (wordsPerMinute * 5);
   const liftMs = Math.min(KEY_LIFT_MS, intervalMs);
   let text = '';
@@ -92,53 +95,56 @@ export function typingStateAt(plan, elapsedMs, playing) {
   return {active, cadence: active ? 1 : 0, left, right};
 }
 
-export function scheduleSound(context, _item, time = context.currentTime, destination = context.destination) {
-  const duration = .035;
-  const sampleRate = context.sampleRate || 44_100;
-  const buffer = context.createBuffer(1, Math.ceil(sampleRate * duration), sampleRate);
-  const samples = buffer.getChannelData(0);
-  let seed = 0x13579bdf;
-  for (let index = 0; index < samples.length; index += 1) {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-    const seconds = index / sampleRate;
-    const noise = (seed / 0xffffffff) * 2 - 1;
-    // A short switch click over a damped keycap knock, contained in one voice.
-    const click = noise * .4 * Math.exp(-seconds / .0025);
-    const body = Math.sin(2 * Math.PI * 190 * seconds) * .6 * Math.exp(-seconds / .008);
-    samples[index] = (click + body) * (1 - index / samples.length);
-  }
+export function scheduleSound(context, buffer, {slot = 0, playbackRate = 1, gain = .6, time = context.currentTime, destination = context.destination} = {}) {
+  if (!context || !buffer) return null;
   const source = context.createBufferSource();
   const filter = context.createBiquadFilter();
-  const gain = context.createGain();
-  const end = time + duration;
+  const output = context.createGain();
+  const rate = Math.max(.1, Number(playbackRate) || 1);
+  const end = time + KEY_SAMPLE_MS / 1_000 / rate;
   source.buffer = buffer;
   filter.type = 'lowpass';
   filter.frequency.setValueAtTime(4500, time);
   filter.Q.value = .7;
-  gain.gain.value = 0;
-  gain.gain.setValueAtTime(.0001, time);
-  gain.gain.exponentialRampToValueAtTime(.24, time + .001);
-  gain.gain.exponentialRampToValueAtTime(.0001, end);
+  source.playbackRate.value = rate;
+  output.gain.value = 0;
+  output.gain.setValueAtTime(.0001, time);
+  output.gain.exponentialRampToValueAtTime(Math.max(.001, Number(gain) || .6), time + .002);
+  output.gain.exponentialRampToValueAtTime(.0001, end);
   let cleaned = false;
   const cleanup = () => {
     if (cleaned) return;
     cleaned = true;
     try { source.disconnect(); } catch {}
     try { filter.disconnect(); } catch {}
-    try { gain.disconnect(); } catch {}
+    try { output.disconnect(); } catch {}
   };
-  source.connect(filter).connect(gain).connect(destination);
+  source.connect(filter).connect(output).connect(destination);
   source.addEventListener?.('ended', cleanup);
-  source.start(time);
-  source.stop(end);
+  source.start(time, Math.max(0, Math.min(KEY_SPRITE_SLOTS - 1, Math.floor(slot))) * KEY_SPRITE_SLOT_MS / 1_000, KEY_SAMPLE_MS / 1_000);
+  source.stop(end + .002);
   return source;
 }
 
-export function createWorkstationAudio({AudioContext: Context = globalThis.AudioContext || globalThis.webkitAudioContext} = {}) {
+function characterHash(character, pressIndex) {
+  let hash = 2_166_136_261;
+  for (const codePoint of Array.from(String(character ?? ''))) {
+    hash ^= codePoint.codePointAt(0);
+    hash = Math.imul(hash, 16_777_619) >>> 0;
+  }
+  return (hash ^ Math.imul(pressIndex + 1, 2_654_435_761)) >>> 0;
+}
+
+export function createWorkstationAudio({AudioContext: Context = globalThis.AudioContext || globalThis.webkitAudioContext, fetch: fetchImpl = globalThis.fetch, decodedBuffer = null} = {}) {
   let context = null;
   let output = null;
   let muted = false;
   let stopped = true;
+  let disposed = false;
+  let sampleBuffer = decodedBuffer;
+  let preparePromise = null;
+  let pressIndex = 0;
+  let lastSlot = -1;
   const activeNodes = new Set();
 
   function silence() {
@@ -149,7 +155,7 @@ export function createWorkstationAudio({AudioContext: Context = globalThis.Audio
   }
 
   function ensureContext() {
-    if (context || typeof Context !== 'function') return context;
+    if (disposed || context || typeof Context !== 'function') return context;
     try {
       context = new Context();
       output = context.createGain();
@@ -163,6 +169,7 @@ export function createWorkstationAudio({AudioContext: Context = globalThis.Audio
   }
 
   function unlock() {
+    if (disposed) return null;
     stopped = false;
     const current = ensureContext();
     try {
@@ -172,16 +179,49 @@ export function createWorkstationAudio({AudioContext: Context = globalThis.Audio
     return current;
   }
 
+  async function prepare() {
+    if (disposed || sampleBuffer) return Boolean(sampleBuffer);
+    if (preparePromise) return preparePromise;
+    const current = unlock();
+    if (!current || typeof fetchImpl !== 'function' || typeof current.decodeAudioData !== 'function') return false;
+    preparePromise = (async () => {
+      try {
+        const response = await fetchImpl('/keyboard.wav', {cache: 'force-cache'});
+        if (!response?.ok) throw new Error('Keyboard sound could not load');
+        const bytes = await response.arrayBuffer();
+        const decoded = await current.decodeAudioData(bytes);
+        if (disposed || !decoded) return false;
+        sampleBuffer = decoded;
+        return true;
+      } catch {
+        return false;
+      } finally {
+        preparePromise = null;
+      }
+    })();
+    return preparePromise;
+  }
+
   function start(_run = null) {
     silence();
+    pressIndex = 0;
+    lastSlot = -1;
     unlock();
   }
 
-  function key() {
+  function key(character = '') {
     silence();
-    if (muted || stopped || !context || !output) return false;
+    const hash = characterHash(character, pressIndex);
+    pressIndex += 1;
+    if (muted || stopped || !context || !output || !sampleBuffer) return false;
     try {
-      const node = scheduleSound(context, {type: 'key'}, context.currentTime, output);
+      let slot = hash % KEY_SPRITE_SLOTS;
+      if (slot === lastSlot) slot = (slot + 1) % KEY_SPRITE_SLOTS;
+      lastSlot = slot;
+      const playbackRate = .94 + ((hash >>> 8) % 1_201) / 1_200 * .12;
+      const level = .54 + ((hash >>> 20) % 1_001) / 1_000 * .12;
+      const node = scheduleSound(context, sampleBuffer, {slot, playbackRate, gain: level, destination: output});
+      if (!node) return false;
       activeNodes.add(node);
       node.addEventListener?.('ended', () => activeNodes.delete(node));
       return true;
@@ -222,6 +262,7 @@ export function createWorkstationAudio({AudioContext: Context = globalThis.Audio
   }
 
   function dispose() {
+    disposed = true;
     stop();
     try {
       const closed = context?.close?.();
@@ -233,6 +274,7 @@ export function createWorkstationAudio({AudioContext: Context = globalThis.Audio
 
   return {
     unlock,
+    prepare,
     start,
     key,
     advance,
@@ -242,6 +284,7 @@ export function createWorkstationAudio({AudioContext: Context = globalThis.Audio
     resume,
     dispose,
     isMuted: () => muted,
+    isPrepared: () => Boolean(sampleBuffer),
     hasAudioContext: () => Boolean(context),
   };
 }
