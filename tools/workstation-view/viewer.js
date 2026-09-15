@@ -29,6 +29,8 @@ export function createWorkstationView(container, options = {}) {
   let desktopCameraTarget = null;
   let narrowViewport = false;
   let typingLegs = null;
+  let keyboardKeyEntries = null;
+  let keyboardKeyByChar = null;
   const abort = new AbortController();
 
   const scene = new THREE.Scene();
@@ -110,19 +112,37 @@ export function createWorkstationView(container, options = {}) {
   function addKeyboard() {
     const keyboard = new THREE.Group();
     keyboardGroup = keyboard;
+    keyboardKeyEntries = [];
+    keyboardKeyByChar = new Map();
     keyboard.position.set(0.15, -1.34, 0.3);
     keyboard.rotation.z = -0.035;
     keyboard.add(new THREE.Mesh(new THREE.BoxGeometry(3.9, 1.55, 0.16), material(colors.keyboard, {roughness: 0.55, metalness: 0.25})));
-    const keyMaterial = material(colors.key, {roughness: 0.66, metalness: 0.12});
+    const keyRows = ['1234567890-=', 'qwertyuiop[]', "asdfghjkl;'\\", 'zxcvbnm,.'];
     for (let row = 0; row < 4; row += 1) {
       const columns = row === 3 ? 9 : 12;
       const width = row === 3 ? 0.28 : 0.22;
       for (let column = 0; column < columns; column += 1) {
-        const key = new THREE.Mesh(new THREE.BoxGeometry(width, 0.23, 0.055), keyMaterial);
+        const key = new THREE.Mesh(new THREE.BoxGeometry(width, 0.23, 0.055), material(colors.key, {roughness: 0.66, metalness: 0.12}));
         key.position.set((column - (columns - 1) / 2) * 0.29, (row - 1.5) * 0.3, 0.12);
         keyboard.add(key);
+        const entry = {mesh: key, baseZ: key.position.z};
+        keyboardKeyEntries.push(entry);
+        keyboardKeyByChar.set(keyRows[row][column], entry);
       }
     }
+    const alias = (name, target) => {
+      const entry = keyboardKeyByChar.get(target);
+      if (entry) keyboardKeyByChar.set(name, entry);
+    };
+    alias(' ', 'b');
+    alias('space', 'b');
+    alias('enter', ';');
+    alias('return', ';');
+    alias('\n', ';');
+    alias('\r', ';');
+    alias('backspace', '=');
+    alias('/', '.');
+    for (const [shifted, base] of [['!', '1'], ['@', '2'], ['#', '3'], ['$', '4'], ['%', '5'], ['^', '6'], ['&', '7'], ['*', '8'], ['(', '9'], [')', '0'], ['_', '-'], ['+', '='], [':', ';'], ['"', "'"], ['?', '.'], ['<', ','], ['>', '.'], ['{', '['], ['}', ']'], ['|', '\\']]) alias(shifted, base);
     scene.add(keyboard);
     box('mouse', [0.58, 0.9, 0.17], [4.05, -1.18, 0.4], colors.keyboard, {roughness: 0.5, metalness: 0.25});
   }
@@ -227,6 +247,20 @@ export function createWorkstationView(container, options = {}) {
     }
   }
 
+  function applyKeyboardMotion(typing = {}) {
+    if (!keyboardKeyEntries || !keyboardKeyByChar) return;
+    const rawKey = String(typing.key ?? '').toLowerCase();
+    const key = rawKey === ' ' ? ' ' : rawKey.length === 1 ? rawKey : rawKey;
+    const contact = Boolean(typing.active && typing.contact !== false);
+    const selected = contact ? keyboardKeyByChar.get(key)?.mesh : null;
+    for (const entry of keyboardKeyEntries) {
+      const pressed = entry.mesh === selected;
+      entry.mesh.position.z = entry.baseZ - (pressed ? 0.045 : 0);
+      entry.mesh.material.emissive.setHex(pressed ? colors.cyan : 0x000000);
+      entry.mesh.material.emissiveIntensity = pressed ? 2.4 : 0;
+    }
+  }
+
   function animate(timestamp) {
     frameId = null;
     if (disposed) return;
@@ -252,6 +286,7 @@ export function createWorkstationView(container, options = {}) {
         node.quaternion.copy(quaternion);
       });
       applyTypingMotion(Number.isFinite(state.elapsedMs) ? state.elapsedMs / 1000 : clipTime, state.mode === 'working' ? state.typing : undefined);
+      applyKeyboardMotion(state.mode === 'working' ? state.typing : undefined);
     }
     camera.lookAt(cameraTarget);
     renderer?.render(scene, camera);
@@ -334,6 +369,7 @@ export function createWorkstationView(container, options = {}) {
     ];
     applyFrame(motion.clips.idle.frames[0]);
     applyTypingMotion(0, state.typing);
+    applyKeyboardMotion(state.typing);
     const bounds = new THREE.Box3().setFromObject(model);
     const floorZ = model.scale.z * (ground.source_z - ground.clearance) + model.position.z;
     model.position.z += 0.23 - floorZ;
