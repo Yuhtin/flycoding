@@ -4,46 +4,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>flycoding · recorded run</title>
+  <title>flycoding · typing studio</title>
   <link rel="stylesheet" href="/player.css">
-  <script type="module" src="/player.mjs"></script>
+  <script type="module" src="/typing-player.mjs"></script>
 </head>
 <body>
   <header class="topbar">
     <a class="wordmark" href="/">flycoding</a>
     <p class="tagline">The new era of vibe coding</p>
     <div class="top-actions">
-      <span class="recorded-mark">RECORDED RUN</span>
+      <span class="recorded-mark">70 WPM</span>
       <button id="audio-toggle" type="button" class="audio-toggle" aria-pressed="true" aria-label="Mute sound effects">Sound on</button>
       <button id="play-toggle" type="button" class="play-button" disabled aria-describedby="player-status">Play</button>
     </div>
   </header>
 
   <main>
-    <section class="controls" aria-label="Recorded run controls">
-      <span id="player-status" class="player-status" role="status">Loading the recorded run…</span>
+    <section class="controls" aria-label="Typing controls">
+      <span id="player-status" class="player-status" role="status">Preparing the workstation…</span>
     </section>
 
     <section id="error-panel" class="error-panel" hidden aria-live="polite">
-      <p id="error-message">The recorded run could not load.</p>
+      <p id="error-message">The workstation could not load.</p>
       <button id="retry-button" type="button">Try again</button>
     </section>
 
-    <section class="workstation" aria-label="Recorded fly coding workstation">
-      <div id="body-stage" class="workstation-stage" aria-label="Full-screen recorded fly coding workstation">
-        <div id="computer-screen" class="computer-screen" aria-label="Recorded OpenCode computer screen">
+    <section class="workstation" aria-label="Interactive fly coding workstation">
+      <div id="body-stage" class="workstation-stage" aria-label="Full-screen interactive fly coding workstation">
+        <div id="computer-screen" class="computer-screen" aria-label="Fly typing computer screen">
           <div class="screen-bar">
             <span class="screen-app">OpenCode</span>
-            <span class="screen-model">Muse Spark · recorded</span>
+            <span class="screen-model">Typing simulation</span>
           </div>
           <div class="screen-content">
             <section class="prompt-area" aria-labelledby="prompt-label">
               <span id="prompt-label" class="screen-label amber-label">Fly prompt</span>
-              <p id="decision-text" hidden>The measured circuit has not chosen yet.</p>
+              <p id="decision-text" class="typing-text"><span id="typed-text"></span><span class="typing-caret" aria-hidden="true">▍</span></p>
             </section>
-            <section class="terminal-area" aria-label="Recorded OpenCode output">
-              <div id="conversation" class="conversation" tabindex="0" aria-live="polite" aria-label="Recorded OpenCode output">
-                <p class="conversation-empty">Output appears after the fly chooses.</p>
+            <section class="terminal-area" aria-label="OpenCode output">
+              <div id="conversation" class="conversation" tabindex="0" aria-live="polite" aria-label="OpenCode output">
+                <p class="conversation-empty">Edit the prompt, then press Play.</p>
               </div>
               <div id="result-line" class="result-line" data-kind="result" hidden aria-live="polite"></div>
             </section>
@@ -51,27 +51,30 @@
         </div>
       </div>
 
-      <aside class="neural-hud" aria-label="Measured neural activity">
+      <aside class="neural-hud" aria-label="Typing activity">
         <div class="hud-heading">
-          <span class="hud-label">Neural activity</span>
+          <span class="hud-label">Typing activity</span>
           <span id="hud-state" class="hud-state">Ready · press Play</span>
         </div>
         <div class="hud-metrics">
-          <div><strong id="hud-neurons">166,700</strong><span>neurons</span></div>
-          <div><strong id="hud-active">—</strong><span>active</span></div>
-          <div><strong id="hud-rate">—</strong><span>spikes/s</span></div>
+          <div><strong id="hud-neurons">70</strong><span>WPM</span></div>
+          <div><strong id="hud-active">0</strong><span>characters</span></div>
+          <div><strong id="hud-rate">0</strong><span>keystrokes</span></div>
         </div>
-        <canvas id="brain-stage" class="neural-raster" width="280" height="72" aria-label="96-cell measured neural activity raster"></canvas>
-        <div class="raster-caption"><span>96 measured cells</span><span>source replay</span></div>
+        <canvas id="brain-stage" class="neural-raster" width="280" height="72" aria-label="Typing keystroke history"></canvas>
+        <div class="raster-caption"><span>one tap · one letter</span><span>interactive</span></div>
       </aside>
     </section>
 
     <details id="details" class="details">
-      <summary>About this recording</summary>
-      <p id="provenance-copy">Measured neural activity and the OpenCode response come from one preserved run. Play does not start a coding backend.</p>
-      <p>Model: <code id="recording-model">opencode/muse-spark-1.3-contributor-free</code></p>
-      <p>Typing motion and sound effects are procedural.</p>
-      <p>Motion is a restrained procedural presentation of the actual flybody. <a href="/observatory">Open the observatory</a> for the full lab view.</p>
+      <summary>Edit prompt</summary>
+      <div class="prompt-editor">
+        <label for="prompt-input">What should the fly type?</label>
+        <textarea id="prompt-input" rows="4" maxlength="1000" spellcheck="false">Build me a tiny app that turns coffee into working code. Keep it simple, make it beautiful, and let the fly handle the typing.</textarea>
+        <button id="restart-button" type="button" class="audio-toggle">Start over</button>
+        <p>The fly types your text using flybody geometry. When OpenCode is connected, Play sends it after the last keystroke. This mode does not run a neural simulation.</p>
+        <a href="/recording">Watch the measured neural run and OpenCode response</a>
+      </div>
     </details>
   </main>
 </body>

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import http.client
 import json
+import subprocess
 import threading
 import time
 
@@ -122,7 +123,28 @@ def test_opencode_typing_runner_sends_generic_workspace_prompt(tmp_path):
     assert "build a tiny app" in prompt
     assert events[0]["session_id"] == "fake-session"
     config = json.loads(runner._environment()["OPENCODE_CONFIG_CONTENT"])
-    assert config["permission"]["edit"] == {"*": "deny", "**": "allow"}
+    assert config["permission"]["edit"] == {"*": "deny", "**": "allow", f"{workspace}/**": "allow"}
+    # Cancellation between service publication and runner startup must not
+    # deliver a prompt. A subsequent explicit request can still use the runner.
+    received = workspace / "received-prompt.txt"
+    received.unlink()
+    runner.cancel()
+    cancelled = runner.run("must not be submitted", None, events.append)
+    assert cancelled["status"] == "cancelled"
+    assert not received.exists() or received.read_text() == ""
+    assert runner.run("build again", None, events.append)["status"] == "completed"
+    assert "build again" in received.read_text()
+
+
+def test_nested_workspace_edit_permission_does_not_allow_parent_repository(tmp_path):
+    subprocess.run(["git", "init", "--quiet", str(tmp_path)], check=True)
+    workspace = tmp_path / "runs" / "typing-app"
+    workspace.mkdir(parents=True)
+    runner = TypingOpenCodeRunner(workspace)
+    permission = json.loads(runner._environment()["OPENCODE_CONFIG_CONTENT"])["permission"]["edit"]
+    assert permission == {
+        "*": "deny", "runs/typing-app/**": "allow", f"{workspace}/**": "allow",
+    }
 
 
 def request(address, path, method="GET", body=None, headers=None):
@@ -167,7 +189,7 @@ def test_typing_http_contract_origin_limits_and_full_state(live_server):
     state_status, state_body = request(live_server, "/typing/state")
     state = json.loads(state_body)
     assert state_status == 200
-    assert set(state) == {"enabled", "status", "request_id", "job_id", "text", "error", "model", "workspace"}
+    assert set(state) == {"enabled", "status", "request_id", "job_id", "text", "prompt", "error", "model", "workspace"}
     assert state["enabled"] is True
     assert state["status"] == "idle"
     assert state["model"] == "test-model"
@@ -177,6 +199,7 @@ def test_typing_http_contract_origin_limits_and_full_state(live_server):
     submitted = json.loads(body)
     assert accepted == 202
     assert submitted["status"] in {"starting", "running"}
+    assert submitted["prompt"] == "build tiny app"
     wait_for(lambda: json.loads(request(live_server, "/typing/state")[1])["text"] == "streamed ")
     duplicate, duplicate_body = request(live_server, "/typing/submit", "POST", payload, headers(live_server))
     assert duplicate == 202

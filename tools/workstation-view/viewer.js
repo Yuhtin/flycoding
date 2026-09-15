@@ -194,6 +194,7 @@ export function createWorkstationView(container, options = {}) {
     const mode = ['idle', 'working', 'success', 'failure'].includes(update.mode) ? update.mode : state.mode;
     if (mode !== state.mode) { clipTime = 0; feedbackTime = 0; }
     state = {...state, ...update, mode};
+    if (update.typing) applyKeyboardMotion(update.typing);
     requestRender();
   }
 

@@ -1,7 +1,7 @@
 import {createWorkstationView} from '/workstation-view.js';
 import {buttonLabel, createPlayerState, frameFor, reducePlayerState, validatePayload, viewReadiness} from './player-state.mjs';
 import {formatMetric, hudForBin, hudLabel, latestRevealedBin, rasterIndices, RASTER_CELLS, temporalRaster} from './workstation-state.mjs';
-import {buildCuePlan, createWorkstationAudio, typingStateAt} from './workstation-audio.mjs';
+import {buildCuePlan, createWorkstationAudio, typingStateAt} from './recording-audio.mjs';
 
 const byId = id => document.getElementById(id);
 const bodyStage = byId('body-stage');

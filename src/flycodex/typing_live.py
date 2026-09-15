@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import threading
+import subprocess
 import uuid
 from typing import Any, Callable
 
@@ -44,7 +45,20 @@ class TypingOpenCodeRunner(OpenCodeRunner):
     def _environment(self) -> dict[str, str]:
         environment = super()._environment()
         config = json.loads(environment["OPENCODE_CONFIG_CONTENT"])
-        config["permission"]["edit"] = {"*": "deny", "**": "allow"}
+        # OpenCode may discover a Git worktree above --dir. Its edit requests
+        # are relative to that root, so allow only this workspace's subtree.
+        worktree = subprocess.run(
+            ["git", "-C", str(self.workspace), "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, check=False,
+        )
+        relative = "**"
+        if worktree.returncode == 0:
+            prefix = self.workspace.relative_to(Path(worktree.stdout.strip()).resolve())
+            if str(prefix) != ".":
+                relative = f"{prefix.as_posix()}/**"
+        config["permission"]["edit"] = {
+            "*": "deny", relative: "allow", f"{self.workspace}/**": "allow",
+        }
         environment["OPENCODE_CONFIG_CONTENT"] = json.dumps(
             config, separators=(",", ":"), sort_keys=True
         )
@@ -84,6 +98,7 @@ class TypingService:
             "request_id": None,
             "job_id": None,
             "text": "",
+            "prompt": "",
             "error": None,
             "model": self.model,
             "workspace": str(self.workspace),
@@ -190,7 +205,7 @@ class TypingService:
                 raise TypingBusyError("another typing request is already running")
             job_id = uuid.uuid4().hex
             self._state.update(
-                status="starting", request_id=request_id, job_id=job_id, text="", error=None
+                status="starting", request_id=request_id, job_id=job_id, text="", prompt=prompt, error=None
             )
             self._requests[request_id] = (prompt, self._snapshot_locked())
             try:
@@ -223,7 +238,8 @@ class TypingService:
         except Exception as exc:
             with self._lock:
                 if self._state.get("job_id") == job_id:
-                    self._state.update(status="failed", error=str(exc))
+                    # Keep the active slot until the worker actually exits.
+                    self._state.update(error=str(exc))
         thread = self._thread
         if thread is not None and thread is not threading.current_thread():
             thread.join(timeout=2)

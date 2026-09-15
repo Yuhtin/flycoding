@@ -4,11 +4,13 @@
 
 **A simulated fly brain picks the prompt. OpenCode or Codex does the coding.**
 
-A fly at a keyboard. Its chosen prompt on the monitor. OpenCode answering.
-Press **Play** to watch the recorded run in a full-screen, pixelated 3D workstation.
-**Amber is the fly prompt. Cyan is OpenCode.** The fly uses actual
-[flybody](https://github.com/TuragaLab/flybody) geometry; the neural HUD shows
-measured activity from that same run.
+A fly at a keyboard. Each tap reveals one character and plays one mechanical
+key sound, at **70 WPM**. Edit the prompt and press **Play**. When connected,
+OpenCode receives the completed prompt and its actual response appears in cyan.
+The body uses real [flybody](https://github.com/TuragaLab/flybody) geometry.
+
+The interactive typing mode is procedural; it does not run the neural model.
+The earlier measured brain experiment remains available at **/recording**.
 
 ![flycoding: a fly at a physical keyboard with its prompt and OpenCode on the monitor](docs/results/workstation-dashboard.png)
 
@@ -21,34 +23,31 @@ prompt submissions**, including an earlier permission failure.
 
 ## Press Play
 
-Python 3.11+, [uv](https://docs.astral.sh/uv/), and Git are enough to view the
-bundled Muse recording. You do not need model authentication, neural data, MuJoCo,
-or a training setup to watch it.
+Python 3.11+, [uv](https://docs.astral.sh/uv/), and Git are enough for the typing
+simulation. The live response also requires an installed, configured OpenCode CLI.
 
 ```sh
 rtk git clone https://github.com/Yuhtin/flycoding
 cd flycoding
 rtk proxy uv sync --frozen
-rtk proxy uv run flycoding serve --demo --port 8765
+rtk proxy uv run flycoding serve --opencode --workspace runs/flycoding-workspace --port 8765
 ```
 
-Open **http://127.0.0.1:8765** and press **Play**. Pause and resume with the same
-button, or replay after completion. The fly's instruction and the actual model
-output appear in order. Commands and tool errors stay under **Terminal details**.
-Play also enables keyboard and mouse sounds. Use **Sound on/off** to mute them.
-The front legs alternate over the keys, with each tap following the same cue
-clock as the sound effects; pausing freezes the movement and silences the desk.
+Open **http://127.0.0.1:8765**, edit the prompt, and press **Play**. Each completed
+typing session sends one real prompt to OpenCode in the selected workspace.
+Pause stops typing and sound; **Cancel** stops an active OpenCode request.
+**Sound on/off** controls the keyboard audio. No replay or recording is required.
 
-The player is labeled **Recorded run** and preserves the recorded timing. It
-sends no prompts. **About this recording** links to the local lab, live
-CLI observer, and historical Codex archive at `/observatory`.
-[Workstation validation and media](docs/results/workstation.md).
+Omit `--opencode` to practice typing without sending a model request. Visit
+**/recording** for the preserved neural run and Muse response, or **/observatory**
+for the advanced view. The historical pilot budget is separate from interactive,
+user-initiated requests.
 
 [Original live Muse capture](docs/demo/live-brain-opencode.mp4) ·
 [Earlier Codex replay](docs/demo/flycodex-demo.mp4)
 
-Commands here use [RTK](https://github.com/rtk-ai/rtk). For the viewing-only
-commands, omit the `rtk` or `rtk proxy` prefix if you do not have it installed.
+Commands here use [RTK](https://github.com/rtk-ai/rtk). Omit the `rtk` or
+`rtk proxy` prefix if you do not have it installed.
 
 ## What is actually happening?
 
