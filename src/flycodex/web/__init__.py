@@ -14,6 +14,8 @@ from PIL import Image
 
 from ..activity import ActivityReader
 from ..lab import LabBusyError, LabClosedError, InvalidObservation, LabService
+from ..opencode import DEFAULT_MODEL
+from ..typing_live import TypingBusyError, TypingClosedError, TypingService, TypingValidationError
 
 _ASSETS = {
     "/": ("player.html", "text/html; charset=utf-8"),
@@ -21,6 +23,9 @@ _ASSETS = {
     "/style.css": ("style.css", "text/css; charset=utf-8"),
 }
 _PLAYER = {
+    "/recording": ("recording.html", "text/html; charset=utf-8"),
+    "/typing-player.mjs": ("typing-player.mjs", "text/javascript; charset=utf-8"),
+    "/recording-audio.mjs": ("recording-audio.mjs", "text/javascript; charset=utf-8"),
     "/observatory": ("index.html", "text/html; charset=utf-8"),
     "/player.css": ("player.css", "text/css; charset=utf-8"),
     "/player.mjs": ("player.mjs", "text/javascript; charset=utf-8"),
@@ -48,8 +53,9 @@ def _json_bytes(value):
 
 
 def create_server(run_dir: Path, *, host="127.0.0.1", port=8765, demo=False,
-                  lab=False, data_dir=None, policy_factory=None):
-    """Create a server with static routes and, only when requested, LabService."""
+                  lab=False, data_dir=None, policy_factory=None, opencode=False,
+                  workspace=None, model=DEFAULT_MODEL, typing_runner_factory=None):
+    """Create a server with static routes and explicitly enabled local services."""
     if host not in {"127.0.0.1", "localhost"}:
         raise ValueError("Dashboard must bind to IPv4 loopback")
     if demo and lab:
@@ -59,6 +65,12 @@ def create_server(run_dir: Path, *, host="127.0.0.1", port=8765, demo=False,
     public = assets / "demo" if demo else run_root / "public"
     archive = assets / "demo"
     service = None
+    typing_workspace = Path(workspace or "runs/flycoding-workspace").expanduser().resolve()
+    typing_service = (
+        TypingService(typing_workspace, model=model or DEFAULT_MODEL,
+                      runner_factory=typing_runner_factory)
+        if opencode else None
+    )
     if lab:
         from ..neural import NeuralPolicy
 
@@ -83,6 +95,8 @@ def create_server(run_dir: Path, *, host="127.0.0.1", port=8765, demo=False,
         def server_close(self):
             if service is not None:
                 service.close()
+            if typing_service is not None:
+                typing_service.close()
             super().server_close()
 
     class Handler(BaseHTTPRequestHandler):
@@ -144,7 +158,7 @@ def create_server(run_dir: Path, *, host="127.0.0.1", port=8765, demo=False,
                 and origin_port == expected_port
             )
 
-        def _read_json(self):
+        def _read_json(self, max_bytes=1024):
             content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
             if content_type != "application/json":
                 raise ValueError("application/json is required")
@@ -152,8 +166,8 @@ def create_server(run_dir: Path, *, host="127.0.0.1", port=8765, demo=False,
                 length = int(self.headers.get("Content-Length", "-1"))
             except ValueError as exc:
                 raise ValueError("invalid Content-Length") from exc
-            if length < 0 or length > 1024:
-                raise ValueError("JSON body must be at most 1 KiB")
+            if length < 0 or length > max_bytes:
+                raise ValueError(f"JSON body must be at most {max_bytes // 1024} KiB")
             raw = self.rfile.read(length)
             if len(raw) != length:
                 raise ValueError("incomplete JSON body")
@@ -176,10 +190,32 @@ def create_server(run_dir: Path, *, host="127.0.0.1", port=8765, demo=False,
                 state["error"] = state.get("error") or "Prepared neural data is unavailable"
             return self._json_reply(200 if available else 503, state)
 
+        def _typing_disabled_state(self):
+            return {
+                "enabled": False,
+                "status": "disabled",
+                "request_id": None,
+                "job_id": None,
+                "text": "",
+                "error": None,
+                "model": model or DEFAULT_MODEL,
+                "workspace": str(typing_workspace),
+            }
+
+        def _typing_state(self):
+            return typing_service.state() if typing_service is not None else self._typing_disabled_state()
+
+        def _typing_error(self, status, message):
+            value = self._typing_state()
+            value["error"] = message
+            return self._json_reply(status, value)
+
         def do_GET(self):
             split = urlsplit(self.path)
             path = split.path
             try:
+                if path == "/typing/state":
+                    return self._json_reply(200, self._typing_state())
                 if path == "/lab/state":
                     return self._lab_state()
                 if path == "/lab/events":
@@ -246,6 +282,28 @@ def create_server(run_dir: Path, *, host="127.0.0.1", port=8765, demo=False,
 
         def do_POST(self):
             path = urlsplit(self.path).path
+            if path in {"/typing/submit", "/typing/cancel"}:
+                if typing_service is None:
+                    return self._typing_error(503, "OpenCode typing is disabled; start serve with --opencode")
+                if not self._same_origin():
+                    return self._typing_error(403, "Host and Origin must be loopback and same-origin")
+                try:
+                    value = self._read_json(max_bytes=8192)
+                    if path == "/typing/submit":
+                        if set(value) != {"prompt", "request_id"}:
+                            raise TypingValidationError("submit body must contain only prompt and request_id")
+                        result = typing_service.submit(value["prompt"], value["request_id"])
+                        status = 202 if result["status"] in {"starting", "running"} else 200
+                        return self._json_reply(status, result)
+                    if value != {}:
+                        raise TypingValidationError("cancel body must be an empty JSON object")
+                    return self._json_reply(200, typing_service.cancel())
+                except (TypingValidationError, ValueError, TypeError, UnicodeError, json.JSONDecodeError) as exc:
+                    return self._typing_error(400, str(exc))
+                except TypingBusyError as exc:
+                    return self._typing_error(409, str(exc))
+                except TypingClosedError as exc:
+                    return self._typing_error(503, str(exc))
             if service is None or path not in {"/lab/observe", "/lab/cancel"}:
                 return self._reply(405, b"Read-only spectator dashboard")
             if not self._same_origin():

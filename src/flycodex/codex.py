@@ -88,6 +88,10 @@ class CodexRunner:
     def _runner_name(self) -> str:
         return "Codex"
 
+    @property
+    def _initial_context(self) -> str:
+        return INITIAL_CONTEXT
+
     def _new_event_state(self, session_id: str | None) -> dict[str, Any]:
         return {
             "reported_session": session_id,
@@ -211,6 +215,10 @@ class CodexRunner:
         caller = threading.get_ident()
         with self._state_changed:
             if not self._active:
+                # The service can publish a runner and receive cancel before
+                # its worker enters run(). Preserve that cancellation through
+                # the subsequent claim instead of allowing a prompt to start.
+                self._cancel_requested = True
                 return
             self._cancel_requested = True
             self._state_changed.notify_all()
@@ -253,6 +261,7 @@ class CodexRunner:
             self._active = False
             self._claim_token = None
             self._owner_thread = None
+            self._cancel_requested = False
             self._state_changed.notify_all()
 
     def _claim_active(self, claim_token: object) -> float:
@@ -260,13 +269,14 @@ class CodexRunner:
         with self._state_changed:
             if self._active:
                 raise RuntimeError("a Codex turn is already active")
+            cancelled_before_claim = self._cancel_requested
             # Publish ownership first so cleanup also recognizes a partial claim.
             self._claim_token = claim_token
             self._active = True
             self._owner_thread = threading.get_ident()
             self._process = None
             self._process_group = None
-            self._cancel_requested = False
+            self._cancel_requested = cancelled_before_claim
         return deadline
 
     def _publish_process(self, process: subprocess.Popen[str]) -> bool:
@@ -311,7 +321,7 @@ class CodexRunner:
             full_prompt = (
                 prompt
                 if session_id is not None
-                else f"{INITIAL_CONTEXT}\nSelected instruction:\n{prompt}"
+                else f"{self._initial_context}\nSelected instruction:\n{prompt}"
             )
             try:
                 process = subprocess.Popen(

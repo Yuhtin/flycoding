@@ -36,6 +36,11 @@ def main(argv=None):
             command.add_argument("--port", type=int, default=8765)
             command.add_argument("--lab", action="store_true",
                                  help="Enable the local neural lab controls")
+            command.add_argument("--opencode", action="store_true",
+                                 help="Enable one local OpenCode typing service")
+            command.add_argument("--workspace", type=Path, default=Path("runs/flycoding-workspace"),
+                                 help="Isolated OpenCode workspace for typing")
+            command.add_argument("--model", help="OpenCode model for the typing service")
             command.add_argument("--demo", action="store_true", help="View the bundled genuine pilot; no run directory or Codex required")
     args = parser.parse_args(argv)
     try:
@@ -68,8 +73,10 @@ def main(argv=None):
             if args.demo and args.lab:
                 raise ValueError("--demo and --lab are mutually exclusive")
             server = create_server(args.run_dir, port=args.port, demo=args.demo,
-                                   lab=args.lab, data_dir=args.data_dir)
-            mode = "lab" if args.lab else ("demo archive · read-only" if args.demo else "read-only")
+                                   lab=args.lab, data_dir=args.data_dir,
+                                   opencode=args.opencode, workspace=args.workspace,
+                                   model=args.model)
+            mode = "OpenCode typing" if args.opencode else ("lab" if args.lab else ("demo archive · read-only" if args.demo else "read-only"))
             print(f"Observatory: http://127.0.0.1:{server.server_port} ({mode})", flush=True)
             try:
                 server.serve_forever()
