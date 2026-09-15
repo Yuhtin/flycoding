@@ -34,6 +34,7 @@ _PLAYER = {
     "/watch/activity.json": ("watch/activity.json", "application/json; charset=utf-8"),
 }
 _WORKSTATION = {
+    "/keyboard.wav": ("keyboard.wav", "audio/wav"),
     "/workstation-view.js": ("workstation-view.js", "text/javascript; charset=utf-8"),
     "/workstation-state.mjs": ("workstation-state.mjs", "text/javascript; charset=utf-8"),
     "/workstation-audio.mjs": ("workstation-audio.mjs", "text/javascript; charset=utf-8"),

@@ -112,6 +112,10 @@ test('prepare decodes keyboard sprite and key selects varied nonrepeating slots'
   assert.equal(first.playbackRate.value >= .94 && first.playbackRate.value <= 1.06, true);
   assert.equal(second.playbackRate.value >= .94 && second.playbackRate.value <= 1.06, true);
   assert.equal(first.stopped.length >= 2, true);
+  for (let index = 0; index < 14; index++) audio.key('a');
+  const sources = FakeAudioContext.instances[0].sources;
+  assert.equal(new Set(sources.map(source => source.started[0][1])).size, 16);
+  assert(new Set(sources.map(source => source.playbackRate.value)).size > 8);
   audio.dispose();
 });
 
@@ -150,4 +154,18 @@ test('scheduleSound uses the real sprite slot and bounded playback', () => {
   assert.equal(node.disconnected, true);
   assert.equal(filter.disconnected, true);
   assert.equal(output.disconnected, true);
+});
+
+test('disposing during sample loading prevents late audio activation', async () => {
+  let finishFetch;
+  const audio = createWorkstationAudio({AudioContext: FakeAudioContext,
+    fetch: () => new Promise(resolve => { finishFetch = resolve; })});
+  audio.start();
+  const preparing = audio.prepare();
+  audio.dispose();
+  finishFetch(await fakeFetch());
+  assert.equal(await preparing, false);
+  assert.equal(await audio.prepare(), false);
+  assert.equal(audio.isPrepared(), false);
+  assert.equal(audio.key('a'), false);
 });

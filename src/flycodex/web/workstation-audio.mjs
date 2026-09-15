@@ -104,12 +104,14 @@ export function scheduleSound(context, buffer, {slot = 0, playbackRate = 1, gain
   const end = time + KEY_SAMPLE_MS / 1_000 / rate;
   source.buffer = buffer;
   filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(4500, time);
+  filter.frequency.setValueAtTime(12000, time);
   filter.Q.value = .7;
   source.playbackRate.value = rate;
   output.gain.value = 0;
   output.gain.setValueAtTime(.0001, time);
-  output.gain.exponentialRampToValueAtTime(Math.max(.001, Number(gain) || .6), time + .002);
+  const level = Math.max(.001, Number(gain) || .6);
+  output.gain.exponentialRampToValueAtTime(level, time + .001);
+  output.gain.setValueAtTime(level, end - .008);
   output.gain.exponentialRampToValueAtTime(.0001, end);
   let cleaned = false;
   const cleanup = () => {
@@ -145,6 +147,7 @@ export function createWorkstationAudio({AudioContext: Context = globalThis.Audio
   let preparePromise = null;
   let pressIndex = 0;
   let lastSlot = -1;
+  let unusedSlots = [];
   const activeNodes = new Set();
 
   function silence() {
@@ -180,7 +183,8 @@ export function createWorkstationAudio({AudioContext: Context = globalThis.Audio
   }
 
   async function prepare() {
-    if (disposed || sampleBuffer) return Boolean(sampleBuffer);
+    if (disposed) return false;
+    if (sampleBuffer) return true;
     if (preparePromise) return preparePromise;
     const current = unlock();
     if (!current || typeof fetchImpl !== 'function' || typeof current.decodeAudioData !== 'function') return false;
@@ -206,6 +210,7 @@ export function createWorkstationAudio({AudioContext: Context = globalThis.Audio
     silence();
     pressIndex = 0;
     lastSlot = -1;
+    unusedSlots = [];
     unlock();
   }
 
@@ -215,8 +220,19 @@ export function createWorkstationAudio({AudioContext: Context = globalThis.Audio
     pressIndex += 1;
     if (muted || stopped || !context || !output || !sampleBuffer) return false;
     try {
-      let slot = hash % KEY_SPRITE_SLOTS;
-      if (slot === lastSlot) slot = (slot + 1) % KEY_SPRITE_SLOTS;
+      if (!unusedSlots.length) {
+        unusedSlots = Array.from({length: KEY_SPRITE_SLOTS}, (_, index) => index);
+        let seed = hash;
+        for (let index = unusedSlots.length - 1; index > 0; index--) {
+          seed = (Math.imul(seed, 1_664_525) + 1_013_904_223) >>> 0;
+          const other = (seed >>> 8) % (index + 1);
+          [unusedSlots[index], unusedSlots[other]] = [unusedSlots[other], unusedSlots[index]];
+        }
+        if (unusedSlots.at(-1) === lastSlot) {
+          [unusedSlots[0], unusedSlots[unusedSlots.length - 1]] = [unusedSlots.at(-1), unusedSlots[0]];
+        }
+      }
+      const slot = unusedSlots.pop();
       lastSlot = slot;
       const playbackRate = .94 + ((hash >>> 8) % 1_201) / 1_200 * .12;
       const level = .54 + ((hash >>> 20) % 1_001) / 1_000 * .12;
@@ -263,6 +279,7 @@ export function createWorkstationAudio({AudioContext: Context = globalThis.Audio
 
   function dispose() {
     disposed = true;
+    sampleBuffer = null;
     stop();
     try {
       const closed = context?.close?.();

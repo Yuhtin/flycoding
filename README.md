@@ -5,9 +5,11 @@
 **A simulated fly brain picks the prompt. OpenCode or Codex does the coding.**
 
 A fly at a keyboard. Each tap reveals one character and plays one mechanical
-key sound, at **70 WPM**. Edit the prompt and press **Play**. When connected,
+key sound, at **100 WPM**. Edit the prompt and press **Play**. When connected,
 OpenCode receives the completed prompt and its actual response appears in cyan.
 The body uses real [flybody](https://github.com/TuragaLab/flybody) geometry.
+Keyboard audio uses 16 real key recordings, with subtle pitch and volume
+variation on each tap. Samples are loaded before typing begins.
 
 The interactive typing mode is procedural; it does not run the neural model.
 The earlier measured brain experiment remains available at **/recording**.

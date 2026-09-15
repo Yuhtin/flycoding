@@ -49,13 +49,13 @@ function render() {
   byId('decision-text').scrollTop = byId('decision-text').scrollHeight;
   byId('hud-active').textContent = snapshot.count;
   byId('hud-rate').textContent = snapshot.count;
-  const label = ({ready: 'Ready · press Play', typing: 'Typing · 70 WPM', paused: 'Paused', sending: 'Sending to OpenCode…', running: 'OpenCode is responding', complete: 'Complete · play again', error: 'OpenCode error · try again'})[status];
+  const label = ({preparing: 'Loading keyboard sounds…', ready: 'Ready · press Play', typing: 'Typing · 100 WPM', paused: 'Paused', sending: 'Sending to OpenCode…', running: 'OpenCode is responding', complete: 'Complete · play again', error: 'OpenCode error · try again'})[status];
   byId('player-status').textContent = label;
   byId('hud-state').textContent = label;
   play.textContent = typing ? 'Pause' : status === 'running' ? 'Cancel' : status === 'complete' || status === 'error' ? 'Play again' : 'Play';
-  play.disabled = !ready || !connectionReady || status === 'sending' || !input.value.trim();
-  input.disabled = ['typing', 'paused', 'sending', 'running'].includes(status);
-  byId('restart-button').disabled = status === 'running' || status === 'sending';
+  play.disabled = !ready || !connectionReady || ['sending', 'preparing'].includes(status) || !input.value.trim();
+  input.disabled = ['typing', 'paused', 'preparing', 'sending', 'running'].includes(status);
+  byId('restart-button').disabled = status === 'running' || ['sending', 'preparing'].includes(status);
   view?.setState({mode: 'working', elapsedMs: snapshot.elapsedMs, typing: snapshot.typing});
   view?.setPaused(!typing || reducedMotion.matches);
   history();
@@ -71,7 +71,7 @@ function tick(timestamp) {
   const delta = previousTime === null ? 0 : timestamp - previousTime;
   previousTime = timestamp;
   snapshot = session.tick(delta);
-  if (snapshot.contact) audio.key();
+  if (snapshot.contact) audio.key(snapshot.typing.key);
   render();
   if (snapshot.complete) {
     stopClock();
@@ -162,10 +162,17 @@ play.addEventListener('click', async () => {
     catch (error) { message(error.message); }
     return;
   }
-  if (!ready || status === 'sending') return;
+  if (!ready || ['sending', 'preparing'].includes(status)) return;
   if (status !== 'paused') reset();
-  status = 'typing';
+  status = 'preparing';
   audio.start(null);
+  render();
+  const soundsReady = await audio.prepare();
+  if (disposed || status !== 'preparing') return;
+  audioButton.disabled = !soundsReady;
+  audioButton.textContent = soundsReady ? (audio.isMuted() ? 'Sound off' : 'Sound on') : 'Sound unavailable';
+  audioButton.setAttribute('aria-pressed', String(soundsReady && !audio.isMuted()));
+  status = 'typing';
   byId('details').open = false;
   message('The fly is typing your prompt…');
   render();
@@ -180,7 +187,7 @@ audioButton.addEventListener('click', () => {
   audioButton.setAttribute('aria-pressed', String(!muted));
   audioButton.setAttribute('aria-label', muted ? 'Unmute sound effects' : 'Mute sound effects');
 });
-document.addEventListener('visibilitychange', () => { if (document.hidden && status === 'typing') pause(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && ['typing', 'preparing'].includes(status)) pause(); });
 reducedMotion.addEventListener('change', render);
 view = createWorkstationView(byId('body-stage'), {
   screenElement: screen,

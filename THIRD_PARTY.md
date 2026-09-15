@@ -1,5 +1,13 @@
 # Third-party notices
 
+- Keyboard audio: 16 single-key recordings from **Keyboard Soundpack #1** by
+  **unicaegames**, released under [CC0-1.0](https://creativecommons.org/publicdomain/zero/1.0/).
+  [Original pack](https://opengameart.org/content/keyboard-soundpack-1-typing-and-single-keystrokes).
+  Recorded on a Cherry KC 1000 with a Shure SM7B. Flycoding trims leading silence,
+  normalizes levels, and fades each press into a 90 ms clip. Source hashes and
+  modifications are in [keyboard-sources.json](src/flycodex/web/keyboard-sources.json).
+  Rebuild with `uv run python tools/build_keyboard_sound.py path/to/source.zip`.
+
 - The neural importer, graph compiler, visual projection, C++ spiking kernel,
   and candidate plasticity rule are adapted from Stonkfly revision
   `78ef3e05ab0fa086032098558d893667068944a0`, itself derived from DOOMFLY.
